@@ -1,6 +1,6 @@
 ---
 name: docs-sync
-description: Before staging a commit in the cgg repo, verify that user-visible surface changes (CLI flags, output formats, supported languages, resolver behavior, performance numbers) are reflected in README.md, the embedded mermaid graphs, the SKILL.md files under skills/, and any benchmark scripts. Trigger when about to `git commit` or open a PR, or after editing crates/cgg/src/cli.rs, crates/cgg-lang/src/plugins.rs, crates/cgg-resolve/**, scripts/benchmark.sh, or any flag/help-text/output-format code path. The pre-commit hook already regenerates the three embedded mermaid blocks via scripts/update-readme-graphs.py — this skill covers everything else: prose, flag tables, language tables, and skill copy that the hook does not touch.
+description: Before staging a commit in the cgg repo, verify that user-visible surface changes (CLI flags, output formats, supported languages, resolver behavior, performance numbers) are reflected in README.md, the embedded mermaid graphs, the SKILL.md files under skills/, and any benchmark scripts. Trigger when about to `git commit` or open a PR, or after editing crates/cgg/src/cli.rs, crates/cgg-lang/src/plugins.rs, crates/cgg-resolve/**, scripts/benchmark.sh, or any flag/help-text/output-format code path. The pre-commit hook already regenerates the three embedded mermaid blocks and the externals report block via scripts/update-readme-graphs.py, and the self-stats line — this skill covers everything else: prose, flag tables, language tables, and skill copy that the hook does not touch.
 ---
 
 # docs-sync — keep cgg docs honest
@@ -20,7 +20,8 @@ Pre-commit, or right after editing any of:
   lives here since the 0.6.0 library split: phase order, audit shape,
   emission order. `main.rs` is only the CLI shim around it.
 - `crates/cgg/src/options.rs` / `outcome.rs` — `RunOptions`,
-  `RunOutcome`, `Emission`: the library contract both front ends share
+  `RunOutcome`, `Emission`: the library contract all four front ends
+  (CLI, cgg-py, cgg-ffi, cgg-node) share
 - `crates/cgg-lang/src/plugins.rs` and `crates/cgg-lang/src/plugins/**`
   — language support changes
 - `crates/cgg-resolve/**` — resolver behavior, FFI detection,
@@ -36,10 +37,11 @@ effect (private helpers, test-only code, formatting).
 
 `.githooks/pre-commit` regenerates **three** embedded mermaid blocks in
 `README.md` — `<!-- cgg:begin:walk -->`, `<!-- cgg:begin:lang -->` and
-`<!-- cgg:begin:self -->` — by running the freshly built `cgg` and
+`<!-- cgg:begin:self -->` — plus the `--externals` text report in
+`<!-- cgg:begin:externals -->`, by running the freshly built `cgg` and
 piping through `scripts/update-readme-graphs.py`, then patches the
 `<!-- cgg:begin:self-stats -->` line via `scripts/update-readme-stats.py`.
-**Don't hand-edit those four regions.**
+**Don't hand-edit those five regions.**
 
 This skill covers everything *outside* those markers.
 
@@ -63,7 +65,7 @@ touches X, verify Y."
 | A CLI flag that changes the graph | It is routed into `RunOptions` (`crates/cgg/src/options.rs`) **and** exposed as a `cgg-py` keyword argument, with the stub in `crates/cgg-py/python/cgg/_cgg.pyi` updated. `From<&Cli>` destructures with no `..` rest, so the compiler catches the first half; `docs-check.py` check 8 catches the second, unless you list the field in its `PY_DEFERRED_OPTIONS` with a reason. |
 | `crates/cgg/src/lib.rs` public API (`analyze`, `RunOptions`, `RunOutcome`, `Emission`) | `crates/cgg-py/src/lib.rs` still compiles and the parity test in `crates/cgg-py/tests/test_analyze.py` still passes. `CLAUDE.md`'s **cgg (library + binary)** bullet matches. |
 | Anything under `crates/cgg-py/` | `README.md`'s "## Python" section and `crates/cgg-py/README.md` agree, and every measured number in them was re-measured, not carried over. |
-| `LanguagePlugin::extract` signature or `ExtractCtx` | All 44 plugins updated; `CLAUDE.md`'s "Adding a new language" step 2 matches. No new process-global — that is the bug `ExtractCtx` exists to prevent. |
+| `LanguagePlugin::extract` signature or `ExtractCtx` | All 46 plugins updated; `CLAUDE.md`'s "Adding a new language" step 2 matches. No new process-global — that is the bug `ExtractCtx` exists to prevent. |
 | A `Box::leak` / `.leak()` / `mem::forget` anywhere in the pipeline crates | It is in `ALLOWED_LEAKS` in `scripts/docs-check.py` **with a reason that does not depend on the process exiting**. `cgg::analyze` runs in a loop from the library, cgg-py and cgg-ffi. Check 9 fails otherwise. |
 | Anything that writes to stdout/stderr | It is an `Emission` on the transcript (`crates/cgg/src/outcome.rs`), in the right position, with the right `-q` gating. `crates/cgg/tests/cli_surface.rs` asserts on both streams; add a case if the position is new. |
 
@@ -76,14 +78,14 @@ assert a count or a flag from memory.
 # Real CLI surface — the source of truth
 ./target/release/cgg --help
 
-# Count language plugins actually registered (44 at time of writing).
+# Count language plugins actually registered (46 at time of writing).
 # NB: the calls read `reg.register(...)`, so a `plugin.register` grep
 # silently returns zero and "proves" nothing changed.
 grep -c 'register(' crates/cgg-lang/src/plugins.rs
 
 # Benchmark corpus size — parse the array, don't count quoted lines.
 # `grep -c '^    "' scripts/benchmark.sh` counts APPS and everything
-# else too (131), not the 45 REPOS entries.
+# else too (327), not the 47 REPOS entries.
 python3 -c 'import re;t=open("scripts/benchmark.sh").read();m=re.search(r"REPOS=\(\s*\n(.*?)\n\)",t,re.S);print(sum(1 for l in m.group(1).splitlines() if l.strip().startswith(chr(34))))'
 
 # Every consistency invariant at once — the cheapest gate there is
@@ -128,6 +130,8 @@ pre-commit hook, and it enforces:
 12. A skill stating how many checks this file has is right.
 13. `crates/cgg-node/index.js`'s hardcoded binding version equals
     `package.json`'s — regenerate with `napi build`, never by hand.
+14. No Cargo manifest carries a `[patch]`/`[replace]` section or a git
+    dependency (both break `cargo install` from crates.io).
 
 Plus one unnumbered check: every enumerating framework rule id in
 `rules.rs` is named by a `benchmark.sh` `APPS` entry or declared in
@@ -157,7 +161,8 @@ every user who re-runs the installer, so:
   hook does that.
 - Does not auto-commit — surfaces the diff to fix; the human/agent
   edits and stages.
-- Does not enforce style — there is no lint step beyond `cargo`'s.
+- Does not enforce style — the pre-commit hook runs markdownlint, and
+  `scripts/release.sh` gates on clippy, `cargo fmt --check` and ruff.
 - Does not cover pushing or releasing — that is the `push` skill.
 
 The goal is "the README and SKILL.md describe what the code actually

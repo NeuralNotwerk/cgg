@@ -1,6 +1,8 @@
 # rust
 
-The Rust plugin (`RustPlugin`, `crates/cgg-lang/src/plugins/rust.rs`, about 4,260 lines including inline tests) is cgg's most detailed language plugin. It uses the `tree-sitter-rust` crate from crates.io (`tree_sitter_rust::LANGUAGE`, rust.rs:51-53); nothing is vendored. One recursive `Walker` pass (rust.rs:464-716) builds a scope stack of crate root, modules, `impl` blocks and traits. In that pass it records definitions, call sites, `use` imports, struct fields (used for `self.field` typing), `let` types, attributes and macro data. Post-passes then add `self.<field>` local types (rust.rs:2363) and `ClassDecl` links for `Deref` targets and type aliases (rust.rs:2704). A small `macro_rules!` expander lives in `plugins/rust_macro.rs`. The plugin declares the signals `value_refs`, `attributes`, `exports`, `impls`, `test_defs`, `unreachable` and `visibility` (rust.rs:38-49). Resolution is not delegated to any generic resolver kind. Rust has the most dedicated logic in `cgg-resolve`: about 279 `"rust"` mentions in `cross_file.rs`, plus steps 3b, 3c, 4a, 4b and 4c, Rust-only visibility filtering, crate anchoring, trait-overload narrowing and the opt-in `--guess-unique-names`.
+> Revised 2026-11-25 against cgg 0.13.3: `#[cfg(test)]` code is now test support, trait signatures are tagged `abstract`, closure parameters shadow, module aliases and `pub use`-re-exported types head paths exactly, unreachable regions are read under `--dead-code`, and receiver calls narrow to methods and facades. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Rust plugin (`RustPlugin`, `crates/cgg-lang/src/plugins/rust.rs`, about 4,435 lines including inline tests) is cgg's most detailed language plugin. It uses the `tree-sitter-rust` crate from crates.io (`tree_sitter_rust::LANGUAGE`, rust.rs:51-53); nothing is vendored. One recursive `Walker` pass (rust.rs:464-716) builds a scope stack of crate root, modules, `impl` blocks and traits. In that pass it records definitions, call sites, `use` imports, struct fields (used for `self.field` typing), `let` types, attributes and macro data. Post-passes then add `self.<field>` local types (rust.rs:2363) and `ClassDecl` links for `Deref` targets and type aliases (rust.rs:2704). A small `macro_rules!` expander lives in `plugins/rust_macro.rs`. The plugin declares the signals `value_refs`, `attributes`, `exports`, `impls`, `test_defs`, `unreachable` and `visibility` (rust.rs:38-49). Resolution is not delegated to any generic resolver kind. Rust has the most dedicated logic in `cgg-resolve`: about 279 `"rust"` mentions in `cross_file.rs`, plus steps 3b, 3c, 4a, 4b and 4c, Rust-only visibility filtering, crate anchoring, trait-overload narrowing and the opt-in `--guess-unique-names`.
 
 ## 01. Detection & parsing
 
@@ -29,7 +31,7 @@ Variant classification is in rust.rs:767-778, and QNs are joined by `qualified_n
 - **`pub`/`async`/`unsafe`/`const` functions**. `async` (direct or inside `function_modifiers`) makes the variant `AsyncFunction` whatever the scope (rust.rs:747-768). `unsafe fn` and `const fn` are ordinary functions. Test `visibility_and_async_captured` (rust.rs:3986). Fixture: `Circle::konst` (const) and `Circle::uns` (unsafe) were both extracted as methods.
 - **Inherent method** `impl Type { fn m(&self) {} }` becomes `InherentMethod`, QN `<crate>::Type::m`. Test `method_in_impl` (rust.rs:3172).
 - **Trait-impl method** `impl Trait for Type { fn m() }` becomes `TraitMethod`, QN `<crate>::<Type as Trait>::m` (rust.rs:540-574). The trait name is kept in `DefRecord::base_types` (rust.rs:563-566). The driver derives `CallableNode::trait_impl_target` from the QN (cgg/src/lib.rs:2478). Test `trait_impl_method` (rust.rs:3605). Fixture: `fx_crate::<Circle as Shape>::area` with `trait_impl_target = Shape`.
-- **Trait declaration, with or without a default body**: `trait T { fn decl(&self); fn dflt(&self) {} }`. The bodiless form is a `function_signature_item` and is recorded too (rust.rs:599-606). Both become `TraitDefaultMethod` with QN `<crate>::T::m`. Visibility is `Public` when the trait is plain `pub`, otherwise `Unknown` (rust.rs:789-801). Test `trait_items_inherit_visibility_rather_than_claiming_private` (rust.rs:3624).
+- **Trait declaration, with or without a default body**: `trait T { fn decl(&self); fn dflt(&self) {} }`. The bodiless form is a `function_signature_item` and is recorded too (rust.rs:599-606). Both become `TraitDefaultMethod` with QN `<crate>::T::m`. Visibility is `Public` when the trait is plain `pub`, otherwise `Unknown` (rust.rs:789-801). Test `trait_items_inherit_visibility_rather_than_claiming_private` (rust.rs:3624). A signature without a default body is also tagged `abstract` (`attrs::mark_abstract_from`, rust.rs:630; test `trait_method_signatures_are_tagged_abstract`), so duck-typed fan-out drops it when a concrete impl survives. Fixture (0.13.3): `fx::Shape::area` attributes `['abstract']`, `fx::Shape::describe` (default body) none.
 - **Foreign declarations** `extern "C" { fn c_side(x: i32) -> i32; }` are recorded as a `function_signature_item` and become a private free-function node with no body. Fixture: `fx_crate::c_side` exists, and `calls_c -> c_side` is high.
 - **Associated functions** `fn new() -> Self` are inherent methods (kind `method`). There is no separate `Constructor` variant for Rust. Fixture: `Circle::new` kind `method`.
 - **Named closure** `let inc = |x| x + 1;` becomes `NamedClosure` (rust.rs:1303-1332; test `named_closure_is_callable`, rust.rs:3887). **Partial**: the QN uses the *module/impl* scope, not the enclosing function. Fixture: a closure `shadow_me` inside `main` got QN `f3::shadow_me`, the same QN as the free function `fn shadow_me`. Also `Holder::f` for a closure inside `Holder::run`.
@@ -74,7 +76,7 @@ Variant classification is in rust.rs:767-778, and QNs are joined by `qualified_n
   - Rust uses the sentinel receiver, not `RefRecord::value_ref` (value_refs.rs is written for the Java/C#/Python receiver-carrying form).
 - **Synthetic spawn edge**: spawner to `closure_at_N`/`async_at_N` (section 02).
 - **Literal argument type**: `RefRecord::arg_type` comes from a sole argument that is a literal (`&str`, `&[u8]`, `char`, `u8`, `bool`, suffixed numbers), a `format!`, or `.to_string()` (rust.rs:2097-2157). A variable or `self.field` argument (optionally `.clone()`d) becomes `ARG_VAR_PREFIX<name>`, settled later by type_hints (rust.rs:2160-2193). Test `literal_argument_types_are_recorded` (rust.rs:3743).
-- **Arity**: not recorded. `ref_from_call` never sets `RefRecord::arity`, and Rust is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583, which lists `java`, `scala` and `cpp`).
+- **Arity**: not recorded. `ref_from_call` never sets `RefRecord::arity`, and Rust is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357; eight languages, all with overloading).
 - **Not recorded**:
   - Operator uses (`d + e`, `x[i]`, `*x`, `?`). Fixture: no edge to `<Square as Add>::add`, which is rooted instead (section 12).
   - Calls through a closure-typed field `(w.cb)()`. Fixture f3: no edge.
@@ -95,6 +97,7 @@ Variant classification is in rust.rs:767-778, and QNs are joined by `qualified_n
   - In `use`, they are rewritten against the file's own module (`rust_own_module` cross_file.rs:801, `rewrite_rust_use_path` cross_file.rs:831).
   - In call receivers, they are handled by step 3c (cross_file.rs:6223) and the test `rust_super_receiver_rewritten_via_caller_module` (cross_file.rs:8463).
   - Stated limitation: in a file whose definitions all sit in one `impl`, `self::` rewrites to `module::Type` and fails closed (cross_file.rs ~785-800 doc comment).
+- **Module aliases and re-exported path heads** (0.13.2): `use llm_v2 as llm;` in a crate root makes `crate::llm::f`, `super::llm::f` and a submodule's `use crate::llm; llm::f()` bind only `llm_v2::f`, at high; `lookup_in_language` rewrites a re-exported or aliased module or type heading a path, longest prefix first, so `RegexMatcher::new` after `use grep_regex::RegexMatcher;` follows the `pub use` instead of fanning out to every `RegexMatcher`. Fixture (0.13.3): `mod llm_v2; mod other; use llm_v2 as llm; … llm::classify()` with a second `other::classify` bound only `fy::llm_v2::classify`, high. Test `crates/cgg/tests/confidence.rs::a_module_alias_binds_only_the_module_it_names`.
 - **Rust 2018 uniform paths to child modules**: in a module declaring `mod expand;`, `use expand::run` resolves to `<own>::expand::run` (`rust_child_module_path`, cross_file.rs:881).
 - **`mod x;` declarations**:
   - Each records a `use self::x as x` import, so `x::f()` is never mistaken for an external crate. This includes `#[path = ".."] mod perf;` (rust.rs:508-529; test `lib_target_name_and_mod_declarations_are_in_scope`, rust.rs:3487).
@@ -156,7 +159,7 @@ Variant classification is in rust.rs:767-778, and QNs are joined by `qualified_n
 - **Local trait impls for std types are not indexed under the bare owner**: `impl From<X> for String` does not capture `String::from(..)` (`STD_CORE_TYPES` cross_file.rs:53, `is_std_type_local_trait_impl` 350). Tests `rust_std_from_call_does_not_bind_to_local_from_impl` (9747) and `std_type_local_trait_impl_not_captured_by_bare_owner_name` (9818).
 - **Extension-trait impls on containers** (`impl MyExt for Vec<T>`) are reached by a value typed as the container (test `rust_value_typed_as_container_reaches_its_extension_trait_impl`, cross_file.rs:8754).
 - **Enum-variant receivers** `MyEnum::Variant.m()` resolve to the owner's method (test `rust_enum_variant_receiver_resolves_to_owner_method`, 9583).
-- **Duck-typed fan-out for untyped receivers** (step 5, cross_file.rs:6843) is bounded by `--fanout-cap`.
+- **Duck-typed fan-out for untyped receivers** (step 5, cross_file.rs:6843) is bounded by `--fanout-cap`. Rust is in `RECEIVER_METHOD_LANGS` (cross_file.rs:5560): a receiver call's set that mixes methods and free functions keeps the methods, and when one candidate calls another through a `high` edge the site goes to that facade only. Bodiless trait signatures (`abstract`) are dropped when a concrete impl survives.
   - `RUST_UNTYPED_ADAPTER_METHODS` (`ok`, `err`, `as_deref`) are never fanned out (stdlib.rs:92; test `rust_result_adapters_are_not_fanned_out_by_name`, 14623). `stdlib/rust.txt` names are screened too.
   - Fixture: `unknown_thing.put()` produced medium edges to `Backend::put`, `<Mem as Backend>::put` and `<Disk as Backend>::put`.
 - **`super`/`base`**: not applicable. Rust `super::` is a module path; evidence.rs:184 explicitly excludes Rust from `SuperBaseOutOfGraph` handling.
@@ -172,7 +175,8 @@ Variant classification is in rust.rs:767-778, and QNs are joined by `qualified_n
   - Functions: `function_item` and `closure_expression`. Destructuring patterns are covered.
   - Tests: `a_declaration_is_not_in_scope_in_its_own_initializer` (locals.rs:714-745, Rust cases `let now = now()`, `if let`, `while let`, `if a && let`, `for`) and the Rust case at locals.rs:786.
 - **`shadowed-by-local`**: a bare call through a parameter or local is never another file's function. Intra-file, same-named definitions outside the binding's function are dropped (test `a_parameter_or_local_shadows_the_files_function`, intra_file.rs:1102). Macro invocations are never shadowed (CLAUDE.md, phase 3 description).
-- **Lexical narrowing of nested definitions**: `rust` is in the lexical-narrowing allowlist (intra_file.rs:120-136).
+- **Lexical narrowing of nested definitions**: `rust` is in the lexical-narrowing allowlist (intra_file.rs:157). A lone nested `fn` called from a function that does not enclose it is kept, at **medium** (fixture: `other_caller() { inner() }` beside `fn outer() { fn inner() {} }` bound `fy::inner` medium, intra-file). Rust is not in `cross_file::nested_function_ids`, so another file can still reach a nested fn by name.
+- **Closure parameters shadow**: `|helper: i32| helper()` is `shadowed-by-local`, not a call to the file's `fn helper` (fixture f1, 0.13.3).
 - **Positional shadowing**: **not** applied to Rust; it covers only OCaml, F# and Lua.
   - Fixture f3: `shadow_me();` written *before* `let shadow_me = || 1;` was bound to the closure node rather than the free `fn shadow_me`.
   - Both nodes share the QN `f3::shadow_me` (see section 02), so the two edges both landed on the closure (start line 32).
@@ -272,7 +276,7 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 - **Plugin-side `test_role`**: `rust_test_role` (rust.rs:3069-3100) marks last segment `test` or `*_test`, plus `bench`, `rstest`, `proptest`, `quickcheck` and `test_case`, as `TestRole::Case`. Test `test_attributes_are_read_by_their_last_segment` (rust.rs:3109). Dead-code `TEST_ATTRS` (roots.rs:211) plus the `_test` suffix (roots.rs:717) feed coverage.
 - **Naming patterns**: none. `is_test_name("rust", _)` returns false: "a bare `test_` fn is not a test" (roots.rs:986).
 - **Test-file gating**: only crate-level `tests/` or `benches/` containers count as test files (testfile.rs:69-74). Definitions there with no marker get `TestRole::Support` (cgg/src/lib.rs:636-643). Fixture: `benches/b.rs::bench_fn` has `test_role = support`.
-- **Partial: helpers inside `#[cfg(test)] mod tests` are not test code**. The testfile.rs comment says the in-file `#[cfg(test)]` signal handles them, but no code path assigns a role from `#[cfg(test)]` on the enclosing module. Fixture: `fx_crate::tests::test_helper` has `test_role = None` and was reported as a **high** production dead-code finding.
+- **Items under `#[cfg(test)]` are test support**: a `#[cfg(test)]` `mod`/`impl`/`trait`, any module nested in one, `#[cfg(all(test, …))]`, a file-level `#![cfg(test)]` and attributed items get `TestRole::Support` (`cfg_test` depth counter, rust.rs:491-543). Fixture (0.13.3): `fx::tests::test_helper` has `test_role = support` and is not a production dead-code finding.
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: not applicable (Python, PHP and Ruby only; rules.rs:11806).
 - **Not supported**:
   - `proptest! { .. }` and other macro-defined tests: the `proptest` attribute is listed, but the common macro form generates tests that are never expanded (unverified by fixture).
@@ -283,7 +287,7 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 ## 12. Dead-code analysis
 
 - **Signals extracted** (rust.rs:38-49; deadcode/caps.rs test at 312-317 asserts `visibility` and `attributes` are Full for Rust): visibility, attributes, value refs (`VALUE_REF_HINT`), exports (`pub use`), impls, test defs, and unreachable-after-terminator.
-  - The unreachable check uses `cfg::RUST` (cfg.rs:57-70), whose terminators are `return_expression`, `break_expression` and `continue_expression` only. `panic!()`, `unreachable!()`, `todo!()` and `std::process::exit` are not terminators.
+  - The unreachable check uses `cfg::RUST` (cfg.rs:57-70), whose terminators are `return_expression`, `break_expression` and `continue_expression` only. `panic!()`, `unreachable!()`, `todo!()` and `std::process::exit` are not terminators. A block holding `#[cfg(…)]` statements is never a region. Under `--dead-code` an edge from a site in a region is capped at medium and keeps nothing alive (`incoming-only-from-unreachable-code`). Fixture (0.13.3): `return; helper();` gave `after_ret -> helper` medium, while `panic!("x"); helper();` stayed high.
   - The fixture capability table reads `rust … analyzable vis yes attrs yes refs yes disp yes`.
 - **Root kinds for Rust** (deadcode/roots.rs):
   - `builtin:main` for `main` and `_start` (`LANG_ENTRY` roots.rs:31).
@@ -313,7 +317,6 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 - **`reflection` cap**: not applicable (section 15).
 - **Known false-positive classes**:
   - Trait-declaration methods with in-degree zero, and impls reached only via a trait (README "Potential future improvements").
-  - `#[cfg(test)] mod` helpers reported as production code (section 11).
   - Closure bodies passed to non-spawn APIs (rust-runtime gap).
 
 ## 13. Builtins & stdlib tables
@@ -334,6 +337,7 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 - **Implicit packages** (`SCALA_IMPLICIT_PACKAGES`-like): none. `std`, `core` and `alloc` heads are always external (step 4c).
 - **`--include-stdlib` / `--include-external`** add low-confidence `<stdlib>::…` and `<external>::…` exit nodes (fixture f3: `<external>::tokio::spawn`, `<external>::Vec<u8>::len`). Note that `Vec<u8>::len` on a `let v: Vec<u8>` was classified *external*, not stdlib.
 - **Noise macros** (rust.rs:2630-2673) are dropped before resolution, so they never appear as unresolved or external.
+- **`--externals[=KINDS]`** (0.12.0) attributes every post-reconciliation stdlib/external site to a library and kind (`third-party`, `stdlib`, `system`, `native`, `process`, `unattributed`) without changing any in-tree edge; Rust also reads `#[link]` extern blocks (`cgg_lang::externals`). Row: `crates/cgg/tests/externals.rs:65`.
 
 ## 14. Confidence & certainty
 
@@ -380,7 +384,6 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 - **Path-qualified FFI attributes** (`#[pyo3::pyfunction]`, `#[wasm_bindgen::prelude::wasm_bindgen]`) are not linked by ffi.rs (fixture ws2 vs ws3).
 - **wasm-bindgen and uniffi Pass-B links are not language-restricted**: a Python stub got linked to a wasm export (fixture ws3; ffi.rs:694-707).
 - **JNI** (`extern "system" fn Java_…`) is not modelled, and `extern "system"` is not recorded (rust.rs:814).
-- **`#[cfg(test)] mod tests` helpers** have no test role, so they show up as high dead-code findings (fixture). testfile.rs:69-71 claims an in-file signal that the code does not provide.
 - **`#[cfg]` is not evaluated**: twins both bind at medium.
 - **Operators, `?`, indexing, `Deref` coercion and `Drop`** produce no call edges. Their impls are rooted instead (`IMPLICIT_RUST_TRAITS`).
 - **Closures passed to non-spawn APIs and `Box<dyn Fn>` fields** have no node (`rust-runtime` gap, rules.rs:7862). That gap text is partly stale about `spawn`.
@@ -409,9 +412,9 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 | 08. Macros, preprocessor & codegen | partial | Same-file non-repetition `macro_rules!` only. No proc or derive macros, no `#[cfg]` evaluation |
 | 09. FFI & cross-language links | partial | c-abi, pyo3, napi and wasm-bindgen with bare attributes. Path-qualified attributes are unlinked; no JNI; wasm and uniffi are unrestricted |
 | 10. Frameworks & entry points | partial | 30 rules (19 enumerate, 11 declared gaps). Container attributes for pyo3, graphql and rmcp |
-| 11. Test harness entries | partial | cargo-test and cargo-bench by attribute. `#[cfg(test)]` helpers are not test code; macro tests and criterion are gaps |
-| 12. Dead-code analysis | full | Every signal is extracted, with rich Rust root rules. Known false-positive classes: trait-shaped code and cfg(test) helpers |
+| 11. Test harness entries | partial | cargo-test and cargo-bench by attribute; `#[cfg(test)]` items are test support. Macro tests and criterion are gaps |
+| 12. Dead-code analysis | full | Every signal is extracted, with rich Rust root rules. Known false-positive class: trait-shaped code |
 | 13. Builtins & stdlib tables | full | 346-line `rust.txt` plus the `rust_types` wrapper tables; no cast or construct entries (none needed) |
 | 14. Confidence & certainty | full | Crate-anchored `rust_owner_certain`; opt-in low `--guess-unique-names` (Rust only) |
 | 15. Dynamic use & reflection | none | No dynuse allowlist for Rust; trait objects are handled through dispatch instead |
-| 16. Known gaps & limitations | n/a | 21 items listed above |
+| 16. Known gaps & limitations | n/a | 23 items listed above |

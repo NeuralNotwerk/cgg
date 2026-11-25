@@ -1,5 +1,7 @@
 # r
 
+> Revised 2026-11-25 against cgg 0.13.3: R now has a locals table (parameters, function-body assignments and `for` variables shadow functions), `source()` binds the copy in the file it names (several matching files bind at `medium`), `test-*.R`/`test_*.R` are test files by name, `pkg::f` with a base package (`stats::median`) is screened as stdlib, and shebang matching is by interpreter name. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The R plugin (`RPlugin`, `crates/cgg-lang/src/plugins/r.rs`, 255 lines including 3 inline tests) parses R scripts with the crates.io grammar `tree-sitter-r` (workspace pin `"1.2"` at Cargo.toml:105, resolved to 1.2.0 in Cargo.lock:1715-1716; `tree_sitter_r::LANGUAGE`, r.rs:21-23). Nothing is vendored. It is registered 22nd in `plugins::register_all` (plugins.rs:145).
 
 A single recursive `RWalker` (r.rs:43-199) does three things:
@@ -13,6 +15,7 @@ What the plugin does not do:
 - It does not override `signals()`, so every optional dead-code signal is false (lib.rs:304-306): no visibility, attributes, exports, test_defs, value_refs, dyn_uses, unreachable or impls.
 - It does not override `resolver_kind`, `max_line_bytes` or `ts_language_for`.
 - It ignores `ExtractCtx` (`_ctx`, r.rs:27).
+- Its locals are collected outside the plugin, by `locals::collect_r` (`crates/cgg-lang/src/locals.rs:1416`; see §07).
 
 Resolution uses the generic pipeline. R appears by name in only two resolver places:
 
@@ -30,11 +33,11 @@ Fixtures cited below live under `<scratch>/parity/r/` (f1 … f15, plus `g*` imp
   - f1 `defs.R` → `extension:.R`;
   - f6 `doc.Rmd` → `extension:.Rmd`.
 - **Case handling**: detect.rs:101-125 tries a case-sensitive match first and then the lowercased extension. Matching `.rmd` or `.RMD` against the list therefore finds nothing (the lowercased form `.rmd` is not listed). This is inferred from the code and was not run (unverified).
-- **Shebang needle `Rscript`** (r.rs:18-20). Detection checks whether the shebang line contains the needle, iterating plugins in registration order (detect.rs:62-75). Evidence:
+- **Shebang `Rscript`** (r.rs:18-20). Since 0.11.1 (WS25) the interpreter is the program's basename, or the first operand after `env`, and must equal the keyword or be the keyword followed by a version (`shebang_interpreter`/`interpreter_matches`, `crates/cgg-lang/src/detect.rs:257,306`); a substring no longer matches. Evidence (0.11.0):
   - f6 `main.R` with `#!/usr/bin/env Rscript` → `shebang:Rscript`;
   - f6 extensionless `runme` → `shebang:Rscript`, parsed as R.
 
-  `#!/usr/bin/R` or `#!/usr/bin/env R` (the `R` binary, not `Rscript`) has no needle, so it is not recognised by shebang (unverified, inferred from r.rs:18-20).
+  `#!/usr/bin/R` or `#!/usr/bin/env R` (the `R` binary, not `Rscript`) is not a keyword, so it is not recognised by shebang (inferred from r.rs:18-20 and the exact-match rule; not run).
 - **Not detected** (f6, `file_skipped … unknown-extension`):
   - `.Rprofile`, `.qmd` (Quarto);
   - `DESCRIPTION` and `NAMESPACE` package manifests. They are not read at all; see §04 and §12.
@@ -45,7 +48,7 @@ Fixtures cited below live under `<scratch>/parity/r/` (f1 … f15, plus `g*` imp
 - **Grammar**: one grammar, no dialects, no `ts_language_for` override.
 - **Re-parse/fallback**: none. A file with syntax errors is extracted as-is.
 - **Depth skip**: `MAX_TREE_DEPTH` (4,000) and `SkipReason::TooDeep` are shared by every language (CLAUDE.md, cgg/src/lib.rs). There is no R-specific handling.
-- **Minified / long-line handling**: `max_line_bytes` is not overridden (default `None`, lib.rs:313-315). R has no locals spec (locals.rs:380-393), so the 2,000-byte locals rule has nothing to skip.
+- **Minified / long-line handling**: `max_line_bytes` is not overridden (default `None`, lib.rs:313-315). The shared locals rule skips locals collection in a file with any line over 2,000 bytes.
 
 ## 02. Callables extracted
 
@@ -125,7 +128,9 @@ Import forms recognised (r.rs:128-151). The recorded path is the first argument'
 
 - **`library(pkg)` / `library("pkg")`** → kind `"import"`, path `pkg`. Test `library_is_import` (r.rs:230-243). `library("x", character.only = TRUE)` records `x` (`g*` probe: edge produced).
 - **`require(pkg)`** → kind `"import"` (r.rs:129; `g*` probe: edge produced).
-- **`source("file.R")`** → kind `"source"`, path `file.R` (test `library_is_import`). The resolver handles it like a C `#include` with budget 4 (cross_file.rs:1829-1844, `collect_include_defs`):
+- **`source("file.R")`** → kind `"source"`, path `file.R` (test `library_is_import`). The resolver handles it like a C `#include`:
+  - Since 0.11.1 (WS19) a call binds the copy in the file the `source()` names, never whichever same-named copy was indexed last (`included_copies`, `crates/cgg-resolve/src/cross_file.rs:8485`). Fixture (2026-11-25, `lang-docs/r/b`): `source("b.R")` with `tg` defined in both `b.R` and `z/b.R` binds `./b.R`'s `tg` at `high`.
+  - A path several files share expands to each at `medium` (`uncertain_includes`; `import_binding_certain`, `cross_file.rs:8451`). Fixture `lang-docs/r/a`: `source("helper.R")` with only `x/helper.R` and `y/helper.R` binds `hh()` to both at `medium`.
   - f2: `source("R/util.R")` makes `util_fn` bind at **high**.
   - f2: `R/util.R`'s own `source("../sub/deep.R")` binds `deep_fn` at high from `util.R`.
   - f2: from `main.R`, a function in the twice-removed file (`fn_in_sub`) bound only at **medium** through the step-1d by-name fallback, not through the source closure. The relative path is not re-anchored at the intermediate file; this is observed behaviour, and the mechanism was not traced (unverified).
@@ -184,15 +189,14 @@ Other import handling:
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`: not supported.** R has no entry in `locals::spec` (locals.rs:380-393).
-- **Parameters do not shadow functions** (gap / false edges):
-  - f8c: `caller <- function(target) target()` with `source("b.R")` binds `target()` to `b.R`'s `target` at **high**.
-  - f7: `use_param <- function(cb, helper) { helper(); cb() }`: no import, so the calls are left unresolved (`candidates-in-other-files`). With any import they would bind by name.
-- **Locals do not shadow**: `local_var <- other; local_var()` records `local_var` as an external call (f7 L4-5). This is correct only by accident.
+- **Locals table (WS27, 0.11.1).** `locals::collect_r` (`crates/cgg-lang/src/locals.rs:1416`) records parameters of `function(…)` and `\(…)` and, inside a function, `<-`/`=`/`->` assignments, `assign("x", …)` with a literal name and no environment argument (`cgg_core::stdlib::R_ASSIGN_FUNCTIONS`) and `for` variables, each in scope from the end of its assignment to the end of the function (R scopes by function, not block). `<<-`/`->>` and top-level assignments are not locals. Because R's call lookup skips non-function bindings, a binding known to hold no function shadows nothing: a literal local, a parameter defaulting to a number, string or logical, and a binding of a call of its own name (`x <- x()`). A bare call through any other binding is `shadowed-by-local`. Fixtures (2026-11-25, `lang-docs/r/a`, `lang-docs/r/b`):
+  - `caller <- function(target) target()` with `source("b.R")` is `shadowed-by-local` (it bound `b.R`'s `target` at `high` in 0.11.0, f8c);
+  - `for (target in 1:3) target()` is `shadowed-by-local`;
+  - `function(tg = NULL) tg()` is `shadowed-by-local`, while `function(tg = TRUE) tg()`, `tg <- tg(); tg()` and `assign("tg", 1); tg()` still bind `b.R`'s `tg`.
 - **Lexical narrowing of nested definitions: not applied.** R is not in `lexically_scoped` (intra_file.rs:119-135).
   - f7: `calls_inner <- function() inner()` binds at **high** to the `inner` nested inside `outer1`, which is not visible from `calls_inner` in R (false edge).
   - Two nested `inner`s in different files each bind within their own file (f7 `outer2 -> inner`) only because they are in different files.
-- **Nested redefinition**: f15 `use2 <- function() { dup <- function() 3; dup() }` is `ambiguous-in-file`, so the local definition does not win.
+- **Nested redefinition**: in 0.11.0, f15 `use2 <- function() { dup <- function() 3; dup() }` was `ambiguous-in-file`. Since WS27 a local function binds its own definition: fixture `lang-docs/r/a` `c2 <- function() { target <- function() 2; target() }` binds `c2 -> target` (the nested one) at `high`.
 - **Positional shadowing**: none.
 - **Conditional definitions**: both branches are kept as separate nodes (f1 `condf` ×2). There is no `DefRecord::conditional` marking. A call to `condf()` would be `ambiguous-in-file`, inferred from f15 (unverified for this exact shape).
 
@@ -247,9 +251,7 @@ Synthetic detection evidence comes from test `crates/cgg/tests/detect_prefixes.r
 - **testthat has no enumeration.** The rule exists (`kind: test`, rules.rs:6250-6264) but mints no harness node, because `test_that(...)` blocks are anonymous brace expressions.
   - Calls inside `test_that` are top-level: f5 `setup_cache()` inside `test_that` in `tests/testthat/test-a.R` stays unresolved (`no-candidate-in-file`) and creates no edge.
   - In the same-file case, the `toplevel:invocation` root (§12) could still credit the callee.
-- **Test-file gating**: no R-specific file-name rule in `classify_test_file`. There is no `test-*.R` pattern (testfile.rs:77-121, `_ => false`). Only the generic directory rule applies (`tests`, `test`, … ; testfile.rs:36-46, 125-132).
-  - f5: `helper_in_test` in `tests/testthat/test-a.R` gets `test_role: support` through the directory rule.
-  - A `test-foo.R` outside a test directory would not be classified (inferred from code).
+- **Test-file gating**: since 0.11.1 (WS20) `classify_test_file` has an R arm: `test-*.r`/`test_*.r`, case-insensitive (`crates/cgg-core/src/testfile.rs:148-151`). Fixture (2026-11-25, `lang-docs/r/a`): `test-a.R` at the repository root has `test_role: "file-name"`. The generic directory rule (`tests`, `test`, …) still applies to other files.
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: not applicable (Python/PHP/Ruby only).
 - **Annotation / naming-pattern test rules, benchmark and fuzz harnesses** (`bench::mark`, `microbenchmark`): none for R.
 - **`--no-test-entries`**: has nothing to convert for R.
@@ -281,7 +283,8 @@ Synthetic detection evidence comes from test `crates/cgg/tests/detect_prefixes.r
   - Step 1d skips stdlib names (cross_file.rs:6022-6023).
   - A same-file user definition still wins: f9 `apply <- function(x) x` then `apply(1)` → `caller -> apply` high.
 - **Plugin-level skip list** (r.rs:152-183): 26 names that are never recorded at all (§03). This is separate from `r.txt`.
-- **Namespace-qualified stdlib calls are classified as external, not stdlib**: f2 `stats::median(1)` → `external_calls median`.
+- **Namespace-qualified stdlib calls are screened as stdlib since 0.11.1 (WS25).** A call's own `::` qualifier is checked against `STDLIB_MODULES`, whose R row names the base packages (`base`, `stats`, `methods`, `utils`, …; `crates/cgg-core/src/stdlib.rs:139`). Fixture (2026-11-25, `lang-docs/r/a`): `stats::median(1)` → `stdlib_calls median`, `dplyr::filter(1)` → `external_calls filter`. In 0.11.0 (f2) it was external.
+- **`--externals` (0.12.0)** attributes external sites to a library through `library()`/`require()` imports and process-spawn literals (row `r` in `crates/cgg/tests/externals.rs`: `library(dplyr)` then `dplyr::filter(df)` is `third-party` `dplyr`, `system("ls -la")` is `process` `ls`). It never changes an edge.
 - **`--include-stdlib` / `--include-external`** mint `<stdlib>::name` / `<external>::recv::name` leaf nodes (f14: `<stdlib>::sapply`, `<external>::dplyr::filter`, `<external>::x::m`). Skip-listed names (`print`) never appear.
 - **`rust_types`-like tables, `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, implicit packages**: none for R.
 
@@ -299,9 +302,7 @@ Synthetic detection evidence comes from test `crates/cgg/tests/detect_prefixes.r
   - multi-candidate fan-out (f3 `mutate` ×2).
 - **low**: `framework_entry` edges (f5).
 - **No edge**: same-file duplicates (`ambiguous-in-file`, f15), over-cap fan-out (`fanout-cap-exceeded`, f4), and files with no import (`candidates-in-other-files`, f8).
-- **False highs** occur from missing shadowing and scoping (§07):
-  - f8c: a parameter call binds to a sourced function;
-  - f7: a call binds to a nested `inner` of another function.
+- **False highs** occur from missing lexical scoping (§07): f7, a call binds to a nested `inner` of another function (still true in 0.13.3: fixture `lang-docs/r/a` `c3 <- function(n = 1) { target() }` binds the `target` nested in `c2` at `high`, not `b.R`'s). The f8c parameter case is fixed (`shadowed-by-local`).
 - **Mermaid `?` marker**: works generically. f3 mermaid renders `go -->|?| mutate` and `go -->|?| greet` for medium-only arrows, and `go -->|3x| filter` for an arrow with a high site.
 - `--guess-unique-names` is Rust-only and has no effect for R (CLAUDE.md).
 
@@ -327,7 +328,7 @@ Gaps found while cataloguing:
 
 - **Namespace qualifier not enforced**: `pkg::f()` binds by bare name to any workspace `f`, at **high** when unique (f2, f3). There is no heads.rs/modules.rs entry for R and no `DESCRIPTION` reading.
 - **Cross-file resolution is gated on having any `library`/`require`/`source`** (f8 vs f8b). R packages, whose `R/*.R` files share one namespace with no imports between them, therefore get **no cross-file edges** for bare calls from import-free files.
-- **No parameter/local shadowing and no lexical scoping** (f7, f8c): false high edges.
+- **No lexical scoping** (f7): a nested function binds from other functions of its file at high. Parameter/local shadowing was added in 0.11.1 (§07).
 - **Redefinitions are ambiguous rather than last-wins** (f15).
 - **Methods defined inside calls are invisible**: R6 `R6Class(public = list(...))`, `setRefClass(methods = list(...))`, S4 `setMethod(...)`, `obj$f <- function`, `list(f = function)` (f1, f7).
 - **No S3/S4/R6 dispatch model**: `print.myclass`-style methods are always dead and never linked to their generic (f5, f7).
@@ -342,7 +343,7 @@ Gaps found while cataloguing:
   - `source()` with a computed path records the expression text (r.rs:134-139).
 - **Tests**: only 3 inline unit tests (r.rs:221-254), plus the synthetic detection test `detect_prefixes.rs:71`. There are no R fixtures under `crates/*/tests` and no ignored tests.
 - **README** language-table row (README.md:500): "R | library(), source() | — | `<-` and `=` assignment". The benchmark row is `ggplot2 | r | 946 | 419 | 3% | 66ms` (README.md:1326), from `r-ggplot2` (benchmark.sh:74).
-- **CHANGELOG**: no R-plugin-specific entries were found by grepping for `R plugin`, `.R` and R framework names. The only hit is a rendering check naming `r-ggplot2` and `app-tweetconf-shiny` (CHANGELOG.md:1713).
+- **CHANGELOG**: R entries since 0.11.0 are the WS27 locals table, WS19 include-style `source()` binding, WS20 `test-*`/`test_*` test files and WS25 stdlib qualifier screening (0.11.1).
 
 ## Summary scorecard
 
@@ -351,16 +352,16 @@ Gaps found while cataloguing:
 | 01. Detection & parsing | partial | `.r/.R/.Rmd` + `Rscript` shebang; `.Rmd` parsed as raw R (0 callables); `.qmd`/`.Rprofile`/NAMESPACE not detected |
 | 02. Callables extracted | partial | `<-`, `=`, `<<-`, `\(x)` to an identifier only; no R6/RC/S4/`obj$f<-`/list-member methods; backticks kept in QN |
 | 03. Call-site forms | partial | bare, `pkg::f`, `$` calls; no infix `%op%`, no value refs, no arity, 26-name hard skip list |
-| 04. Imports & module resolution | minimal | library/require/source; source = include closure (budget 4); `pkg::` not enforced, no external refusal, no DESCRIPTION/NAMESPACE |
+| 04. Imports & module resolution | minimal | library/require/source; `source()` binds the named file's copy; `pkg::` not enforced, no external refusal, no DESCRIPTION/NAMESPACE |
 | 05. Type inference & receiver typing | none | no typing; `$` receivers duck-fan out by name |
 | 06. Inheritance, dispatch & overloading | none | no S3/S4/R6 class or dispatch model; not in INHERITANCE_LANGS/OVERLOAD_ARITY_LANGS |
-| 07. Scoping & shadowing | none | no locals spec, not lexically scoped; parameters and nested defs produce false high edges |
+| 07. Scoping & shadowing | partial | locals table (parameters, assignments, `for`; non-function bindings skipped); not lexically scoped, so nested defs produce false high edges |
 | 08. Macros, preprocessor & codegen | n/a | no macro layer; NSE/quote not modelled |
 | 09. FFI & cross-language links | none | no `.Call`/Rcpp/reticulate links |
 | 10. Frameworks & entry points | minimal | 5 rules; only `r-package-hooks` enumerates (`.onLoad` etc.); shiny/plumber/s3 detect-only |
-| 11. Test harness entries | minimal | testthat detect-only; test files only via generic `tests/` directory rule |
+| 11. Test harness entries | minimal | testthat detect-only; test files by `test-*`/`test_*` name or `tests/` directory |
 | 12. Dead-code analysis | minimal | script-driven (max medium, observed low); top-level cross-file calls not roots; no export roots |
-| 13. Builtins & stdlib tables | partial | `stdlib/r.txt` 321 names + plugin skip list; `pkg::` stdlib calls classified external |
-| 14. Confidence & certainty | partial | high from same-file/source closure, but false highs from unverified `pkg::` and missing shadowing |
+| 13. Builtins & stdlib tables | partial | `stdlib/r.txt` 321 names + plugin skip list; base-package `pkg::` calls screened stdlib |
+| 14. Confidence & certainty | partial | high from same-file/source closure, but false highs from unverified `pkg::` and missing lexical scoping |
 | 15. Dynamic use & reflection | none | no dynuse; get/match.fun/do.call/eval are plain calls |
 | 16. Known gaps & limitations | n/a | documented above; 3 unit tests, no R fixtures |

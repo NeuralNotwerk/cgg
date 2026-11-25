@@ -1,6 +1,8 @@
 # openapi
 
-The OpenAPI / Swagger plugin (`OpenApiPlugin`, `crates/cgg-lang/src/plugins/openapi.rs`, 225 lines) is one of cgg's five interface/descriptor languages. It maps a REST API document's shape graph onto the call-graph model. Each reusable component (schema, parameter, requestBody, response, header) and each HTTP operation becomes a callable. Each `$ref` pointer becomes a call site, attributed by byte containment to the component or operation it sits inside. There is no grammar of its own: YAML and JSON documents are both parsed with the workspace `tree-sitter-yaml` crate (`Cargo.toml:129` `tree-sitter-yaml = "0.7"`, `openapi.rs:43-45`), because JSON is flow-style YAML. The tree walking lives in the shared helper module `crates/cgg-lang/src/plugins/structured.rs`, which the AsyncAPI plugin also uses. The plugin does not override `resolver_kind`, `signals`, `ts_language_for` or `max_line_bytes`, so it takes the trait defaults (`crates/cgg-lang/src/lib.rs:304-324`). Resolution has no OpenAPI-specific code except one branch in `cross_file::try_resolve_ref` that matches by global simple name (`crates/cgg-resolve/src/cross_file.rs:5222-5241`).
+> Revised 2026-11-25 against cgg 0.13.3: re-verified the detection, extraction and resolution gaps by fixture (all still hold), added the `--externals` `$ref` inventory and the stdlib-table entry (0.12.0), and refreshed `detect.rs`, `cross_file.rs`, README and CHANGELOG citations. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The OpenAPI / Swagger plugin (`OpenApiPlugin`, `crates/cgg-lang/src/plugins/openapi.rs`, 225 lines) is one of cgg's five interface/descriptor languages. It maps a REST API document's shape graph onto the call-graph model. Each reusable component (schema, parameter, requestBody, response, header) and each HTTP operation becomes a callable. Each `$ref` pointer becomes a call site, attributed by byte containment to the component or operation it sits inside. There is no grammar of its own: YAML and JSON documents are both parsed with the workspace `tree-sitter-yaml` crate (`Cargo.toml:129` `tree-sitter-yaml = "0.7"`, `openapi.rs:43-45`), because JSON is flow-style YAML. The tree walking lives in the shared helper module `crates/cgg-lang/src/plugins/structured.rs`, which the AsyncAPI plugin also uses. The plugin does not override `resolver_kind`, `signals`, `ts_language_for` or `max_line_bytes`, so it takes the trait defaults (`crates/cgg-lang/src/lib.rs:304-324`). Resolution has no OpenAPI-specific code except one branch in `cross_file::try_resolve_ref` that matches by global simple name (`crates/cgg-resolve/src/cross_file.rs:5930-5941`).
 
 Fixtures used below live in `<scratch>/parity/openapi/` (directories `a/`, `b/`, `e/`, `f/`). They were run with `target/release/cgg` 0.11.0, `-t json -o X.json`, and the `X.json.audit.json` sidecar was read.
 
@@ -8,13 +10,13 @@ Fixtures used below live in `<scratch>/parity/openapi/` (directories `a/`, `b/`,
 
 Supported:
 
-- **Extensions `.yaml` / `.yml` / `.json`, content-gated.** The plugin declares `[".yaml", ".yml", ".json"]` (`openapi.rs:37-39`). The detector never assigns these extensions by extension alone. Rule 1b (`crates/cgg-lang/src/detect.rs:76-98`) sniffs the content, and a file with no match is `Unknown` (it does not fall through to the extension rule). `detected_via = "content:openapi"`.
-  - `openapi: 3.0.0` → openapi. `swagger: "2.0"` → openapi. Both map to `openapi` (`detect.rs:166-170`).
-  - Test: `detect.rs:792 openapi_and_swagger_yaml_json_detect_by_content` (YAML 3.x, Swagger 2 YAML, minified JSON).
-- **Sniff algorithm** (`detect.rs:160-213`):
-  - It reads the first 8 KiB (`detect.rs:163`).
-  - Matcher 1 looks at the first 64 lines (`detect.rs:174`) for a line-leading `key:`, with leading quotes and indentation stripped. That covers block YAML and pretty-printed JSON.
-  - Matcher 2 applies when the head starts with `{`. It looks for a quoted `"openapi"` / `"swagger"` anywhere in the first 2048 bytes, char-boundary safe (`detect.rs:193`). Regression test at `detect.rs:~870` (a non-ASCII catalogue straddling byte 2048 returns `None`, no panic).
+- **Extensions `.yaml` / `.yml` / `.json`, content-gated.** The plugin declares `[".yaml", ".yml", ".json"]` (`openapi.rs:37-39`). The detector never assigns these extensions by extension alone. Rule 1b (`crates/cgg-lang/src/detect.rs:104-126`; rule 3 in the module doc, after shebang and file name since 0.11.1) sniffs the content, and a file with no match is `Unknown` (it does not fall through to the extension rule). `detected_via = "content:openapi"`.
+  - `openapi: 3.0.0` → openapi. `swagger: "2.0"` → openapi. Both map to `openapi` (`detect.rs:194-198`).
+  - Test: `detect.rs:1025 openapi_and_swagger_yaml_json_detect_by_content` (YAML 3.x, Swagger 2 YAML, minified JSON).
+- **Sniff algorithm** (`detect.rs:187-232`, `sniff_structured_descriptor`):
+  - It reads the first 8 KiB (`detect.rs:190`).
+  - Matcher 1 looks at the first 64 lines (`detect.rs:201`) for a line-leading `key:`, with leading quotes and indentation stripped. That covers block YAML and pretty-printed JSON.
+  - Matcher 2 applies when the head starts with `{`. It looks for a quoted `"openapi"` / `"swagger"` anywhere in the first 2048 bytes, char-boundary safe (`detect.rs:220`). Regression test at `detect.rs:~1095` (a non-ASCII catalogue straddling byte 2048 returns `None`, no panic).
   - Fixture `b/min.json`, a one-line minified JSON document: detected `content:openapi`, analyzed.
 - **Shebangs:** none (`openapi.rs:40-42`).
 - **Grammar:** `tree_sitter_yaml::LANGUAGE` for every file (`openapi.rs:44`). One grammar, so there is no per-file dialect choice.
@@ -87,9 +89,10 @@ Not supported or partial:
 
 Supported:
 
-- **No import records.** The plugin writes no `imports` and no `FileFacts::packages`. Cross-file binding is by global simple name within the language. In `cross_file::try_resolve_ref`, the branch `"smithy" | "proto" | "graphql" | "openapi" | "asyncapi"` looks up `by_simple[(lang, name)]`, binds when there are 1 to 4 candidates, and otherwise returns `None` (`crates/cgg-resolve/src/cross_file.rs:5222-5241`). The resolver is `cross-file:imports` (`cross_file.rs:958`).
+- **No import records.** The plugin writes no `imports` and no `FileFacts::packages`. Cross-file binding is by global simple name within the language. In `cross_file::try_resolve_ref`, the branch `"smithy" | "proto" | "graphql" | "openapi" | "asyncapi"` looks up `by_simple[(lang, name)]`, binds when there are 1 to 4 candidates, and otherwise returns `None` (`crates/cgg-resolve/src/cross_file.rs:5930-5941`). The resolver is `cross-file:imports` (`cross_file.rs:961`).
   - Fixture `a/`: `getPet → Shared` (in `common.yaml`) and `Shared → Pet` (back in `api.yaml`), both at medium via `cross-file:imports`.
   - Fixture `e/`: `Far` defined in 5 files gave an unresolved site with `candidates-in-other-files {candidates: 5}`.
+- **`--externals` inventory (0.12.0)**: under `--externals` a line scan (`scan_lines`, `crates/cgg-lang/src/externals.rs:516`, `"openapi" | "asyncapi"` arm) records each `$ref` whose value does not start with `#` as an `ExternalUse` naming the file or URL before `#` (test row `openapi` in `crates/cgg/tests/externals.rs`: `https://example.com/schemas/pet.yaml` is `third-party`, a local `#/components/...` pointer is not reported). No resolver reads it, so it changes no edge.
 - **Refs with no candidate anywhere** go to the per-file external bucket as `no-candidate-in-file` with `name_screen_applied: external` (fixtures `a/`: `NotThere`, `a~1b`, `PetById`; `b/`: `Page`, `UserList`). With `--include-external` they become `<external>::NotThere` leaf nodes on `ext` edges (fixture `a/`). `PetById` was not rendered, having `src: null`.
 
 Not supported or partial:
@@ -127,7 +130,7 @@ Not supported or partial:
 - **`ffi::link_ffi`:** no OpenAPI coverage (grep: no `openapi` in `crates/cgg-resolve/src/ffi.rs`).
 - **The descriptor linker excludes OpenAPI.** `descriptor::link_descriptors` covers only `DESCRIPTOR_LANGUAGES = ["proto", "graphql", "smithy"]` (`crates/cgg-resolve/src/descriptor.rs:47`). No operation → host-language handler edge is ever produced for an operationId.
   - Fixture `b/`: `operationId: users.list_users` next to `b/users.py` `def list_users()` (Python qn `users.list_users`) gave no edge between them.
-  - The README says (line ~1005) that descriptor linking covers "`$ref` and shape-member edges for … OpenAPI". That holds only for `$ref` edges, which come from the ordinary intra-file and cross-file passes, not from `descriptor.rs`.
+  - The README says (README.md:1063-1064) that descriptor linking covers "`$ref` and shape-member edges for … OpenAPI". That holds only for `$ref` edges, which come from the ordinary intra-file and cross-file passes, not from `descriptor.rs`.
 - **Markup code-behind:** not applicable.
 
 ## 10. Frameworks & entry points
@@ -156,7 +159,7 @@ Not supported or partial:
 
 ## 13. Builtins & stdlib tables
 
-- **There is no `crates/cgg-core/src/stdlib/openapi.txt`.** The directory holds 30 lists, none for a descriptor language. No `openapi` appears anywhere in `crates/cgg-core/src/` outside the two `rules.rs` gap strings.
+- **There is no `crates/cgg-core/src/stdlib/openapi.txt`.** The directory has no list for a descriptor language. Since 0.12.0 the only `openapi` entry in `crates/cgg-core/src/stdlib.rs` is the `--externals` stdlib-library label `("openapi", "openapi")` (`stdlib.rs:1259`); the graph's stdlib screen has none.
 - No `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` / implicit-package entries.
 - `--include-stdlib` had no effect on fixture `a/` (`0 stdlib`).
 - OpenAPI's built-in types (`string`, `integer`, …) are `type:` values, never `$ref`s, so no filter is needed.
@@ -187,18 +190,18 @@ These were found while cataloguing. Each was confirmed by a fixture or by code.
    - JSON-pointer escapes `~0`/`~1` are not decoded (fixture `a/` `a~1b`).
 3. **Swagger 2 top-level `parameters` / `responses` are not extracted** (`openapi.rs:61-70` reads only `definitions`). Fixture `b/v2.yaml`.
 4. **OpenAPI 3.1 `webhooks` and `components/pathItems`, callback operations, `securitySchemes`, `links` and `examples` are not extracted.** Fixture `a/`.
-5. **Split-spec fragment files without a root `openapi:` key are skipped** (`unknown-extension`), and the root key must appear in the first 64 lines (`detect.rs:174`). Fixtures `a/paths.yaml` and `b/late.yaml`.
+5. **Split-spec fragment files without a root `openapi:` key are skipped** (`unknown-extension`), and the root key must appear in the first 64 lines (`detect.rs:201`). Fixtures `a/paths.yaml` and `b/late.yaml`.
 6. **Only the first YAML document of a multi-document stream is read** (`structured.rs:94-101`). Fixture `b/multi.yaml`.
 7. **`$ref` inside literal `example` / `examples` data is recorded as a reference** (`collect_refs` walks the whole tree). Fixture `f/`.
 8. **Refs outside an extracted definition** (path-level `parameters`, path-item `$ref`) have no caller: `no-enclosing-callable` or `src: null` external. A side effect is that they root their targets for dead code (fixture `a/` `Limit`).
 9. **YAML anchors, aliases and merge keys are not resolved.** Fixture `a/` `Alias`.
 10. **Discriminator `mapping`, `operationRef` and links' `operationId` are not edges.**
-11. **The global-name fan-out cap is fixed at 4** (`cross_file.rs:5235`) and is independent of `--fanout-cap`.
+11. **The global-name fan-out cap is fixed at 4** (`cross_file.rs:5936`) and is independent of `--fanout-cap`.
 12. **Dead-code is entirely withheld** for the language (by design, `caps.rs:41`).
 
 - No `gap_for()` text, `#[ignore]` tests or TODO comments exist in `openapi.rs` / `structured.rs` (grep).
-- CHANGELOG 0.3-era entries (`CHANGELOG.md:5946-5966`) describe the initial plugin. No later OpenAPI-specific follow-up was found.
-- README benchmark row: `OpenAPI-Specification | openapi | 132 | 334 | 0% | 47ms` (`README.md:1357`). Cross-file 0% on the corpus.
+- CHANGELOG 0.3-era entries (`CHANGELOG.md:8773-8792`) describe the initial plugin. No later OpenAPI-specific follow-up was found.
+- README benchmark row: `OpenAPI-Specification | openapi | 132 | 334 | 0% | 22ms` (`README.md:1534`; the benchmark subdirectory moved to `_archive_/schemas` in 0.12.0, `scripts/benchmark.sh:105`). Cross-file 0% on the corpus.
 
 ## Summary scorecard
 

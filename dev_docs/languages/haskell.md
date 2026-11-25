@@ -1,17 +1,20 @@
 # haskell
 
-The Haskell plugin is `HaskellPlugin` in `crates/cgg-lang/src/plugins/haskell.rs` (294 lines including tests). It is registered at `crates/cgg-lang/src/plugins.rs:153`. It is one small recursive walker over the `tree-sitter-haskell` 0.23 grammar from crates.io (`Cargo.toml:107`, `crates/cgg-lang/Cargo.toml:50`), so nothing is vendored. The walker reacts to only four node kinds (`haskell.rs:66-90`):
+> Revised 2026-11-25 against cgg 0.13.3: definitions are now named only from the node's `name` field (no type-variable or `do`-bind phantoms), parameters and local bindings shadow through a locals table, and function values are reference sites, so those gaps, fixture results and the scorecard were corrected; qualified calls are still not recorded. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Haskell plugin is `HaskellPlugin` in `crates/cgg-lang/src/plugins/haskell.rs` (505 lines including tests at 0.13.3). It is registered at `crates/cgg-lang/src/plugins.rs:153`. It is one small recursive walker over the `tree-sitter-haskell` 0.23 grammar from crates.io (`Cargo.toml:107`, `crates/cgg-lang/Cargo.toml:50`), so nothing is vendored. The walker reacts to only four node kinds (`haskell.rs:66-90`):
 
 - `header`: the module name.
 - `import`: import records.
-- `function` and `bind`: definitions.
-- `apply`: call sites, recorded only when the head is a plain `variable`.
+- `function` and `bind`: definitions, named from the node's `name` field only (`extract_function`, haskell.rs:176).
+- `apply`: call sites, recorded only when the head is a plain `variable` (`record_call`, haskell.rs:224).
 
 Other properties of the plugin:
 
-- It ignores its `ExtractCtx` (`_ctx`, `haskell.rs:27`).
-- It has no `signals()` override, so every `PluginSignals` field is false (`crates/cgg-lang/src/lib.rs:304-306`, default).
-- It records no locals, visibility, exports, attributes, value refs, dynamic uses, class/instance records or arity.
+- It reads `ExtractCtx::reference_sites` to record function values (`capture_value_positions`, haskell.rs:252).
+- Its locals come from `locals::collect_haskell` (§07).
+- An argument-less binding whose value is not a lambda is recorded in `FileFacts::data_members`.
+- It records no visibility, exports, attributes, dynamic uses, class/instance records or arity.
 
 The `LanguagePlugin` trait has no `resolver_kind` method in this tree. Haskell behaviour is driven by language-id checks in the resolver:
 
@@ -20,7 +23,7 @@ The `LanguagePlugin` trait has no `resolver_kind` method in this tree. Haskell b
 - the `import qualified` and `import` arms of the cross-file import table (`crates/cgg-resolve/src/cross_file.rs:1957-1970`, `cross_file.rs:2064`)
 - the unqualified-prefix lookup in step 1b and the scoped lookup in step 1c (`cross_file.rs:5944-5975`, `cross_file.rs:5988-6010`)
 
-Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1–f6). Each was run with `target/release/cgg` 0.11.0 and `-t json -o out.json`, then dumped with `dump2.py`, which lists callables, edges and the audit's unresolved/stdlib/external buckets.
+Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1–f6). Each was run with `target/release/cgg` 0.11.0 and `-t json -o out.json`, then dumped with `dump2.py`, which lists callables, edges and the audit's unresolved/stdlib/external buckets. Claims marked 0.13.3 were re-checked on a new fixture `<scratch>/lang-docs/haskell/h1/`, run with `target/release/cgg` 0.13.3 (default, `--reference-edges`, `--dead-code`).
 
 ## 01. Detection & parsing
 
@@ -41,14 +44,14 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
   - The same happens in fixture f2 (`A.Ops.cond` at line 50 only).
 - **Skip conditions (generic).**
   - Depth: a tree deeper than `MAX_TREE_DEPTH` = 4000 is skipped as `TooDeep` (`crates/cgg/src/lib.rs:155,451`).
-  - Minified: the 2,000-byte line check only gates locals, which Haskell does not produce (§07).
+  - Minified: the 2,000-byte line check skips locals collection (§07) and value references.
   - Long lines: there is no `max_line_bytes` override (`lib.rs:313` default `None`).
 - **Framework-detection prefix test.** `crates/cgg/tests/detect_prefixes.rs:66` writes `import <prefix>` into a `.hs` file for every Haskell rule and asserts detection.
 
 ## 02. Callables extracted
 
-- **Top-level function equations, `work x = helper x`.** A `function` node becomes a `DefRecord`, `DefVariant::FreeFunction`, named after the first `variable` child (`haskell.rs:169-204`). Tests `free_functions_and_call` (`haskell.rs:272`) and `definitions_are_qualified_by_their_module` (`haskell.rs:247`).
-- **Nullary bindings, `nullary = 42` and `main = do …`.** These are `bind` nodes and are extracted the same way (`haskell.rs:80`). Fixture f1: `Data.Thing.nullary`, `Main.main`.
+- **Top-level function equations, `work x = helper x`.** A `function` node becomes a `DefRecord`, `DefVariant::FreeFunction`, named by its `name` field (`haskell.rs:176-222`). Tests `free_functions_and_call` (`haskell.rs:272`) and `definitions_are_qualified_by_their_module` (`haskell.rs:247`).
+- **Nullary bindings, `nullary = 42` and `main = do …`.** These are `bind` nodes and are extracted the same way. Fixture f1: `Data.Thing.nullary`, `Main.main`. A non-lambda one is also a data member, so a value naming it is dropped (unless the file defines a function of that name).
 - **Qualified name `Module.name`.**
   - It is formed in `qn()` (`haskell.rs:54-64`) from the `module` child of `header` (`haskell.rs:104-124`). Example: `Data.Thing.work`.
   - Files without a `module … where` header get bare names (test `free_functions_and_call`; fixture f3 `script`: `main`, `greet`).
@@ -65,14 +68,7 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
 - **Class default methods.** `prettyDefault x = pretty x` inside `class` is extracted as `A.Ops.prettyDefault` (fixture f2).
 - **`kind` is always `function`.** There are no `method`, `constructor` or `class` kinds.
 - **`signature_hint`** is the whole equation text, `super::extract_signature(self.text(node))` (`haskell.rs:199`). The `name :: Type` signature is not used.
-- **SPURIOUS callables from type variables in function types.**
-  - The grammar also uses the node kind `function` for the type `a -> b`. Its first `variable` child is a type variable, so the walker mints a callable named after it.
-  - Fixture f1: `Data.Thing.a` came from the class method signature `areaOf :: a -> Double`.
-  - Fixture f2: `(|>) :: a -> (a -> b) -> b` produced `B.Util.a`, `B.Util.b`, `B.Util.a`, and the class `Pretty a` produced two `A.Ops.a`.
-  - Fixture f5: `Inst.a`.
-  - These show up as dead-code findings.
-  - Monomorphic signatures (`Int -> Int`) produce nothing, because `Int` is a `name`, not a `variable`.
-- **SPURIOUS callables from `do`-block binds.** `args <- getArgs` is a `bind` node, so it became the callable `Main.args` (fixture f1, line 9).
+- **No phantom callables (fixed in 0.11.2, WS32).** A type-level arrow (`areaOf :: a -> Double`, which the grammar also calls `function`) and a pattern bind (`args <- getArgs`, `(a, b) <- e`, `(a, b) = …`) have no `name` field and define nothing (test `do_binds_are_not_definitions`). 0.13.3 h1: no `Data.Thing.a` and no `Main.args`.
 - **NOT extracted:**
   - Infix operator definitions `a <+> b = …` and `x |> g = g x` (fixture f1/f2: no `<+>` or `|>` node). The operator is not a `variable`.
   - Prefix-form operator definitions `(<+>) a b = …`: unverified, but the head would be an `operator`, not a `variable`, so presumably not extracted either.
@@ -83,7 +79,7 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
   - Type families, type synonyms, GADT constructors (fixture f4: `Lit :: Int -> Expr Int` gives no node).
   - Lambdas `\y -> …`. Their calls are attributed to the enclosing definition (fixture f1: `lambdaUser → helper`, `high`).
   - Template Haskell-generated definitions (`makeLenses ''Rec`, `$(deriveJSON …)`; §08).
-  - Pattern bindings `(a, b) = …`: no `variable` direct child. Unverified.
+  - Pattern bindings `(a, b) = …`: no `name` field, so not definitions (their variables are locals).
 
 ## 03. Call-site forms
 
@@ -91,21 +87,20 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
 - **Calls nested in arguments and parentheses.** `recordSel = work (helper 3)` records both (fixture f1).
 - **Calls inside `do`, `case`, guards, `where`, `let`, `if` and lambdas are all recorded** (fixture f1: `guarded`, `caseUser`, `lambdaUser`, `letUser`, `whereUser`; fixture f3: `main = print (one 1) >> exitSuccess` gives `main → Lib.one`).
 - **Right operand of `$` when it is itself an application.** `helper $ work x` records `work` (fixture f1 `dollar → work`) but NOT `helper` (§NOT below).
-- **Arity is NOT recorded.** No `RefRecord::arity` is set (`haskell.rs:213-219`). The clause logic substitutes arity 0 for every Haskell equation (`intra_file.rs:897-900`).
+- **Arity is NOT recorded.** No `RefRecord::arity` is set. The clause logic substitutes arity 0 for every Haskell equation.
+- **Value references** (only under `--reference-edges` or `--dead-code`, since 0.11.1 WS26b): bare variables as `apply` arguments, operator operands, record field values, list and tuple elements and an argument-less binding's value, never inside a type or pattern (`in_type_or_pattern`, haskell.rs:314; tests `function_values_are_reference_sites`, `patterns_and_types_are_not_values`). 0.13.3 h1 with `--reference-edges`: `composed = helper . work` → `reference` edges to `helper` and `work`; `map helper xs` → `helper`; `helper $ work x` → `helper` (`high`).
 - **NOT recorded (no edge, no unresolved record):**
-  - Qualified calls `T.helper 2`, `Data.Thing.area (…)`, `M.lookup 1 m`, `B.Other.other x`, `Txt.pack …`. The head is a `qualified` node, not a `variable`, so the site is never emitted. Fixtures f1, f2, f4: none of these appears in edges or in any unresolved/external bucket. This is the single largest gap: idiomatic `import qualified … as M` code produces no edges.
-  - Bare references with no argument, such as `doIt` as a `do` statement, `server = hello`, or `usesNullary = nullary + 1`. These are not `apply` nodes (fixture f1: no `main → doIt`, no `usesNullary → nullary`; fixture f6: no `server → hello`).
-  - The left operand of an operator, `helper $ work x` (missing `dollar → helper`).
-  - Composition `helper . work` (fixture f1 `composed`: no edges) and `mapM_ (print . one) xs` (fixture f3: no `mapper → one`).
-  - Functions passed as values, `map helper xs` (fixture f1 `valueArg`: only `map` recorded, as stdlib).
+  - Qualified calls `T.helper 2`, `Data.Thing.area (…)`, `M.lookup 1 m`, `B.Other.other x`, `Txt.pack …`. The head is a `qualified` node, not a `variable`, so the site is never emitted. Fixtures f1, f2, f4; re-confirmed 0.13.3 h1 (`T.work 1` after `import qualified Data.Thing as T`: no edge, no record). This is the single largest gap: idiomatic `import qualified … as M` code produces no edges.
+  - Bare references with no argument, such as `doIt` as a `do` statement. These are not `apply` nodes (0.13.3 h1: no `main → doIt`; `Main.doIt` is a dead-code finding).
+  - The left operand of an operator (`helper $ work x`), composition (`helper . work`) and functions passed as values (`map helper xs`) produce no **call** edge; they are value references only under `--reference-edges`/`--dead-code` (above).
   - Operator calls `a <+> b`, `x |> util`, `getLine >>= putStrLn`, sections `(<+> 1)`. No operator site is recorded (fixtures f1/f2/f3).
-  - Backtick infix calls ``a `plusInner` b`` (fixture f1 `infixPlus`: no edge, so `plusInner` was reported dead).
+  - Backtick infix calls ``a `plusInner` b`` (fixture f1 `infixPlus`; re-confirmed 0.13.3 h1: no edge, `plusInner` reported dead).
   - Data-constructor application `Circle 1.0`. The head is a `constructor`, not a `variable` (fixture f1 `ctor`: no site).
   - Record field selection `fieldA r` IS recorded as a bare call but never binds, because fields are not callables. It lands in `external_calls` (fixture f2, line 46).
   - Record dot syntax `r.field`: unverified.
 - **SPURIOUS reference sites from type applications.** `save :: Int -> m ()` in a class records a call `m` (fixture f4: `external_calls` line 12 `m`). The type application `m ()` is an `apply` with a `variable` head.
-- **Calls through a parameter `paramCall g = g 2`.** Recorded as bare `g` and classed **external** (fixture f2: `external_calls 34 g`), not `shadowed-by-local`.
-- **No value refs, callbacks or registrar arguments.** `extract` never reads `ExtractCtx::reference_sites` or registrar verbs (`haskell.rs:27`). `--reference-edges` therefore has nothing to add. The `scotty` rule's gap text states this (`crates/cgg-core/src/frameworks/rules.rs:5952`).
+- **Calls through a parameter `paramCall g = g 2`.** `shadowed-by-local` since WS27 (0.13.3 h1: `shadow helper = helper 1` → `shadowed-by-local`).
+- **No registrar arguments.** No rule declares registrars for Haskell.
 - **Constructors, explicit generics, paren-less and method-call forms:** not applicable as separate shapes. Haskell has no receiver syntax. Type applications `f @Int x` are unverified.
 
 ## 04. Imports & module resolution
@@ -122,7 +117,7 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
   - Fixture f4: `useLookup → X.A.lookup` is `high`.
 - **Step 1c, scoped by-simple lookup.** Restricted to files whose path matches an import prefix (`Text.Pandoc` → `*/Text/Pandoc.hs`), capped at 8 candidates (`cross_file.rs:2163-2200`, `5988-6010`). The comment names Haskell as the motivating case. There is a test with Haskell paths: `scoped_lookup_matches_the_eager_scan` (`cross_file.rs:7444`, fixture paths `/r/text/pandoc.hs`).
 - **Name opened from two modules.** `import X.A; import X.B` and a bare `shared` that both define binds to the **first** listed module at `medium`, rather than being refused as ambiguous (fixture f4: `useShared → X.A.shared`, `medium`, mermaid `?`).
-- **`hiding` is ignored.** `import B.Other hiding (other)` then `other x` still binds `B.Other.other` at **high** (fixture f2, `viaHidden`). This is a wrong edge.
+- **`hiding` is ignored.** `import B.Other hiding (other)` then `other x` still binds `B.Other.other` at **high** (fixture f2, `viaHidden`; re-confirmed 0.13.3 h1). This is a wrong edge.
 - **Import lists are ignored.** `import B.Util (util)` plus `import B.Other` (which also defines `util`): `cond → B.Util.util` `medium` (fixture f2). The import list is not consulted to prefer or exclude.
 - **External modules.** A name that resolves nowhere is classed `external` (`external_calls`, fixture f4 `notDefinedAnywhere`). There is no `heads.rs` external-head refusal: Haskell is not among `WorkspaceVocab`'s languages (no `haskell` in `crates/cgg-resolve/src/heads.rs`). There is no `not-in-imported-module` refusal either: Haskell is not in `modules.rs`.
 - **`FileFacts::packages`: not populated.** No manifest (`.cabal`, `package.yaml`, `stack.yaml`, `cabal.project`) is read. `manifest.rs` has no Haskell reader.
@@ -154,7 +149,7 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
   - Fixture f5: `useSh = sh True` binds `Inst.sh@5`, the `Int` instance, at **high**. That is wrong; the `Bool` instance is the target.
   - There are no class records, no `trait_impl_target`, no base types and no default-method linkage.
 - **`--dynamic-dispatch`: no effect.** Fixture f4 gives identical edges with and without it. Haskell is not in `INHERITANCE_LANGS` (`crates/cgg-resolve/src/dispatch.rs:110`) and emits no `trait_impl_target`.
-- **Arity overload narrowing: no.** Haskell is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:1583`), and no arity is recorded.
+- **Arity overload narrowing: no.** Haskell is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:2357`), and no arity is recorded.
 - **Not applicable:** super/base calls, `member_of_calling_class`, `overrides_below`, extension methods, mixins.
 
 ## 07. Scoping & shadowing
@@ -162,10 +157,11 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
 - **Lexical narrowing of nested definitions: supported.** `haskell` is in the nested-scope language list (`intra_file.rs:115-135`; CHANGELOG.md:575-580). A bare call binds to the innermost visible nested definition.
   - Fixture f3: `one x = go x where go …` and `two x = go x where go …` bind `Lib.one → Lib.go@5` and `Lib.two → Lib.go@9`, each `high`.
   - Fixture f2: a `where`-local `go` binds its own equations, while a top-level `B.Util.go` exists elsewhere.
-- **Positional shadowing:** not applied. That rule is for OCaml, F# and Lua only (CHANGELOG.md:579-580).
-- **`FileFacts::locals`: not populated.** There is no Haskell spec in `crates/cgg-lang/src/locals.rs:380-394`. Consequences:
-  - A parameter shadowing a top-level function binds to the top-level function. Fixture f2: `shadow f = f 1` binds `A.Ops.f` at **high**. That is wrong; `f` is the parameter.
-  - A call through a parameter `g 2` is classed external instead of `shadowed-by-local` (fixture f2).
+- **Positional shadowing:** not applied. That rule is for OCaml, F# and Lua only.
+- **`FileFacts::locals`** (WS27, `locals::collect_haskell`): clause argument patterns over the clause (guards, body and its `where`), `where` bindings over the whole clause, `let … in` over the whole `let`, `do`-`let` from its statement and `p <- e` from its end to the end of the `do`, comprehension generators and `let`s, lambda and `case`/`\case` alternative patterns, and pattern guards; patterns bind through as, constructor, tuple, list, record (incl. puns), bang, lazy and infix patterns, never a constructor, field name, type or top-level declaration. Operator-named bindings are not recorded.
+  - 0.13.3 h1: `shadow helper = helper 1` is `shadowed-by-local`, no longer a wrong `high` edge.
+  - Haskell keeps the old reading for a non-parameter local holding the result of an action: since actions run without parentheses, such a local is not treated as a shadow of a nested function.
+- **Nested definitions from other files.** A `where`/`let` helper is never a bare-name candidate from another file (`cross_file::nested_function_ids`, WS33).
 - **Conditional definitions:** none. CPP `#else` arms are dropped by the grammar (§01). `DefRecord::conditional` is never set.
 
 ## 08. Macros, preprocessor & codegen
@@ -185,13 +181,13 @@ Verification: the fixtures cited below are under `<scratch>/parity/haskell/` (f1
 
 ## 10. Frameworks & entry points
 
-Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.rs:5905-6027`). Detection uses `detect` module prefixes matched against the file's imports (fixture f6 detected `servant`, `yesod`, `scotty` and `wai` from `import` lines). No multi-language rule lists Haskell (grep for `haskell` in rules.rs gives only these seven).
+Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.rs:6230-6350` at 0.13.3; the per-row citations below are from 0.11.0). Detection uses `detect` module prefixes matched against the file's imports (fixture f6 detected `servant`, `yesod`, `scotty` and `wai` from `import` lines). No multi-language rule lists Haskell (grep for `haskell` in rules.rs gives only these seven).
 
 | rule id | kind | trigger | enumerates? |
 | --- | --- | --- | --- |
 | `servant` | Network | import `Servant` | no — `methods`/`attributes`/`registrars` empty; gap: handlers are positional in a `:<\|>`chain (`rules.rs:5905-5920`) |
 | `yesod` | Network | import `Yesod` | no — gap: TH-generated `get<Route>R` names (`rules.rs:5922-5937`). The gap says "no glob". CLAUDE.md now documents `prefix*`/`*suffix` patterns, but `get*R` needs both, so it remains unenumerable |
-| `scotty` | Network | import `Web.Scotty` | no — gap: no registrar or value refs in the Haskell plugin (`rules.rs:5939-5954`) |
+| `scotty` | Network | import `Web.Scotty` | no — gap: no registrar capture (`rules.rs:5939-5954`); the gap text's "no value refs" claim predates WS26b |
 | `wai` | Network | import `Network.Wai` | no — gap: `Application` is an untyped binding (`rules.rs:5956-5971`) |
 | `tasty` | Test | import `Test.Tasty`, method name `tests` | yes — `<framework-entry>::test::tasty` (§11) (`rules.rs:5973-5988`) |
 | `hspec` | Test | import `Test.Hspec`, method name `spec` | yes — `<framework-entry>::test::hspec` (§11) (`rules.rs:5990-6005`) |
@@ -206,7 +202,7 @@ Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.
 
 - **`hspec`.** A definition named `spec` in a file importing `Test.Hspec` gets one harness node `<framework-entry>::test::hspec` with an `entry` edge (confidence `low`, `via framework_entry`). Fixture f3: `test/Spec.hs` gives `<framework-entry>::test::hspec → Main.spec`, with attribute "`spec` satisfies an implicitly-implemented hspec interface".
 - **`tasty`.** A definition named `tests` gives `<framework-entry>::test::tasty → TastyMain.tests` (fixture f3).
-- **Gating.** These are name-only test rules, so they apply only in a test file or a file importing the harness. Fixture f6 `src/NotTest.hs` defines `spec` and `tests` without the imports, and got no entry.
+- **Gating.** These are name-only test rules, so they apply only in a test file or a file importing the harness. Since 0.11.1 a Haskell file named `*Spec.hs`, `*Test.hs` or `*Tests.hs` is a test file (cgg-core/src/testfile.rs:144). Fixture f6 `src/NotTest.hs` defines `spec` and `tests` without the imports, and got no entry.
 - **Trigger type:** naming only, an exact name. No annotations exist in Haskell.
 - **NOT covered:**
   - HUnit `TestCase`/`TestList`, QuickCheck `prop_*` properties (no rule; `prop_*` would need a `prop_*` pattern), doctest, `tasty-discover` / `hspec-discover` auto-discovery of `*Spec.hs` modules.
@@ -222,16 +218,15 @@ Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.
   - `main` is a universal program entry, `builtin:main` (`crates/cgg-resolve/src/deadcode/roots.rs:20`, `747-760`). There is no Haskell row in `LANG_ENTRY` (`roots.rs:24-156`).
   - Harness test roots (§11).
   - Fixture f1 shows "roots 1 discovered"; fixture f3 shows 7.
-- **Signal coverage: `class degraded`, `vis no`, `attrs no`, `refs no`, `disp no`** (fixtures f1, f3 report header). With every `PluginSignals` false, `signals_complete()` is false and **no Haskell finding can be `high`** (`crates/cgg-resolve/src/deadcode/caps.rs:160-173`, test `a_language_with_no_signals_is_degraded` at `caps.rs:213`). Every finding is `medium` with risks `language-lacks-attributes`, `language-lacks-dispatch-model`, `language-lacks-value-references` and `language-lacks-visibility`.
+- **Signal coverage: `class degraded`, `vis no`, `attrs no`, `refs yes`, `disp no`** (0.13.3 h1 capabilities: `value_references full`, the rest `none`; it was `refs no` in 0.11.0). `signals_complete()` is false, so **no Haskell finding can be `high`**. Every finding is `medium` (or lower) with risks `language-lacks-attributes`, `language-lacks-dispatch-model` and `language-lacks-visibility`.
 - **Exports are not roots.** `module Lib (one, two, exportedButUnused) where` is ignored, so `Lib.exportedButUnused` is reported (fixture f3).
-- **False positives the extraction gaps cause** (fixture f1/f2/f5):
-  - functions used only through qualified calls, operators, composition, backtick infix, `$` left operands or as values (`plusInner`, `nullary`, `doIt`)
+- **False positives the extraction gaps cause** (fixture f1/f2/f5; 0.13.3 h1):
+  - functions used only through qualified calls, operators, backtick infix or as argument-less `do` statements (`plusInner`, `doIt`); composition, `$` operands and values are credited under `--dead-code` since WS26b
   - the `#else` arm's callees (`two`)
-  - the spurious type-variable nodes (`Data.Thing.a`, `Inst.a`)
   - the second equation of a multi-equation function reached cross-file (`areaOf@13`)
   - instance methods for other types
 - **Caps:** no `implements-external-contract`, `macro-generated` or `reflection` cap applies (no attributes, macros or dynuse).
-- **Unresolved-doubt handling:** generic (`no-unresolved-site-with-name` appears in the evidence). Since qualified calls produce no site, they cannot even add doubt.
+- **Unresolved-doubt handling:** generic (`no-unresolved-site-with-name` / `name-matches-unresolved-site` in the evidence). Since qualified calls produce no site, they cannot even add doubt.
 - **`foreign export`:** not an FFI root (§09).
 
 ## 13. Builtins & stdlib tables
@@ -254,9 +249,9 @@ Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.
   - Copies across files.
 - **Framework entry edges are `low`** (fixture f3).
 - **False `high`s observed:**
-  - parameter shadowing (`shadow → A.Ops.f`, f2)
-  - `hiding` ignored (`viaHidden → B.Other.other`, f2)
+  - `hiding` ignored (`viaHidden → B.Other.other`, f2; still at 0.13.3)
   - type-class instance selection (`useSh → Inst.sh@5`, f5)
+  - (parameter shadowing, `shadow → A.Ops.f` in f2, is fixed since WS27)
 - **No typed-receiver `OwnerFacts` path:** Haskell has no receivers.
 - **Mermaid `?` marker:** an arrow with no `high` site gets `?` (fixture f4: `N4 -->|?| N0` for `useShared → X.A.shared`).
 
@@ -267,13 +262,13 @@ Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.
 
 ## 16. Known gaps & limitations
 
-1. Qualified calls (`M.f x`, `Data.Map.lookup`) are never recorded. `record_call` accepts only a `variable` head (`haskell.rs:208-210`). Fixtures f1/f2/f4.
-2. Operators: neither operator definitions (`a <+> b = …`) nor operator or section uses (`$` left operand, `.`, `>>=`, `<$>`, backticks) produce nodes or sites. Fixtures f1/f2/f3.
-3. Unapplied references (`doIt` in `do`, `x = y`, `map f xs`) record no site, so there are no value refs. Fixtures f1/f6. The `scotty` gap text says the same (`rules.rs:5952`).
+1. Qualified calls (`M.f x`, `Data.Map.lookup`) are never recorded. `record_call` accepts only a `variable` head (`haskell.rs:224-240`). Fixtures f1/f2/f4; re-confirmed 0.13.3.
+2. Operators: neither operator definitions (`a <+> b = …`) nor operator or section uses (backticks, `>>=` heads) produce nodes or call sites. Operands of `$`, `.`, `<$>`, `>>=` are value references only. Fixtures f1/f2/f3.
+3. An argument-less `do` statement (`doIt`) records no site. Arguments and binding values are value references under `--reference-edges`/`--dead-code` only.
 4. Type classes are merged into clauses: instances of a method for different types become one function, and an intra-file call picks the first instance at `high` (f5).
 5. Cross-file calls into a multi-equation function bind the last equation at `medium`. `first_clause_per_arity` is Erlang/Elixir-only (`cross_file.rs:5549,5600`). This can mark the first equation dead (f1 `areaOf@13`).
-6. Spurious callables come from type variables in function types (`a -> b` in signatures; `Data.Thing.a`, `B.Util.a/b`) and from `do`-binds (`args <- getArgs` → `Main.args`). Spurious call `m` from type application `m ()` (f1/f2/f4).
-7. No locals: parameters do not shadow top-level names (f2 `shadow → f` high), and parameter calls are classed external.
+6. Spurious call `m` from type application `m ()` (f1/f2/f4; not re-run). The type-variable and `do`-bind phantom callables are fixed (WS32).
+7. (Fixed, WS27) Parameters and local bindings now shadow through the locals table.
 8. `import … hiding (…)` and import lists are ignored (f2). An ambiguous name from two opened modules binds the first at `medium` instead of being refused (f4).
 9. Module export lists are ignored, so there is no visibility and exported names are not dead-code roots (f3 `exportedButUnused`). Every dead-code finding is capped at `medium` (`caps.rs`).
 10. CPP `#else` arms are lost (f5). Template Haskell and quasi-quotes are opaque (f2).
@@ -282,7 +277,7 @@ Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.
 13. Data constructors, record fields, pattern synonyms, class-method declarations without defaults, and lambdas are not callables. `where`/`let` locals are qualified at module level, with no owner (f1/f2/f3).
 14. No arity is recorded. The clause logic hardcodes 0 (`intra_file.rs:897-900`).
 15. Frameworks: `servant`, `yesod`, `scotty`, `wai` and `haskell-main` are detection-only, with gap text (`rules.rs:5905-6026`). No QuickCheck or HUnit rule exists.
-16. No ignored tests mention Haskell. The plugin's inline tests are only `definitions_are_qualified_by_their_module`, `plugin_loads`, `free_functions_and_call` and `import_is_recorded` (`haskell.rs:246-293`). There is no Haskell fixture under `crates/*/tests/` besides `detect_prefixes.rs:66`.
+16. No ignored tests mention Haskell. The plugin's inline tests at 0.13.3 are `definitions_are_qualified_by_their_module`, `plugin_loads`, `free_functions_and_call`, `import_is_recorded`, `function_values_are_reference_sites`, `patterns_and_types_are_not_values` and `do_binds_are_not_definitions`.
 17. README describes Haskell as "import | — | Top-level bindings" (`README.md:514`). The README benchmark row shows pandoc at 48% (`README.md:1340`).
 
 ## Summary scorecard
@@ -290,18 +285,18 @@ Every rule whose `language` is `haskell` (`crates/cgg-core/src/frameworks/rules.
 | section | support | note |
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.hs`/`.lhs`, runghc/runhaskell shebangs; no un-literate, CPP `#else` lost, no content sniff |
-| 02. Callables extracted | partial | equations/binds/where/let/instance methods; no operators, constructors, fields, pattern synonyms; spurious type-variable and do-bind nodes |
-| 03. Call-site forms | minimal | only `variable`-headed `apply`; no qualified, operator, infix, composition, value or nullary references; no arity |
+| 02. Callables extracted | partial | equations/binds/where/let/instance methods named by the `name` field; no operators, constructors, fields, pattern synonyms |
+| 03. Call-site forms | minimal | only `variable`-headed `apply`; no qualified, operator or infix calls; value refs under `--reference-edges`; no arity |
 | 04. Imports & module resolution | partial | `import`/`import qualified [as]` recorded, prefix + scoped lookup; hiding/import lists/exports ignored; no manifests or packages |
 | 05. Type inference & receiver typing | n/a | no receivers; no typing facts emitted |
 | 06. Inheritance, dispatch & overloading | minimal | clause merging intra-file; type classes merged wrongly; cross-file picks the last equation; no dispatch |
-| 07. Scoping & shadowing | partial | lexical narrowing of where/let defs works; no locals, so parameters do not shadow |
+| 07. Scoping & shadowing | good | locals table (patterns, where/let, do, lambdas, case); lexical narrowing of where/let defs |
 | 08. Macros, preprocessor & codegen | none | CPP, Template Haskell, quasi-quotes unhandled; no name_mentions |
 | 09. FFI & cross-language links | none | `foreign import`/`export` ignored |
 | 10. Frameworks & entry points | minimal | 7 rules; only 2 test rules enumerate; servant/yesod/scotty/wai/haskell-main detection-only |
 | 11. Test harness entries | partial | hspec `spec`, tasty `tests` by exact name, import-gated; no QuickCheck, HUnit or discover |
-| 12. Dead-code analysis | minimal | `main` + test roots; degraded class caps at medium; exports not roots; many false positives |
+| 12. Dead-code analysis | minimal | `main` + test roots; degraded class caps at medium; value refs credited; exports not roots; qualified-call false positives |
 | 13. Builtins & stdlib tables | full | 365-name haskell.txt; workspace beats screen; include-stdlib/external work |
-| 14. Confidence & certainty | partial | intra-file and single-module cross-file high; observed false highs (shadowing, hiding, instances) |
+| 14. Confidence & certainty | partial | intra-file and single-module cross-file high; observed false highs (hiding, instances) |
 | 15. Dynamic use & reflection | none | no dynuse row |
 | 16. Known gaps & limitations | n/a | 17 gaps listed above |

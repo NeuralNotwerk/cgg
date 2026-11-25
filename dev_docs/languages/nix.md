@@ -1,5 +1,7 @@
 # nix
 
+> Revised 2026-11-25 against cgg 0.13.3: Nix now has a locals table (lambda parameters, formals, `let` bindings and `rec` attributes shadow functions), joins lexical narrowing of nested `let` functions, its nested functions are no longer bare-name candidates from other files, and a `nix-shell` script is no longer detected as Bash. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Nix plugin is `NixPlugin` in `crates/cgg-lang/src/plugins/nix.rs`. The file is 275 lines and includes 3 inline tests. It parses `.nix` files with the crates.io grammar `tree-sitter-nix`: the workspace pins `"0.3"` (Cargo.toml:119), Cargo.lock:1634-1636 resolves it to 0.3.0, and nix.rs:25-27 binds `tree_sitter_nix::LANGUAGE`. Nothing is vendored.
 
 A single recursive `NixWalker` (nix.rs:47-217) does three things:
@@ -15,7 +17,7 @@ The plugin overrides none of these trait methods, so it gets the defaults:
 - `max_line_bytes()`: none (lib.rs:313-315).
 - `ts_language_for()`: the default (lib.rs:322-324).
 
-The plugin also ignores `ExtractCtx` (`_ctx`, nix.rs:31). The trait has no `resolver_kind` method, so the generic pipeline resolves Nix. The only Nix-specific resolver code is the `"dart" | "solidity" | "nix"` file-relative import arm in `cross_file.rs:2029-2060`.
+The plugin also ignores `ExtractCtx` (`_ctx`, nix.rs:31). Its locals are collected outside the plugin, by `locals::collect_nix` (`crates/cgg-lang/src/locals.rs:2359`; see §07). The trait has no `resolver_kind` method, so the generic pipeline resolves Nix. Nix-specific resolver code: the `"dart" | "solidity" | "nix"` file-relative import arm (`crates/cgg-resolve/src/cross_file.rs:2153`), `lexically_scoped` (`crates/cgg-resolve/src/intra_file.rs:161`) and the nested-function cross-file drop (`cross_file.rs:5349`).
 
 Nix is registered at plugins.rs:160. Dead code classifies it as `SCRIPT_DRIVEN` (`crates/cgg-resolve/src/deadcode/caps.rs:27-36`). Its single framework rule `nix` (rules.rs:6679-6695) is a gap-only rule.
 
@@ -25,15 +27,15 @@ Fixtures are under `<scratch>/parity/nix/`, as directories f1 … f4. Each was r
 
 - **Extension `.nix` only** (nix.rs:22-24). Evidence: every fixture file reports `detected_via: extension:.nix`.
 - **No shebangs** (default `&[]`).
-  - f4/`script`, starting `#!/usr/bin/env nix-shell` / `#! nix-shell -i bash`, is detected as **bash** via `shebang:sh`. The bash `sh` needle is a substring of `nix-shell`.
-  - In practice that is right for `nix-shell -i bash` scripts, but it is accidental: Nix itself has no shebang detection.
+  - In 0.11.0, f4/`script` (`#!/usr/bin/env nix-shell` / `#! nix-shell -i bash`) was detected as **bash** because the `sh` needle was a substring of `nix-shell`.
+  - Since 0.11.1 (WS25) a shebang interpreter must equal a plugin keyword (optionally followed by a version), so `nix-shell` names nothing and such an extensionless script is skipped as `unknown-extension` (fixture 2026-11-25, `lang-docs/nix/a/sc/script`). The `-i bash` line is not read.
 - **No content detection.** detect.rs has no Nix branch (grep for `nix` in `crates/cgg-lang/src/detect.rs` finds nothing).
 - **Single grammar.** There are no dialects, no `ts_language_for`, and no re-parse or fallback on error.
   - A file with a syntax error is still extracted from tree-sitter's error-recovered tree, and `parse_status` is `error`.
   - In f4/a.nix, `broken = x: (( x;` set `parse_status: error`. The `broken` binding was lost, but every other binding in the file was still recorded.
 - **Skip conditions.** Only the generic ones apply: binary, size and walk deny list. The tree-depth guard `MAX_TREE_DEPTH` = 4000 (`crates/cgg/src/lib.rs:155`, checked at :451) skips a file as `TooDeep`. Not separately exercised for Nix.
   - There is no `max_line_bytes` cap (default `None`).
-  - The minified-file rule (lines over 2,000 bytes) only gates `locals`, which Nix does not collect.
+  - The minified-file rule (lines over 2,000 bytes) gates locals collection.
 - **Curried-application depth guard.** `record_call` descends at most 64 nested `apply_expression` levels to find the callee (nix.rs:155-163).
 - Framework detection gets one Nix test: `crates/cgg/tests/detect_prefixes.rs:88` (`every_detect_prefix_can_actually_fire`) writes `{ }: import <prefix>` into a `.nix` file to prove each detect prefix can fire.
 
@@ -118,20 +120,19 @@ Fixtures are under `<scratch>/parity/nix/`, as directories f1 … f4. Each was r
 - **Not applicable.** Nix has no classes, so no `ClassDecl`, bases, `super`, `member_of_calling_class` or `overrides_below`.
 - `nix` is not in:
   - `INHERITANCE_LANGS` (dispatch.rs:110);
-  - `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583, `["java", "scala", "cpp"]`).
+  - `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357, `["java","scala","cpp","csharp","groovy","swift","kotlin","typescript"]`).
 - Nix has no trait impls (`signals().impls` false), so `--dynamic-dispatch` adds nothing.
 - Overlay `final: prev:` override chains, `//` attrset merges, `lib.extends`/`lib.fix` fixpoints and the NixOS module system's option merging are not modelled.
 - **Same-name fan-out still happens** through generic by-name lookup. For example, f2 `inner` bound to both nested `inner`s, and f4 `go` bound to two files. This fan-out is bounded by `--fanout-cap`.
 
 ## 07. Scoping & shadowing
 
-- **No `FileFacts::locals`.** `locals::spec` has no `"nix"` arm (`crates/cgg-lang/src/locals.rs:380-393`), so nothing is ever `shadowed-by-local`.
-  - Evidence: f1 `shadow = greet: greet "x";` produced `shadow -> greet` at **high** (intra-file) to the file-level `greet` binding, although `greet` there is the lambda parameter.
-- **No lexical narrowing of nested definitions.** Nix is not in the CLAUDE.md lexical-narrowing list.
-  - f2: `outer = x: let inner = y: y; in inner x;` and `other = x: let inner = z: z+1; in inner x;` each bound to **both** `inner`s (medium, `cross-file:imports`), i.e. four edges.
-- **`let`, `rec` and `with` scoping are not modelled.**
-  - Calls to `rec` siblings work only because they share the file (f1 `inner -> outer`).
-  - `with lib; mkDefault ...` leaves `mkDefault` external (f3 user6).
+- **Locals table (WS27, 0.11.1).** `locals::collect_nix` (`crates/cgg-lang/src/locals.rs:2359`) records a lambda's parameter, formals and `@` name over the whole lambda (body and defaults; a file whose top level is a lambda binds its formals over the file), a `let`'s bindings (`inherit x;` and `inherit (s) x;` included) over the whole `let`, and a `rec { … }` set's attributes over the set. `inherit (import ./f.nix …) x;` is that file's `x` and binds nothing (`cgg_core::stdlib::NIX_IMPORT_BUILTIN`). Plain attrset keys, top-level bindings and `with e;` never bind, and a selected call (`lib.f x`) is never shadowed. Fixture (2026-11-25, `lang-docs/nix/a`):
+  - `shadow = greet: greet "x";` and `fm = { greet, ... }: greet "y";` are `shadowed-by-local` (f1 bound `shadow -> greet` at **high** in 0.11.0);
+  - `inh = x: let inherit (import ./lib/helpers.nix) double; in double x;` binds `lib/helpers.nix`'s `double` at `high`.
+- **Lexical narrowing of nested definitions.** Nix is in `lexically_scoped` (`crates/cgg-resolve/src/intra_file.rs:161`): a function defined in a `let` inside another is visible by name only there. Fixture `lang-docs/nix/a`: `outer = x: let inner = y: y; in inner x;` and `other = x: let inner = z: z + 1; in inner x;` each bind their own `inner` at `high` (in 0.11.0, f2, each bound both at medium); `lt = x: let greet = y: y; in greet x;` binds its own `greet`.
+- **Nested functions are not bare-name candidates from other files (WS33)** (`cross_file.rs:5349`).
+- **`with` scoping is not modelled.** `with lib; mkDefault ...` leaves `mkDefault` external (f3 user6).
 - **No positional shadowing and no conditional definitions** (`DefRecord::conditional` unset).
 
 ## 08. Macros, preprocessor & codegen
@@ -190,6 +191,7 @@ Fixtures are under `<scratch>/parity/nix/`, as directories f1 … f4. Each was r
   - The stderr summary always says `0 stdlib`.
 - **`--include-stdlib`** therefore mints nothing for Nix.
 - **`--include-external`** mints `<external>::…` exit nodes at `low`. f4 produced `<external>::undefinedThing` and `<external>::attrs.nested::fn`.
+- **`--externals` (0.12.0)** reads `import <nixpkgs>` and fetcher literals: row `nix` in `crates/cgg/tests/externals.rs` attributes `nixpkgs` and `github:a/b` (`pkgs.fetchFromGitHub { owner = "a"; repo = "b"; … }`) as `third-party`; `runCommand`/`writeShellScript` are process-spawn APIs (`crates/cgg-core/src/stdlib.rs`). A `builtins.map` call is still `unattributed` (fixture 2026-11-25, `lang-docs/nix/a`). It never changes an edge.
 - There is no rust_types-like table, no `CAST_INTRINSICS`/`CONSTRUCTING_METHODS` entry and no implicit packages.
 - Shadowing risk: because no Nix stdlib exists, a project function named `map` would capture every bare `map` call by name (generic by-name behaviour; unverified for Nix specifically).
 
@@ -199,10 +201,9 @@ Fixtures are under `<scratch>/parity/nix/`, as directories f1 … f4. Each was r
   - intra-file unique-name binding (f1 `inner -> outer`, f2 `main -> greet`, f3 `helper -> inner`);
   - a unique name in an imported file (f2 `main -> double`/`quad`, `cross-file:imports`, high).
 
-  None of these is semantically certain for Nix, because scoping is not modelled. False highs observed:
-  - a parameter-shadowed name (f1 `shadow -> greet`);
+  Remaining false highs (the parameter-shadowed f1 `shadow -> greet` is fixed by the locals table, §07):
   - an unbound receiver (f3 `self.inner` → `inner`);
-  - a bare name not in scope (f2 `double` reached only through `helpers.`).
+  - a bare name not in scope (f2 `double` reached only through `helpers.`; still `high` in 0.13.3, fixture `lang-docs/nix/a` `dd = x: double x;`).
 - **Medium**: by-name fan-out to several candidates and non-imported files (f2 `helpers.double` ×2, `triple`, the `inner`s; f4 `go` ×2).
 - **Low**: only `--include-external` exit nodes and dead-code findings.
 - **Mermaid `?` marker** appears on arrows with no high site: `N1 -->|?| N10`, `N3 -->|?| N4` (f2 mermaid output) and `N3 -->|?| N1` (f4).
@@ -228,16 +229,16 @@ Fixtures are under `<scratch>/parity/nix/`, as directories f1 … f4. Each was r
 - **Found while cataloguing (fixtures):**
   1. Top-level module/package lambdas are not callables, so most NixOS modules and packages have no node (f3).
   2. Calls outside any function binding are `no-enclosing-callable` (f1, f2). In a typical `default.nix`, most call sites are therefore unattributed.
-  3. Lambda parameters do not shadow, and nested `let` definitions are not narrowed. This produces false **high** edges (f1 `shadow -> greet`) and cross-function fan-out (f2 `inner`).
+  3. Fixed in 0.11.1 (WS27): lambda parameters and `let` bindings shadow, and nested `let` definitions are narrowed (§07).
   4. The import binding (`h = import ./x.nix`) is not linked to the receiver `h.f`. Bare names from imported files bind high, and non-imported files are reached by name (f2, f4).
   5. `import ./dir` does not try `./dir/default.nix` (cross_file.rs:2034-2039).
-  6. `inherit`, `inherit (x) …` and `with x;` neither define nor import names (f1 lines 26/27).
+  6. `inherit (x) …` and `with x;` do not import names (f1 lines 26/27); `inherit` only binds a local (§07), except `inherit (import ./f.nix) x;`, which reaches that file's `x`.
   7. Curried applications are recorded once per `apply_expression` level, so the audit counts duplicates (f1, f3). Parenthesised or computed callees and `|>` pipes are dropped (f1 r9, f3 user4/user8).
   8. Value references (`map f xs`) are not recorded.
   9. Attrpath names: `a.b.f = …` keeps its dots as the simple name, and quoted names keep their quotes (f3 `"quoted-name"`). Qualified names carry no enclosing-binding context, so same-named nested lambdas collide.
   10. There is no stdlib table, so all `builtins` and `lib` calls are "external".
   11. There are no test harness rules (`nixosTest`, `lib.runTests`).
-  12. There are no shebang needles. A `nix-shell` script is detected as bash only by the `sh` substring accident (f4/script).
+  12. There are no shebang keywords. Since 0.11.1 a `nix-shell` script is not detected at all (no longer bash by the `sh` substring accident).
   13. Possible spurious `{}` import record for `import <p> {}` (unverified, nix.rs:189).
 - No `#[ignore]` tests for Nix were found. The only tests are the 3 inline tests in nix.rs:239-274 and `detect_prefixes.rs:88`.
 
@@ -245,19 +246,19 @@ Fixtures are under `<scratch>/parity/nix/`, as directories f1 … f4. Each was r
 
 | section | support | note |
 | --- | --- | --- |
-| 01 Detection & parsing | partial | `.nix` only; no shebang or content detection; error-recovered trees extracted |
+| 01 Detection & parsing | partial | `.nix` only; no shebang or content detection (`nix-shell` scripts skipped); error-recovered trees extracted |
 | 02 Callables extracted | partial | only function-valued bindings; file-level module/package lambdas and anonymous lambdas are not nodes; flat names |
 | 03 Call-site forms | partial | bare and select applications; curried calls are duplicated; parenthesised callees, pipes and value refs are dropped |
 | 04 Imports & module resolution | minimal | `import path` gives file-relative include defs; no alias↔receiver link, no `default.nix`, no `inherit`/`with`/`callPackage` |
 | 05 Type inference & receiver typing | none | receiver is a textual hint only and is ignored intra-file |
 | 06 Inheritance, dispatch & overloading | n/a | no classes; overlays and fixpoints not modelled; not in INHERITANCE or OVERLOAD lists |
-| 07 Scoping & shadowing | none | no locals table; parameters do not shadow (false high); no lexical narrowing |
+| 07 Scoping & shadowing | partial | locals table (parameters, formals, `let`, `rec`); lexical narrowing of nested `let` functions; `with` not modelled |
 | 08 Macros, preprocessor & codegen | n/a | language has none; `name_mentions` unused |
 | 09 FFI & cross-language links | none | builder scripts and embedded shell are not linked |
 | 10 Frameworks & entry points | minimal | one gap-only Lifecycle rule `nix`; coverage line only, no entry nodes |
 | 11 Test harness entries | none | no `nixosTest` / `runTests` rules |
 | 12 Dead-code analysis | minimal | script-driven: findings capped low, root-dependent ones withheld; only `toplevel:invocation` roots |
 | 13 Builtins & stdlib tables | none | no `stdlib/nix.txt`; all builtins and `lib` calls are external |
-| 14 Confidence & certainty | partial | high from unique-name intra-file and import paths, but scoping-blind (false highs); `?` marker works |
+| 14 Confidence & certainty | partial | high from unique-name intra-file and import paths; false highs remain for receivers and out-of-scope bare names; `?` marker works |
 | 15 Dynamic use & reflection | none | `getAttr`, `${}` selection and computed imports are not screened |
 | 16 Known gaps & limitations | n/a | 13 gaps listed above; gap text at rules.rs:6692 |

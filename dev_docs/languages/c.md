@@ -1,13 +1,22 @@
 # c
 
-The C plugin (`CPlugin`, `crates/cgg-lang/src/plugins/c.rs`, 612 lines including inline tests) parses `.c` and `.h` files with the crates.io grammar `tree-sitter-c` (`tree_sitter_c::LANGUAGE`, c.rs:35-37). Nothing is vendored. A single recursive `CWalker` (c.rs:86-384) does the following:
+> Revised 2026-11-25 against cgg 0.13.3: C now has a locals table (parameters and block-scope declarators shadow functions), general function-value references (`c_values.rs`), same-file preprocessor alternatives bound at `medium` (`preproc_branches`), a consumer for unreachable regions, a `libfuzzer` harness and declared return types; the sections on scoping, value references, alternatives, tests and dead code are corrected accordingly. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The C plugin (`CPlugin`, `crates/cgg-lang/src/plugins/c.rs`, 634 lines including inline tests) parses `.c` and `.h` files with the crates.io grammar `tree-sitter-c` (`tree_sitter_c::LANGUAGE`, c.rs:35-37). Nothing is vendored. A single recursive `CWalker` (c.rs:86-384) does the following:
 
 - Records `function_definition` bodies, prototypes (`declaration` with a function declarator) and function-like `#define`s as `FreeFunction` definitions.
 - Records quoted `#include "…"` as `include` imports and `<…>` as `system-include` imports.
 - Records `call_expression` sites whose callee is an identifier or a `field_expression`.
 - Runs the registrar-argument capture for the C runtime callback verbs.
 
-After the walk, the plugin collects item-position macro invocations (`c_macro::scan_invocations`, c.rs:56-57). Under `--dead-code` it also collects statements after a terminator (`cfg::unreachable_after_terminator(&C_LIKE)`, c.rs:58-61).
+After the walk the plugin (c.rs:56-70):
+
+- when `ExtractCtx::reference_sites` is set (`--reference-edges`, or `--dead-code`), collects function names in value position with `c_values::collect` (value references, plus `data_members` and `type_names` for the prune);
+- collects item-position macro invocations (`c_macro::scan_invocations`);
+- under `--dead-code`, collects statements after a terminator (`cfg::unreachable_after_terminator(&C_LIKE)`);
+- marks which `#if`/`#ifdef`/`#elif`/`#else` branch holds each definition (`preproc::mark`, recorded as `DefRecord::preproc_branches`).
+
+Parameters and block-scope declarators are collected by the shared locals pass (`locals::collect_c`, locals.rs:647).
 
 The plugin declares one signal only, `unreachable: true` (c.rs:28-33). It does **not** declare `visibility`, `attributes`, `exports`, `impls`, `value_refs`, `test_defs` or `dyn_uses`. There is no `resolver_kind` override, no `ts_language_for`, no `max_line_bytes` and no `shebangs`.
 
@@ -45,7 +54,7 @@ Fixtures cited below are under `<scratch>/parity/c/` (f1 … f12). Each was run 
 - **Re-parse/fallback**: none; unlike C#, there is no `#if` blanking. A file with syntax errors is still extracted with `parse_status: "error"`. Fixture f1: `util.c` with a `;`-less `DEF_GETTER(x)` is `error` but its five functions are extracted.
 - **Macro-swallowed headers.** A macro invocation with no `;` before a function makes the grammar fold the real header into the declarator. `swallowed_header` (c.rs:398-436) recovers the function name, and the swallowed `helper(void)` is not recorded as a call. Test: `a_macro_invocation_without_semicolon_does_not_swallow_the_next_function`. `LIST(DECL)` parsed as a `macro_type_specifier` return type is handled at c.rs:195-203.
 - **Depth skip**: shared. A tree deeper than `MAX_TREE_DEPTH` (4,000) is skipped as `SkipReason::TooDeep` (cgg/src/lib.rs, `cgg_lang::exceeds_depth`). Test: `deep_nesting.rs` (a 3,000-term `sum.c` still extracts `h`, line 100-110).
-- **Minified handling**: `max_line_bytes` is not overridden. `locals` has no C table, so the "no locals on lines over 2,000 bytes" rule has nothing to drop. The `--skip-minified` behaviour is generic and was not exercised for C (unverified).
+- **Minified handling**: `max_line_bytes` is not overridden. The generic rule that skips locals on lines over 2,000 bytes applies to the C locals table. The `--skip-minified` behaviour is generic and was not exercised for C (unverified).
 - **System-header classification**: `is_platform_header` (cross_file.rs:3208+) knows C11/POSIX names and prefixes (`sys/`, `bits/`, `linux/`, `asm/`, `netinet/`, `mach/` …). It decides which `<…>` includes are never followed (§04).
 
 ## 02. Callables extracted
@@ -74,11 +83,11 @@ Not supported or partial:
 - **A prototype whose bodies live in more than one other file is kept** (cpp.rs:1393-1409, the cuda-samples rule). Calls through the header bind to the bodyless prototype. Fixture f4: `go → solve@inc/api.h` (high); `p1/solve.c` and `p2/solve.c` get no edge.
 - **Function-pointer variables, struct members and typedefs** (`int (*fp)(int);`, `struct ops { int (*run)(int); }`, `typedef int (*cb_t)(int);`) are not callables. Test: the `fp` assertion in `pointer_returning_functions_are_named_and_pointer_variables_are_not`.
 - **No closures or lambdas** (C has none); Apple blocks `^{}` are not handled (no code path; unverified).
-- **No `DefRecord::conditional`**: `#ifdef` branches are not marked as alternatives at extraction.
+- **No `DefRecord::conditional`**, but `preproc::mark` records each definition's `#if`/`#ifdef`/`#elif`/`#else` branches in `DefRecord::preproc_branches` (preproc.rs:53), which intra-file resolution reads (§07).
 
 ## 03. Call-site forms
 
-`record_call` (c.rs:354-383) records only a `call_expression` whose `function` field is an `identifier` or a `field_expression`. It records `name` and `receiver_hint` (the argument text before `.`/`->`), and nothing else. There is no `arity`, `arrow`, `path_receiver`, `typed_receiver`, `paren_less` or `value_ref` flag.
+`record_call` records only a `call_expression` whose `function` field is an `identifier` or a `field_expression`. It records `name` and `receiver_hint` (the argument text before `.`/`->`), and nothing else. There is no `arity`, `arrow`, `path_receiver`, `typed_receiver` or `paren_less` flag. Value references come from the separate `c_values` pass below.
 
 Supported:
 
@@ -87,13 +96,13 @@ Supported:
 - **Macro call** `SQUARE(3)` is a `call_expression` in tree-sitter-c and is recorded like a call. Test `macro_call_looks_like_call`. Fixture f1: `main → SQUARE` high.
 - **Registrar arguments (value refs).** A function named by identifier in a call to a registrar verb becomes a `VALUE_REF_HINT` reference with `context` = the verb (c.rs:142-149 → `registrar::capture`, registrar.rs:424+). The verbs come from `rules::registrar_verbs_for("c")`, i.e. the `c-callbacks` registrars plus any user rule verbs (registrar.rs:431-436). The built-in verbs are `signal`, `atexit`, `at_quick_exit`, `on_exit`, `pthread_create`, `pthread_once`, `pthread_key_create`, `qsort` and `bsearch`. Test `functions_passed_to_runtime_registrars_are_value_refs` (`log_it(g)` is not captured). Fixture f5 with `--reference-edges`: `main → worker` and `main → bye` are edges with `via: reference`, at medium.
 - **Swallowed header is not a call** (c.rs:112-118, 138-141). Test `a_macro_invocation_without_semicolon_does_not_swallow_the_next_function`.
+- **Function values (WS26).** Under `--reference-edges` or `--dead-code`, `c_values::collect` (one cursor walk, c_values.rs:46) records a function name in an argument (not of a registrar verb or an ALL-CAPS macro-style callee), an initializer list, an initializer or assignment value, or a `return`, also through `&`, casts and `?:`, as a `value_ref`. Names a local in scope binds are pruned through the locals table; names the function assigns to and file-scope variables are skipped; a type keyword, standard type (`C_TYPE_NAMES`) or `typedef`/tag the file or its include closure declares is never a value; a bare name some struct the file can see declares as a field is data unless the file defines the function. Fixture (2026-11-25, `lang-docs/c/f1`, `--reference-edges`): `fp = twice` and `run_all(hook)` give `caller → twice` and `caller → hook` edges with `via: reference` at **high**; a file-scope `static const struct ops tbl = { lonely };` roots `lonely` under `--dead-code` (`toplevel:invocation`, `lang-docs/c/f2`).
 - **Macro credit references.** A file-scope invocation of a function-like macro gets a `RefRecord{macro_call: true}` at its first byte (c_macro.rs:919-960).
 
 Not supported:
 
 - **Calls through a parenthesised or computed callee** are dropped (`_ => return`, c.rs:371). Examples: `(*fp)(6)`, `getter()()` (outer call), `table[i](x)`. Fixture f1: `(*fp)(6)` appears in no bucket. Fixture f2: only the inner `getter` of `getter()()` is recorded.
-- **Function names passed as values to non-registrar calls** are not captured. Examples: `run_all(hook)`, struct initialisers `{ twice }`, and assignments `fp = twice`. The C plugin calls only `registrar::capture`, never `capture_value_refs`. Fixture f5: `run_all(hook)` gives no reference to `hook`. Fixture f1: `twice` (in an initializer and in `fp = twice`) has no incoming edge.
-- **No arity recording**; C is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- **No arity recording**; C is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357).
 - **Calls written inside a `#define` body are not recorded**: `preproc_function_def` returns without walking its children (c.rs:127-133). Fixture f6: `#define LOG(...) do_log(__VA_ARGS__)` gives `k → LOG`, but no edge to `do_log`.
 - **Explicit generics, operators, constructors and paren-less calls**: not applicable to C.
 - **`_Generic` selections**: not handled specially (no code; unverified).
@@ -127,10 +136,11 @@ Not supported:
 
 ## 05. Type inference & receiver typing
 
-None for C:
+Almost none for C:
 
-- The plugin records no `local_types`, `field_types`, `type_aliases`, `scoped_types` or parameter types. `macro_aliases` is filled only by the C++ plugin (cpp.rs:677).
-- The only `local_types`/`locals` a C file can receive come from macro expansions (c_macro.rs:868-891). The C fragment extractor produces no `local_types` (c.rs:68-84), and `locals::collect` has no C table (locals.rs:380-393).
+- The plugin records no `local_types`, `field_types`, `type_aliases`, `scoped_types` or parameter types. `macro_aliases` is filled only by the C++ plugin (cpp.rs:720).
+- C is in `TYPE_FIRST_RETURN_LANGS` (type_hints.rs:4005), so a declared return type in front of the name is read; but since C member calls are never typed (next bullet), this changes no C edge. Fixture `lang-docs/c/f2`: `make()->run(2)` with `struct ops *make(void);` still binds the free function `run` by name at medium.
+- The locals table (`locals::collect_c`, §07) carries bindings for shadowing, not types.
 - Struct-member chains (`kernel->streams->run()`) are typed only for `facts.language == "cpp"` (type_hints.rs:578).
 - No casts (`CAST_INTRINSICS` lists only cpp and scala, stdlib.rs:35-46) and no constructions.
 - No `declared_type` reading, no closure typing, no implicit or weak receivers.
@@ -143,22 +153,20 @@ Not applicable to C, which has no classes, inheritance or overloading. Specifica
 
 - Not in `INHERITANCE_LANGS` (dispatch.rs:110-123), so there is no `inheritance_fanout`.
 - No `trait_impl_target`, so `--dynamic-dispatch` adds nothing.
-- Not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- Not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357).
 - No `member_of_calling_class`, `overrides_below`, `super` or extension methods.
 - **Function-pointer "vtables"** (struct of function pointers, the C OO idiom) are not modelled. There is no dispatch from `ops->run()` to the functions stored in `ops`. Fixture f1: `struct ops o = { twice }; o.run(3)` gives no edge to `twice`. Fixture f4: `run` binds by name to an unrelated function. The `c-runtime` gap text (rules.rs:7945+) names this pattern.
 
 ## 07. Scoping & shadowing
 
-- **No `FileFacts::locals` for C** (locals.rs:380-393). As a result, no `shadowed-by-local` refusal is possible. Fixture f7:
-  - `int h(int (*f)(int)) { return f(1); }` with `f` declared in the included `lib.h` → `h → f@lib.c` **high**;
-  - `int k(void) { int (*counter)(void) = 0; return counter(); }` → `k → counter@lib.c` **high**.
-
-  Both are false high edges.
+- **Locals table (WS27)**: `locals::collect_c` (locals.rs:647) records a function's parameters (K&R ones only when a K&R declaration types them), in scope over the definition, and each block-scope declarator (arrays, pointers, function-pointer variables, `static` locals, `for` init declarations) from the end of its declarator to the end of its block. Parameter names inside a function-pointer declarator, a block-scope prototype, a parenthesized name without `*` and a declarator after a parse error bind nothing; file-scope declarations are not locals. A call through a binding is refused as `shadowed-by-local`. A function-like macro is never shadowed (it expands before scope applies). Fixture `lang-docs/c/f1` (2026-11-25):
+  - `int h(int (*f)(int)) { return f(1); }` with `f` declared in the included `lib.h` → `f` is `shadowed-by-local`, no edge;
+  - `int k(void) { int (*counter)(void) = 0; return counter(); }` → `counter` is `shadowed-by-local`, no edge.
 - **No lexical narrowing or positional shadowing** for C.
-- **Same-file duplicate definitions are refused intra-file.** Fixture f9: `#ifdef DEBUG static int dbg… #else static int dbg… #endif` with `caller()` in the same file gives `dbg` unresolved, `ambiguous-in-file` (`file_local: 2`). The cross-file path instead binds the last alternative at high (§04). The two paths are inconsistent.
+- **Same-file preprocessor alternatives bind each at medium (WS36).** When every same-named definition in the caller's C file sits in a different branch of one `#if`/`#ifdef`/`#elif`/`#else` chain (nested chains count), a call binds all of them at `medium`; a call inside one branch binds only the alternatives that branch can see (`PREPROC_ALTERNATIVE_LANGS` = `c`, `objc`, intra_file.rs:1025). Fixture `lang-docs/c/f1`: `#ifdef DEBUG static int dbg… #else static int dbg… #endif` with `caller()` in the same file gives `caller → dbg@8` and `caller → dbg@10`, both medium. Still `ambiguous-in-file`: a body outside any conditional beside one inside, two bodies in one branch, two unconditional bodies. Alternatives in an **included** file are still bound once, to the last, at high (§04; fixture `lang-docs/c/f2`: `use → plat@dbg.h:9` high).
 - **`static` file scope is not modelled**, because there is no visibility. Step 1d can bind a bare call in `b.c` to a `static` function in `a.c` (unverified for a `static` target specifically). Fixture f2 shows `noproto` (non-static) bound from `b.c` without a prototype in scope.
 - **`#if 0` code is in scope** (fixture f9, §02).
-- **Conditional definitions**: there is no `DefRecord::conditional` marking. Preprocessor alternatives are handled only by `c_include_copies` in the cross-file path.
+- **Conditional definitions**: there is no `DefRecord::conditional` marking; `DefRecord::preproc_branches` serves same-file alternatives, and `c_include_copies` included ones.
 
 ## 08. Macros, preprocessor & codegen
 
@@ -179,7 +187,7 @@ Not applicable to C, which has no classes, inheritance or overloading. Specifica
 - **A `;`-less invocation before a `static` function goes uncredited.** Fixture f12, first variant: `REGISTER(handler)` followed by `static void inside(void)`. The macro is not credited (`REGISTER` reported dead), and `inside`'s span and `signature_hint` start at the invocation (`"REGISTER(handler) static void inside(void)"`, `start_line` 3).
 - **Calls inside a `#define` body are not recorded** (§03; fixture f6: `do_log` is not reached via `LOG`).
 - **Object-like macros are not followed** (§04/§05). Fixture f6: `#define ALLOC my_alloc` then `ALLOC(3)` → `ALLOC` lands in the `external` bucket, and `my_alloc` is not reached.
-- **`#if`/`#ifdef` are not evaluated.** Both branches are parsed (fixture f9: `#if 0` content is live). Alternatives are reconciled only by `c_include_copies` (§04).
+- **`#if`/`#ifdef` are not evaluated.** Both branches are parsed (fixture f9: `#if 0` content is live). Alternatives are reconciled by `preproc_branches` in the caller's own file (§07) and by `c_include_copies` across files (§04).
 - **Templates, quote/unquote**: not applicable.
 
 ## 09. FFI & cross-language links
@@ -214,8 +222,9 @@ Rules whose `language` is `"c"` (rules.rs). `RuleSpec.language` is a single stri
 
 ## 11. Test harness entries
 
-- **No test-kind framework rule for C.** There is no Unity (C), cmocka, Check, CUnit, Criterion, greatest or munit rule. A grep of rules.rs for these names finds only C#'s Unity engine rule (3931) and CMake's CTest gap prose. No `<framework-entry>::test::*` node is ever minted for C.
-- **Name-based test roots** (dead code only): `is_test_name` default arm, `name.starts_with("test_") || name.starts_with("Test")` (deadcode/roots.rs:975-990) → `builtin:test-name`, `RootKind::TestEntry`. Fixture f3 roots: `test_something`, `test_one`, `TestTwo`. This is a bare prefix match, so `Testament()` or `test_harness_util` also count.
+- **One test-kind rule: `libfuzzer`** (`language: "c"`, rules.rs:8474; also a `cpp` twin). A file defining `LLVMFuzzerTestOneInput` (or its optional hooks) gets a `<framework-entry>::test::libfuzzer` node with an entry edge to it. Fixture `lang-docs/c/f2` (2026-11-25): `<framework-entry>::test::libfuzzer → LLVMFuzzerTestOneInput`, and under `--dead-code` the function is a `framework:test-harness` root.
+- **No unit-test harness rule for C.** There is no Unity (C), cmocka, Check, CUnit, Criterion, greatest or munit rule.
+- **Name-based test roots** (dead code only): `is_test_name` → `builtin:test-name`, `RootKind::TestEntry`. A `Test` prefix now needs a word boundary after it (WS20). Fixture `lang-docs/c/f1`: `test_one` is a root, `Testament` is not (it is reported dead).
 - **Test-file classification** (`classify_test_file`, testfile.rs:111-117) for `"c" | "cpp"`:
   - names ending `_test.c`, `_test.cc` or `_test.cpp`;
   - names starting `test_`;
@@ -228,27 +237,26 @@ Rules whose `language` is `"c"` (rules.rs). `RuleSpec.language` is a single stri
 
 ## 12. Dead-code analysis
 
-- **Capability class: `degraded`.** C declares no `visibility` and no `attributes` (c.rs:28-33), and observation can upgrade a signal only if a C callable carries one (caps.rs:112-200). Function-like macros carry `macro`, so a tree with any `#define F(x)` observes `attrs: yes` (fixture f3 table: `vis no, attrs yes, refs yes, disp no`). Visibility never appears, so `signals_complete()` is false and **every C finding is capped at medium**. Fixture f4 capabilities: `class degraded, max_confidence medium`.
+- **Capability class: `degraded`.** C declares no `visibility` and no `attributes` (c.rs:28-33), and observation can upgrade a signal only if a C callable carries one. Function-like macros carry `macro`, so a tree with any `#define F(x)` observes attributes. Visibility never appears, so **every C finding is capped at medium**. Fixture `lang-docs/c/f1` (2026-11-25) capabilities: `class degraded, visibility none, attributes none, value_references full, dispatch none, max_confidence medium`.
 - **Root kinds that apply to C**:
   - `builtin:main` for `main`, `_start`, `WinMain`, `DllMain` (roots.rs:739-757);
   - `framework:rule` from `c-callbacks`;
+  - `framework:test-harness` from `libfuzzer`;
   - `builtin:test-name` (§11);
   - `toplevel:invocation` for a call outside any function (roots.rs:552-614);
   - `toplevel:macro-invocation`, for a C-family `macro` callable whose name has an unresolved site with no enclosing callable (roots.rs:616-660; fixture f3: `DEF_GETTER` rooted, "macro invoked outside any function at ./util.c:8");
   - `user:roots`.
 - **No `ffi:export`, `lang:export`, lifecycle or conventional roots** for C. `LIFECYCLE` has no `c` row, `CONVENTIONAL_METHODS` are OO names, and C records no exports.
 - **Evidence and caps seen on C findings**:
-  - `language-lacks-dispatch-model`, `language-lacks-visibility` and `language-lacks-value-references` (when no reference edge landed);
+  - `language-lacks-dispatch-model`, `language-lacks-visibility`, and `language-lacks-attributes` when no macro is in the tree;
   - `macro-generated` (fixture f3: `get_x`);
   - `name-matches-unresolved-site`;
   - `name-collides-with-screened-site` (fixture f12: `handler`);
   - `incoming-only-from-dead-code` (D002).
-- **Unreachable statements** after `return/break/continue/goto/throw` are extracted under `--dead-code` (`C_LIKE`, cfg.rs:122-133; c.rs:58-61). `switch` cases are never flagged (test `c_switch_cases_are_never_flagged`, cfg.rs:284). **No consumer found:**
-  - a grep for readers of `FileFacts::unreachable` in cgg-resolve and cgg finds none;
-  - fixture f4 (`y = 3;` after `return`) gives no "unreachable"/"after-return" text in the graph JSON, the audit or the dead-code JSON.
+- **Unreachable statements** after `return/break/continue/goto/throw` are extracted under `--dead-code` (`C_LIKE`; regions end before any `goto` label). `switch` cases are never flagged (test `c_switch_cases_are_never_flagged`). They are consumed by `cgg_resolve::unreachable`: edges from sites inside them are capped at `medium`, and liveness skips them. Fixture `lang-docs/c/f1`: `int after(void) { return 1; caller(); }` leaves `caller` reported with evidence `incoming-only-from-unreachable-code`.
 - **False dead findings documented by fixture**:
   - `__attribute__((constructor))` functions (f3 `init_ctor`);
-  - functions stored in struct initialisers or function-pointer variables (f3 `twice`);
+  - functions stored in struct initialisers or function-pointer variables (f3 `twice`) — fixed by the WS26 value references: a file-scope initializer roots the function (`toplevel:invocation`, fixture `lang-docs/c/f2` `lonely`), an in-function one gives a reference edge;
   - functions called only from a `#define` body (f6 `do_log`, implied by the missing edge);
   - functions named in an in-body macro invocation (f12 `inside`).
 - **Static vs external**: not distinguished. An external-linkage library function with no in-tree caller is reported just like a `static` one (fixture f3 `unused_fn`, `noproto`).
@@ -259,6 +267,7 @@ Rules whose `language` is `"c"` (rules.rs). `RuleSpec.language` is a single stri
 - **Classification**: an unresolved call whose bare name is in the table goes to the `stdlib` bucket (`name_screen_applied: "stdlib"`), unless the project defines that name, in which case it is a real unresolved site (cgg-core/src/external.rs:28-35). Fixture f1: `signal`, `qsort` and `printf` are stdlib; `strdup` is stdlib in `util.c`.
 - **Step 1d skips stdlib names** for the by-name fallback (cross_file.rs:6022-6024).
 - **`--include-stdlib` / `--include-external`** mint deduplicated exit nodes `<stdlib>::name` / `<external>::name` (synthetic, language `c`), with `Via::Stdlib`/`Via::External` edges at **low**. Fixture f5: `<stdlib>::pthread_create`, `<stdlib>::atexit`, `<stdlib>::printf` and `<external>::deflate` (from `<zlib.h>`).
+- **`--externals`** attributes the external and stdlib buckets per library: fixture `lang-docs/c/f4` (2026-11-25) reports `zlib` (third-party, from `<zlib.h>`, `deflate`), `posix` (system, `<dlfcn.h>`), `libfoo.so` (native, a `dlopen` literal) and `ls` (process, a `system` literal); coverage forms `dlopen, system, system-include`.
 - **`is_platform_header`** (cross_file.rs:3208+) is a second builtin table: C11, POSIX and OS header names and prefixes that are never followed as includes.
 - **None for C**: `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, `MAYBE_TYPE_WRAPPERS`/`UNION_TYPE_CONSTRUCTORS`/`NULL_TYPE_MEMBERS`, `rust_types`-like wrapper tables, `RUST_UNTYPED_ADAPTER_METHODS`-like adapters, and implicit packages.
 - **Platform headers vs stdlib table**: a vendored libc in the tree is not followed for `<stdio.h>` (test `angle_include_follows_an_in_tree_header_but_not_a_vendored_libc`).
@@ -271,15 +280,16 @@ Paths observed to yield **high** for C:
 - Include closure, single QN: `main → add`, `main → SQUARE`, `main → inl` (fixture f1).
 - `c_include_copies` choosing a prototype's single outside body: `go → shared_impl` (f4).
 - Include closure landing on a **bodyless prototype** (f4 `go → solve@api.h`; f8 `main → rs_add@ffi.h`).
-- Same-file preprocessor alternatives, bound once to the last: f2 `use → plat@a.c:10`; f10 `f → ASSERT@dbg.h:4`. **This contradicts CHANGELOG.md:176-178** ("Conditional alternatives in one header … now bind both at `medium` instead of one at `high`"). The code (cross_file.rs:7316-7360, "bound once — the last") and both fixtures bind one at high.
-- **False highs**: a function-pointer parameter or local named like an included function (§07, fixture f7).
+- Preprocessor alternatives in a file **other than the caller's**, bound once to the last: f2 `use → plat@a.c:10`; f10 `f → ASSERT@dbg.h:4`. Re-checked 2026-11-25 (`lang-docs/c/f2`: `use → ASSERT@dbg.h:4` and `use → plat@dbg.h:9`, both high). Alternatives in the caller's own file now bind each at medium (§07).
+- The function-pointer parameter/local false highs of 0.11.0 (f7) are gone: those sites are now `shadowed-by-local` (§07).
 
 What yields **medium**:
 
 - Step 1d by-name fallback (f2 `noproto`, `knr`, `vfn`, `getter`).
 - Field/arrow calls bound by name (f4 `p->run`, `o.run`).
 - All FFI edges (`asm-c`, `c-asm`, `c-abi`).
-- `--reference-edges` registrar references (f5).
+- `--reference-edges` registrar references (f5). Other value references can be `high` when one in-closure function carries the name (`lang-docs/c/f1`: `caller → twice`, `caller → hook`, `via: reference`, high).
+- Same-file preprocessor alternatives (§07).
 
 What yields **low**: exit-node edges (`--include-stdlib`/`--include-external`), and framework-entry edges when such a node exists (none are minted for C).
 
@@ -311,20 +321,20 @@ From code comments, gap text and CHANGELOG:
 
 Found while cataloguing (fixtures):
 
-1. **False high edges through function-pointer parameters and locals**: no `locals` table for C (f7).
+1. ~~False high edges through function-pointer parameters and locals~~: fixed in 0.11.1 (WS27, C locals table; §07).
 2. **False medium edges for struct function-pointer member calls**: `p->run()` binds to any free `run` (f4). There is no receiver typing for C at all.
-3. **Preprocessor alternatives are handled inconsistently**. Intra-file they are `ambiguous-in-file` (f9 `dbg`); cross-file they bind one at **high** (f2, f10), contrary to CHANGELOG.md:176-178. `#if 0` code is extracted and bound at high (f9).
+3. **Preprocessor alternatives are handled inconsistently**. Intra-file they now bind each at medium (WS36, §07); in an included file they still bind one, the last, at **high** (f2, f10). `#if 0` code is extracted and bound at high (f9).
 4. **No visibility or attributes**. Dead code is `degraded` (medium max), and `static` vs external linkage is indistinguishable.
 5. **Call shapes dropped**: `(*fp)()`, `getter()()`, `tbl[i]()`. Calls inside `#define` bodies (f1, f2, f6).
-6. **Value references only for the nine registrar verbs**. `run_all(hook)`, `struct ops o = { twice }` and `fp = twice` give no reference (f1, f5).
+6. ~~Value references only for the nine registrar verbs~~: fixed in 0.11.1 (WS26, `c_values.rs`; §03). A file-scope initializer naming a function in **another** file (`{ twice }` in `main.c`, `twice` in `lib.c`) is still `no-candidate-in-file` and does not root it (`lang-docs/c/f1`).
 7. **Prototype/body parameter text mismatch** (`cb_t f` vs `int (*f)(int)`) leaves a duplicate prototype node (f2 `apply`).
 8. **A prototype with bodies in several other files absorbs the call** at high (f4 `solve`).
 9. **Cross-file calls need the include closure to contribute something**. A file with no resolvable include gets no fallback (f6), and macro-generated functions are unreachable without a prototype (f1 `get_x`).
 10. **Object-like macro aliases** (`#define ALLOC my_alloc`) are not followed for C (f6). `macro_aliases` is C++-only.
 11. **A `;`-less macro invocation before a `static` function** is not credited, and the function span starts at the invocation (f12).
 12. **Obj-C `@interface` headers are parsed as C**, with parse errors (f11).
-13. **Unreachable-statement extraction has no consumer** (f4).
-14. **No C test harness rules**; test detection is a bare `test_`/`Test` name prefix.
+13. ~~Unreachable-statement extraction has no consumer~~: consumed since 0.11.1 (§12).
+14. **No C unit-test harness rules** (only `libfuzzer`); test detection is a `test_`/`Test` name prefix (word boundary after `Test`).
 15. **No dynuse** (`dlsym`/`GetProcAddress`).
 16. No `#[ignore]`d tests reference C. A grep of `crates/*/tests` and `c.rs`/`c_macro.rs` for `#[ignore]` near C tests found none (unverified beyond that grep).
 
@@ -334,17 +344,17 @@ Found while cataloguing (fixtures):
 | --- | --- | --- |
 | 01. Detection & parsing | full | `.c`/`.h` with content and sibling `.h` disambiguation; no `.cu`, no Obj-C header sniff, no shebang |
 | 02. Callables extracted | partial | functions, K&R, prototypes, fn-macros, macro-generated fns; no visibility/attributes; flat QNs; mismatched prototypes duplicate |
-| 03. Call-site forms | partial | bare, field/arrow, macro calls, registrar value refs; drops `(*fp)()`, `f()()`, non-registrar value refs, calls in `#define` bodies |
+| 03. Call-site forms | partial | bare, field/arrow, macro calls, registrar and general value refs (`c_values`); drops `(*fp)()`, `f()()`, calls in `#define` bodies |
 | 04. Imports & module resolution | partial | `#include` "…" and <…> closure to depth 8 with copy narrowing; no packages/heads refusal; fallback needs a resolvable include |
-| 05. Type inference & receiver typing | none | no locals, fields, params or casts; member calls bind by name |
+| 05. Type inference & receiver typing | none | declared return types read but unused for C; no fields, params or casts; member calls bind by name |
 | 06. Inheritance, dispatch & overloading | n/a | language has none; function-pointer vtables not modelled |
-| 07. Scoping & shadowing | none | no locals table, so fn-pointer params/locals yield false high edges; same-file alternatives refused |
+| 07. Scoping & shadowing | partial | locals table (params, block declarators) gives `shadowed-by-local`; same-file preprocessor alternatives bind at medium; `static` not modelled |
 | 08. Macros, preprocessor & codegen | partial | one-level item-position expansion, `macro:` tagging, name_mentions; no nested expansion, no `#if` evaluation, no object-like aliases |
 | 09. FFI & cross-language links | partial | asm↔C both ways, Rust/C# c-abi exports ← C prototypes; C never an export side |
 | 10. Frameworks & entry points | minimal | `c-callbacks` (9 verbs), `c-runtime` gap-only, `cuda` (dead for C) |
-| 11. Test harness entries | minimal | no harness rules; `test_`/`Test` name prefix and test-file names only |
-| 12. Dead-code analysis | partial | degraded class (medium max); main/_start/WinMain/DllMain, macro-invocation roots; unreachable regions not consumed |
+| 11. Test harness entries | minimal | `libfuzzer` only; `test_`/`Test` name prefix and test-file names |
+| 12. Dead-code analysis | partial | degraded class (medium max); main/_start/WinMain/DllMain, macro-invocation, libfuzzer roots; value refs credit; unreachable regions consumed |
 | 13. Builtins & stdlib tables | partial | `stdlib/c.txt` (278 names) and platform-header table; no cast/type tables |
-| 14. Confidence & certainty | partial | high for include-closure singles, but false highs via fn-pointer shadowing and alternatives |
+| 14. Confidence & certainty | partial | high for include-closure singles; included-file alternatives still one at high; same-file alternatives medium |
 | 15. Dynamic use & reflection | none | no dynuse entry (`dlsym`, `GetProcAddress` unseen) |
-| 16. Known gaps & limitations | n/a | 16 items listed; CHANGELOG/code disagreement on conditional alternatives |
+| 16. Known gaps & limitations | n/a | 16 items listed (1, 6, 13 since fixed) |

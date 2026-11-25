@@ -1,6 +1,8 @@
 # swift
 
-The Swift plugin is `SwiftPlugin` in `crates/cgg-lang/src/plugins/swift.rs` (464 lines including 7 inline tests). It parses `.swift` files with the crates.io grammar `tree-sitter-swift` 0.7 (`Cargo.toml:97`, `crates/cgg-lang/Cargo.toml:35`; `Cargo.lock:1775-1776` pins 0.7.2; `tree_sitter_swift::LANGUAGE`, swift.rs:18-20). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:137`.
+> Revised 2026-11-25 against cgg 0.13.3: Swift now binds `T(…)` constructions to `init`, records call arity and argument labels (overload narrowing), function values and `#selector` as value references, the `override` marker, `Lambda.run` registrar closures and member-read aliases; the sections below are corrected accordingly. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Swift plugin is `SwiftPlugin` in `crates/cgg-lang/src/plugins/swift.rs` (807 lines including inline tests). It parses `.swift` files with the crates.io grammar `tree-sitter-swift` 0.7 (`Cargo.toml:97`, `crates/cgg-lang/Cargo.toml:35`; `Cargo.lock:1775-1776` pins 0.7.2; `tree_sitter_swift::LANGUAGE`, swift.rs:18-20). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:137`.
 
 The plugin is a single recursive `SwiftWalker` (swift.rs:42-288) with two stacks:
 
@@ -18,12 +20,14 @@ It records only five node kinds:
 
 What the plugin does not do:
 
-- It overrides only `id`, `extensions`, `ts_language` and `extract`. There is no `signals()`, `shebangs()`, `max_line_bytes()` or `ts_language_for()`, so every `PluginSignals` bit is false (defaults in `crates/cgg-lang/src/lib.rs:268-310`).
-- It ignores its `ExtractCtx` (`_ctx`, swift.rs:24), so it never records registrar arguments or value references.
+- It overrides only `id`, `extensions`, `ts_language` and `extract`. There is no `signals()`, `shebangs()`, `max_line_bytes()` or `ts_language_for()`, so every `PluginSignals` bit is false, although the plugin now records value references (the dead-code capability table measures them from the data and shows `value_references: full`, §12).
+- Since WS24/WS26 it reads its `ExtractCtx`: `reference_sites` gates value-position capture (swift.rs:67), and `is_registrar_context` gates registrar closures (swift.rs:396).
 - The `LanguagePlugin` trait has no `resolver_kind` method at this head: `grep resolver_kind` finds nothing in `crates/`, so the CLAUDE.md wording is stale. Resolution runs the generic pipeline.
 
 Swift appears in these shared resolver lists:
 
+- `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357-2366) and `constructor_names` (`"swift" => &["init"]`, cross_file.rs:395), since WS28 and WS21;
+- `cgg_lang::member_aliases::ALIAS_LANGS` (member_aliases.rs:17);
 - `lexically_scoped` (intra_file.rs:119-136);
 - `binds_same_name_set` (intra_file.rs:835-848);
 - `INHERITANCE_LANGS` (dispatch.rs:110-123);
@@ -40,8 +44,7 @@ Swift is **absent** from these:
 - `heads.rs` external-head refusal (heads.rs:660-671);
 - `modules.rs` (`modules.rs:190`);
 - `libscope.rs`;
-- `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583);
-- `constructor_names` / `call_operator_names` (cross_file.rs:383-401);
+- `call_operator_names` (cross_file.rs:401);
 - `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, `NULL_TYPE_MEMBERS`, `CALLBACK_TYPE_CONSTRUCTORS`, `TOP_TYPES` (stdlib.rs:35-155);
 - `TEST_CLASS_MEMBERS_ARE_ROOTS` (rules.rs:11806);
 - every dynuse, FFI and descriptor table.
@@ -84,6 +87,7 @@ Supported shapes:
   - **Partial**: `class func klass()` is not detected as static and becomes `InherentMethod` (f1: `Square.klass` kind `method`).
 - **Initializers** `init(...)`, `convenience init()`, failable `init?` → `Constructor` named `<Type>.init` (swift.rs:98-119). Fixture f1: two `Square.init` nodes (L18, L19).
   - A protocol `init(x: Int)` requirement is also a `Constructor` `P.init`, **without** the `abstract` tag (f12).
+  - Since WS21 an `init` carries its class's bases and the `override` marker.
 - **Operator functions** `static func + (l:, r:)` → `StaticMethod` named `+` (f1: `Square.+`). `static func ==` → `Widget.==` (f8).
 - **Generic functions** `func generic<T>(_ x: T)` and `where`-constrained ones → ordinary nodes (f1 `generic`, f8 `generic`).
 - **Overloads** (same QN, different labels or arity): each is a separate node with the same QN (f1: `Square.overloaded` ×2; f5: `Over.f` ×2, `Over.g` ×2).
@@ -97,20 +101,20 @@ Supported shapes:
 - **Nested (local) functions** `func topLevel() { func nested() {} }` → a node whose QN **does not include the outer function** (`nested`; f1, f12). A same-named top-level function gets the same QN (f12: two `inner` nodes). Lexical narrowing still picks the right one (§07).
 - **Conditional compilation**: both branches of `#if … #else … #endif` are extracted (f8: two `platform` nodes, L6 and L8).
 - **Base types**: every `function_declaration` records the enclosing type's supertypes and conformances in `DefRecord::base_types` (swift.rs:180). Generic arguments and module qualifiers are stripped (`swift_bases`, swift.rs:333-350).
-  - **Not** recorded on `init` defs (swift.rs:104-116).
+  - Recorded on `init` defs since WS21.
   - A type with no methods records no bases anywhere (§06).
 - **Visibility**: never recorded. `visibility: String::new()` (swift.rs:113, 178, 206). JSON `vis=None` for `public`, `private` and `internal` alike (f3: `publicApi`, `privateDead`).
-- **Attributes**: never recorded. `attributes: Vec::new()` (swift.rs:114, 179); the only tag ever written is `abstract` (swift.rs:209). `@objc`, `@IBAction`, `@main`, `@Test`, `@MainActor`, `override`, `@_cdecl` are all invisible (f3: `VC.tapped`, `VC.pressed`, `MainApp.main` all `attrs=`).
+- **Attributes**: not recorded. The only tags written are `abstract` on protocol requirements, `synthetic` on registrar closures and, since WS20, `override` (`attrs::with_override_marker`, swift.rs:120, 270; test `override_modifier_is_recorded`, swift.rs:563). `@objc`, `@IBAction`, `@main`, `@Test`, `@MainActor`, `@_cdecl` are all invisible (f3: `VC.tapped`, `VC.pressed`, `MainApp.main` all `attrs=`; 0.13.3 fixture `lang-docs/swift/f2`: `Ext.customHook[override]`, `VC.tapped` with no `@objc`).
 - **Signature hint**: `extract_signature` of the node text (swift.rs:112, 177, 205). This is the text the resolver reads for parameter types and return types.
 
 Not supported:
 
 - **`deinit`**: no node. Calls inside it have no enclosing callable (f1: `cleanup` at L20 → `no-enclosing-callable`).
-- **Computed properties and accessors** (`var x: T { … }`, `get`/`set`, `willSet`/`didSet`, `lazy var … = { … }()`): no node. Calls inside them → `no-enclosing-callable` (f1 L16/L17; f8 L14/L15).
+- **Computed properties and accessors** (`var x: T { … }`, `get`/`set`, `willSet`/`didSet`, `lazy var … = { … }()`): no node by default. Calls inside them → `no-enclosing-callable` (f1 L16/L17; f8 L14/L15; 0.13.3 fixture `lang-docs/swift/f2`). Under `--property-edges` a computed property becomes a callable (`cgg_lang::property_reads`, CHANGELOG 0.13.0).
   - This is why SwiftUI `var body: some View` has no callable (rules.rs `swiftui` gap).
 - **Subscripts** `subscript(i: Int) -> Int { … }`: no node, in classes or in protocols (f1, f8 L21 `lookup` → `no-enclosing-callable`; f12).
 - **Protocol property and subscript requirements** (`var v: Int { get }`): not extracted (f12).
-- **Closures**: never a node. A call inside a closure is attributed to the enclosing function (f1 L72: `{ (x: Int) in topLevel() }` → `topLevel -> topLevel`; f4 L66: `value { request() }` → `passes -> request`).
+- **Closures**: never a node, except a closure passed to a registrar (`Lambda.run { … }`), which becomes a `handler_at_<line>` callable tagged `synthetic` (§10). A call inside a closure is attributed to the enclosing function (f1 L72: `{ (x: Int) in topLevel() }` → `topLevel -> topLevel`; f4 L66: `value { request() }` → `passes -> request`).
 - **Top-level code** (`main.swift` statements): no synthetic module callable. Calls there → `no-enclosing-callable` (f8 L2-4). They do root their target by name in dead-code (§12).
 - **Macro declarations** (Swift 5.9 `macro`), `typealias`, enum `case` constructors: not extracted.
 
@@ -138,20 +142,17 @@ Supported:
 
 Partially supported or not supported:
 
-- **Constructor calls** `Square(side: 3)`, `Engine()`: recorded as a **bare call named after the type**, but never bound to `<Type>.init`. Swift is missing from `constructor_names` (cross_file.rs:383-391), so these end as `no-candidate-in-file` (f1 L23/L61/L64/L67; f4 L9/L18/L35; f10).
+- **Constructor calls** `Square(side: 3)`, `Engine()`: recorded as a bare call named after the type. Since WS21 Swift is in `constructor_names` (`init`, cross_file.rs:395), so step 6 binds the call to `<Type>.init` at **medium** (by name), narrowed by argument labels. A type with no explicit `init` is recorded as `class-without-explicit-init`. 0.13.3 fixture `lang-docs/swift/f1`: `Square(side: 3)` binds the `init(side:)` overload only, medium; `Engine()` (no `init`) is `class-without-explicit-init`.
   - `Engine.Inner()` → `name: Inner, receiver: Engine`, `no-candidate-in-file` (f4 L44).
   - `Widget.init().render()`: receiver text `Widget.init()`, untyped (f8 L12).
 - **Implicit member calls** `.shared()` / `.make()`: **not recorded**. A `prefix_expression` callee that is not the generic misparse returns `None` (swift.rs:269-273). Test `comparisons_and_implicit_members_are_not_generic_calls` asserts `.make()` yields no reference. f4 `implicitMember()` has no out-edge.
 - **Optional-chained cast receiver** `(any as? Motor)?.start()`: the receiver was recorded as the literal text `(`, unresolved `candidates-in-other-files` (f4 L55).
 - **Operators** `a == b`, `a + b` and **subscript use** `a["k"]`: no reference is recorded, so the `Widget.==` and subscript bodies are unreachable (f8 `ops` has no out-edges).
-- **Function values and method references**: `value(cb: request)`, `[1,2].map(transform)`, `let f = request; f()`:
-  - No value reference is recorded. The plugin ignores `ExtractCtx::reference_sites` (swift.rs:24), and `--reference-edges` produced no `reference` edge (f4 `ref.json`: `[]`).
-  - `transform` is reported dead (f1 dead-code run).
-  - `f()` and `cb()` calls are recorded as bare calls and land in the unattributed bucket (f4).
-- **`#selector(VC.tapped)`, key paths `\.name`, `NSSelectorFromString("…")`**: not references (f3: `VC.tapped` reported dead).
-- **Registrar arguments**: never captured (`_ctx` unused, swift.rs:24). The `aws-lambda` swift rule's `registrars: &["run"]` therefore never matches (§10).
-- **Arity**: `RefRecord::arity` is never set (swift.rs:279-286 sets only name, receiver, site and `typed_receiver`). Swift is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
-- **Argument labels**: not recorded, so `f(a:)` and `f(b:)` overloads cannot be told apart at the call site (§06).
+- **Function values and method references** (WS26): under `--reference-edges` or `--dead-code`, `#selector(name)`, call arguments, property, local and assignment values and returns are `value_ref` sites, bare or through `self`, a type or a variable (`capture_value_positions`, swift.rs:144-156). Key paths and implicit members are not; a name a local binds is dropped through the Swift locals, and a type property through `FileFacts::data_members`; an `x.m` value through an untyped variable binds only through its type. 0.13.3 fixtures: `[1].map(transform)` gives `refs -> transform [high reference]` (`lang-docs/swift/f1`), and `#selector(tapped)` gives `VC.wire -> VC.tapped [high reference]` (`lang-docs/swift/f2`).
+- **Member-read aliases**: `let f = m.stop; f()` is rewritten to `m.stop()` (`cgg_lang::member_aliases`). 0.13.3 fixture `lang-docs/swift/f1`: with `m: Motor`, `f()` binds `Motor.stop` at high.
+- **`NSSelectorFromString("…")`**: not a reference (no Swift case; only Objective-C reads it).
+- **Registrar arguments** (WS24): a closure passed to `Lambda.run` (the only Swift registrar, written with its receiver) becomes a `handler_at_<line>` callable entered by the `aws-lambda` rule (swift.rs:396-413). 0.13.3 fixture `lang-docs/swift/f3`: `Lambda.run { … work() }` gives `<framework-entry>::network::aws-lambda::handler_at_3 -> handler_at_3 -> work`.
+- **Arity and argument labels** (WS28): every call records `RefRecord::arity` (`call_arity`, swift.rs:432; trailing closures count) and `RefRecord::arg_labels` (`call_labels`, swift.rs:454). See §06.
 - **`paren_less`, `implicit_receiver`, `path_receiver`, `invocant`, `arg_type`, `not_def`**: never set by the Swift plugin.
 
 ## 04. Imports & module resolution
@@ -167,7 +168,7 @@ Partially supported or not supported:
 - **Bare call narrowed by import directory**: `import Helpers` + `util()` bound to `Sources/Helpers/H.swift`'s `util`, not `Sources/Other/O.swift`'s, at medium.
   - Mechanism: the import's lowercased path fragment matches the directory (step 1c `module_files` / `path_fragments`, cross_file.rs:2170-2215).
   - Fixture f13.
-- **Cross-file bare calls need an import**. Swift has no explicit intra-module imports, but the step 1d global fallback runs only when the calling file has at least one import (`has_imports`, cross_file.rs:6015-6020) **and** the name has at most 3 candidates (cross_file.rs:6025).
+- **Cross-file bare calls need an import** (still so in 0.13.3: fixture `lang-docs/swift/f1`, an import-less `b.swift` calling `transform(1)` is `candidates-in-other-files`). Swift has no explicit intra-module imports, but the step 1d global fallback runs only when the calling file has at least one import (`has_imports`, cross_file.rs:6015-6020) **and** the name has at most 3 candidates (cross_file.rs:6025).
   - f2: `b.swift` (no imports) calling `helper()` from `a.swift` → **unresolved** `candidates-in-other-files`.
   - f2: `c.swift` (with `import Foundation`) calling `other()` → bound, medium.
   - f1: `crossCaller()` → `topLevel` unresolved, because `b.swift` has no import.
@@ -200,7 +201,7 @@ Supported:
   - f4 L22: `engine.start()` → `Engine.start` high.
   - This is a naming heuristic, not field typing. See the false-`high` gap below.
 
-Not supported (fixture evidence):
+Not supported (fixture evidence; each re-checked in 0.13.3 fixture `lang-docs/swift/f1` unless noted):
 
 - **Local annotations** `let e: Engine = …; e.start()`: untyped; fanned out to `Engine.start` + `Motor.start` at medium (f4 L34; `calls()` L78 the same).
 - **Local constructions** `var x = Engine(); x.stop()`: untyped, medium fan-out (f4 L36).
@@ -211,6 +212,7 @@ Not supported (fixture evidence):
 - **Aliases** `let k = m; k.stop()`: untyped (f4 L53). `typealias W = Widget` with `x: W` → `x.render()` unresolved (f8 L28).
 - **Top types**: `x: AnyObject` → the receiver is typed `AnyObject`, and the call is booked as **stdlib** `<stdlib>::AnyObject::go` (f5 with `--include-stdlib`). Swift has no `TOP_TYPES` entry (stdlib.rs:151-155).
 - **Implicit receivers or weak types**: never set (`implicit_receiver` / `weak_receiver_type` are not written by swift.rs).
+- **Member-read aliases** are typed like any receiver (§03).
 
 ## 06. Inheritance, dispatch & overloading
 
@@ -221,7 +223,7 @@ Not supported (fixture evidence):
 - **Inherited member through a typed receiver** works through `resolve_via_bases`:
   - `m: Mid` (with `Mid: Base`), then `m.inherited()` → `Base.inherited` high.
   - `l: Leaf` (`Leaf: Mid: Base`), then `l.inherited()` → high (f7).
-- **Type with no methods loses its bases**: `class Empty: Base {}` and `e.inherited()` → unresolved `candidates-in-other-files` (f7). The bases ride only on method records.
+- **Type with no methods loses its bases**: `class Empty: Base {}` and `e.inherited()` → unresolved `candidates-in-other-files` (f7; still so in 0.13.3 fixture `lang-docs/swift/f2`). The bases ride only on method and `init` records.
   - The same applies to a conformer with no own body: f4 `struct R1: Runner {}` and `r.run()` / `r.prep()` → unresolved, so the protocol-extension default implementation is not reached.
 - **`super.m()`**: `super.over()` in `Mid.over` → `Base.over` high (f7). In f1, `super.draw()` → `Base.draw` medium (the class also conforms to `Shape: Base`).
   - When the base is outside the tree: `super-base-out-of-graph` (f1 `super.init()`; f3 `super.viewDidLoad()`, `super.setUp()`).
@@ -240,11 +242,8 @@ Not supported (fixture evidence):
 - **Overloads**:
   - In-file, a same-QN set is one callee (`binds_same_name_set`, intra_file.rs:835-848) and every overload is bound at medium (f6 c.swift: `Same.use -> Same.f` ×2; f8 `setup -> platform` ×2).
   - Untyped cross-file fan-out also binds all of them (f1 L80-81: `Square.overloaded` ×2 per site).
-  - There is **no arity narrowing**: Swift is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583), and the plugin records no arity or labels.
-  - **Bug: a cross-file typed-receiver lookup keeps only one overload.** It does not expand to the set: that expansion is gated on `OVERLOAD_ARITY_LANGS`, cross_file.rs:2621. In f6:
-    - `o.f(1)` and `o.f(1, 2)` (`o: Over`) **both** bound only to the last-declared `Over.f` (L3, the 1-argument one).
-    - So `o.f(1, 2)` gets a wrong edge and the 2-argument overload gets no edge.
-    - f5: `o.f(1)` bound to the 2-argument `f`.
+  - **Arity and label narrowing** (WS28): Swift is in `OVERLOAD_ARITY_LANGS`; overloads whose parameter list cannot take the count are dropped, and same-count overloads are narrowed by argument label (`type_hints::swift_accepts_labels`: defaults skipped, a variadic takes the unlabeled arguments after it, a trailing closure the next parameter it must fill). A typed lookup reads the whole set even when the count is unknown, and a single survivor is `high`. 0.13.3 fixture `lang-docs/swift/f1`: with `s: Square`, `s.f(a: 1)` and `s.f(b: 2)` each bind their own overload, and `s.g(1)` and `s.g(1, 2)` theirs, all high.
+  - The 0.11.0 bug where a cross-file typed lookup kept only the last-declared overload (f5, f6) is fixed (WS23/WS28): in 0.13.3 fixture `lang-docs/swift/f4`, `o.f(1)` and `o.f(1, 2)` from another file each bind their own overload at high.
 - **Extension methods**: members of `extension T` are ordinary members of `T` (§02). There is no extension-specific step (C#-style step 4d and Kotlin step 0b are not Swift).
   - `3.doubled()` with `extension Int { func doubled() }` in the same file → unresolved `candidates-in-other-files` (f1 L88): a literal receiver is not typed.
 - **Mixins and protocol extensions**: a protocol extension's methods are owned by the protocol (`Runner.run`, `Runner.prep`). They are reachable only through a receiver typed as the protocol, or by duck fan-out, never through a conformer type (f4).
@@ -296,7 +295,7 @@ All framework rules whose `language` is `"swift"` (rules.rs). There are no multi
 
 | rule id | kind | detect (imports) | trigger | line | status |
 | --- | --- | --- | --- | --- | --- |
-| `aws-lambda` | network | `AWSLambdaRuntime`, `AWSLambdaEvents` | `methods: ["handle"]`; `registrars: ["run"]`; `node: true` | rules.rs:4580-4598 | **works for `handle`**: f9 minted `<framework-entry>::network::aws-lambda::H.handle`, and integration test `aws-lambda/swift` (crates/cgg/tests/frameworks.rs:1204-1208). `Lambda.run { … }` is never bound (no argument capture), confirmed in f9: `legacy`/`work` are reported dead. |
+| `aws-lambda` | network | `AWSLambdaRuntime`, `AWSLambdaEvents` | `methods: ["handle"]`; `registrars: ["Lambda.run"]`; `node: true` | rules.rs:4898 (0.13.3) | **works**: f9 minted `<framework-entry>::network::aws-lambda::H.handle`, and integration test `aws-lambda/swift`. Since WS24 a closure handed to `Lambda.run` is bound too (0.13.3 fixture `lang-docs/swift/f3`, §03); `MainActor.run { … }` mints nothing. The gap text no longer claims Swift records no supertypes. |
 | `uikit-lifecycle` | lifecycle | `UIKit`, `AppKit`, `Cocoa`, `WatchKit` | `methods`: 26 names (`viewDidLoad`, `loadView`, `viewWillAppear`, …, `layoutSubviews`, `touchesBegan`, `awakeWithContext`); `node: false` (root marks only) | rules.rs:4978-5019 | works. The match is by method name in any type of a file importing UIKit/…, so f9 `class NotAVC` with no base still had `viewDidLoad` and `layoutSubviews` rooted (`uikit-lifecycle:base-type`). |
 | `uikit-appdelegate` | lifecycle | same | `methods`: `application`, `applicationDidFinishLaunching`, … `didDiscardSceneSessions` (19 names); `node: false` | rules.rs:5022-5056 | works (f9: `AppDelegate.application`, `AppDelegate.applicationWillTerminate` rooted). |
 | `cocoa-delegate` | lifecycle | `Foundation`, `UIKit`, `AppKit`, `Cocoa`, `WatchKit`, `WebKit` | `methods`: `urlSession`, `tableView`, `collectionView`, …, `observeValue` (22 names); `node: false` | rules.rs:5059-5103 | works (f3: `VC.tableView` rooted). Because it detects on `Foundation`, almost every Swift file triggers its "seen, no rules" coverage line (f1). |
@@ -315,7 +314,7 @@ Helper tables:
 - `visibility_entries_for`: none (11686-11691; Solidity only).
 - `self_module_markers_for`: none.
 - `detect_calls_for`: Swift rules have `detect_calls: NONE`.
-- **Registrar verbs**: `registrar_verbs_for("swift")` = `["run"]` (from `aws-lambda`, rules.rs:11929-11955). It is never used, because the plugin does not consult `ExtractCtx::is_registrar_verb`.
+- **Registrar verbs**: `Lambda.run` (from `aws-lambda`), consulted through `ExtractCtx::is_registrar_context`, which admits a receiver-qualified registrar only through that receiver (swift.rs:396).
 
 Entry nodes:
 
@@ -348,12 +347,10 @@ class: degraded, visibility: none, attributes: full, value_references: none, dis
 ```
 
 - **Max confidence medium**:
-  - `LanguageLacksVisibility`, `LanguageLacksValueReferences` and `LanguageLacksDispatchModel` are always pushed (deadcode/mod.rs:913-924), and each caps at medium (cgg-core/src/deadcode.rs:323-330).
-  - Every Swift finding is therefore at most `medium` (f3, f9: all findings medium).
-- **`attributes: full` is spurious**: capability measurement treats any callable with non-empty `attributes` as proof the language records attributes (deadcode/caps.rs:134-136). The only Swift attribute is the hardcoded `abstract` tag on protocol requirements. Consequences:
-  - In a tree with a protocol requirement, Swift is shown as recording attributes, and `LanguageLacksAttributes` is not pushed (f3 risk lists lack it).
-  - In a tree without one, it is pushed.
-  - The capability is therefore data-dependent.
+  - `LanguageLacksVisibility`, `LanguageLacksAttributes` and `LanguageLacksDispatchModel` are pushed, and each caps at medium. Since WS26 `value_references` is `full` and `LanguageLacksValueReferences` no longer applies.
+  - Every Swift finding is therefore at most `medium` (f3, f9: all findings medium; 0.13.3 fixtures `lang-docs/swift/f1`, `f2` likewise).
+  - 0.13.3 capability row (fixture `lang-docs/swift/f1`): `class: degraded, visibility: none, attributes: none, value_references: full, dispatch: none, exports: none, test_tagging: none, max_confidence: medium`.
+- **`attributes: full` was spurious in 0.11.0**: capability measurement counted the hardcoded `abstract` tag as attribute capture. Keyword markers and `abstract` no longer count (`caps.rs`, CLAUDE.md); 0.13.3 fixture `lang-docs/swift/f2`, with a protocol requirement and `override` methods, shows `attributes: none`.
 - **`dispatch: none`** while inheritance fan-out does run for Swift: the measurement reads only `trait_impl_target` (caps.rs:137-139), which Swift never sets.
 - **Roots**:
   - `builtin:main`: any callable named `main` (roots.rs:20). f3: `MainApp.main` rooted.
@@ -364,16 +361,16 @@ class: degraded, visibility: none, attributes: full, value_references: none, dis
     - **calls inside computed properties, accessors, `deinit`, subscripts and property initialisers** (f9: `greet` rooted from `var body`).
     - It matches by name across the whole language, so it can over-root.
 - **Not rooted**:
-  - `@objc` / `@IBAction` / `@IBOutlet` / `#selector` targets (f3: `VC.tapped`, `VC.pressed` reported);
+  - `@objc` / `@IBAction` / `@IBOutlet` targets (f3: `VC.tapped`, `VC.pressed` reported); a `#selector` target now has an incoming reference (§03), but is not a root;
   - `Codable` hooks `encode(to:)` / `init(from:)` (f3: `Codec.encode` reported);
   - `@main` types (only a function literally named `main` is rooted);
   - `public`/`open` API: no visibility, no `exports` (f3: `publicApi` reported like `privateDead`);
   - operator functions (f1: `Square.+` reported);
-  - functions passed as values (f1: `transform` reported);
+  - functions passed as values were reported in 0.11.0 (f1: `transform`); since WS26 they have reference edges (§03);
   - extension methods called on literals (f1: `Int.doubled` reported);
-  - `init`s, which are never reached by `Type(...)` (§03), unless something calls `self.init`.
+  - `init`s are reached by `Type(...)` since WS21 (§03).
 - **Confidence caps**:
-  - `implements-external-contract`: never fires for Swift. The `override` keyword is not recorded, and `OVERRIDE_MARKERS` (deadcode/mod.rs:409) needs it in `attributes`.
+  - `implements-external-contract`: fires since WS20, because `override` is recorded. 0.13.3 fixture `lang-docs/swift/f2`: `override func customHook()` in a `UIViewController` subclass carries it.
   - `macro-generated`: never fires (no `macro:` tags).
   - `reflection`: never fires (no dynuse).
 - **Unresolved-doubt handling**: generic. A same-name unresolved site lowers a finding (evidence `NameMatchesUnresolvedSite`). Swift has many unresolved sites (constructors, untyped cross-file calls), so doubt is common.
@@ -408,10 +405,10 @@ Forced to `medium`:
 - every duck-typed fan-out (untyped locals, properties, closures; f4);
 - cross-file static calls `Square.make()` from another file (f1 b.swift L5). Swift QNs carry no module, so owner uniqueness is per file (`unique_owner_names`, cross_file.rs:4391-4392);
 - construction receivers cross-file (`Square(side: 1).cleanup()`, f1 b.swift L7);
-- overload sets (f6);
+- overload sets with more than one survivor (f6);
 - the step 1d by-name fallback (f2, f13).
 
-**False `high` from the naming heuristic**: `let engine = Motor(); engine.start()` bound to **`Engine.start` at high** (f10 L6). `find_constructor_assignments` maps `engine` → `Engine` by name (type_hints.rs:2437-2450), and the actual local type is never read.
+**Wrong edge from the naming heuristic**: `let engine = Motor(); engine.start()` bound to **`Engine.start` at high** (f10 L6). `find_constructor_assignments` maps `engine` → `Engine` by name, and the actual local type is never read. In 0.13.3 (fixture `lang-docs/swift/f1`) the wrong edge remains but at **medium**.
 
 There is no `low` call edge for Swift except dispatch, entry and exit edges.
 
@@ -433,23 +430,23 @@ From code comments, `gap_for()` and the CHANGELOG:
 - `gap_for("swift-testing")`: no attributes, so `@Test`/`@Suite` are invisible (rules.rs:5158).
 - `gap_for("combine")`: closures and key paths are not recorded (rules.rs:5175).
 - `gap_for("vapor")`: trailing-closure routes and `RouteCollection.boot` are not seen (rules.rs:5192).
-- `gap_for("aws-lambda","swift")`: `Lambda.run { … }` is not bound (rules.rs:4594). Its "records no supertypes" clause is stale.
-- `gap_for("xctest")`: the text says there are no entry rules, but the rule now matches `XCTestCase` + `test*` (rules.rs:5139). The text is stale.
+- `gap_for("aws-lambda","swift")`: the 0.13.3 text says cgg binds `handle` and the `Lambda.run` closure (rules.rs:4898); the stale "records no supertypes" clause is gone.
+- `gap_for("xctest")`: the text says there are no entry rules, but the rule matches `XCTestCase` + `test*` (rules.rs:5443). The text is still stale in 0.13.3.
 - CHANGELOG.md:455-460: bare-name scope is unchanged for Swift ("unrecorded base types make their bare-name scope a matter of types cgg does not have").
 - CHANGELOG.md:1349-1352: "Swift module/target visibility" is not covered (WS14).
-- CHANGELOG.md:751-754: "Kotlin/Scala/Swift/Dart function references (`::f`, `f _`)" are not covered (WS6).
+- CHANGELOG.md:751-754: "Kotlin/Scala/Swift/Dart function references (`::f`, `f _`)" were not covered (WS6); Swift function values are references since WS26.
 - cross_file.rs:4086-4088 lists Swift among plugins that "record no base types". This is stale, but the behaviour it describes (no `member_of_calling_class`) is current.
 
 Found while cataloguing (fixture evidence):
 
-1. **Constructor calls never bind to `init`.** `Foo(...)` is `no-candidate-in-file`, because Swift is missing from `constructor_names` (cross_file.rs:383-391). (f1, f4, f8, f10)
+1. Fixed (WS21): `Foo(...)` binds `Foo.init` at medium; a type with no `init` is `class-without-explicit-init`.
 2. **Cross-file bare calls fail in files without an `import`**, and for names with more than 3 definitions. They resolve only through the step 1d fallback (cross_file.rs:6015-6056). (f2, f1)
-3. **No local, property, return-type, `if let`/`guard let` or closure-parameter typing.** Only parameters, casts and constructions type a receiver. (f4, f10)
-4. **False `high`**: a local whose name equals another type's lowercased name is typed as that type (f10).
-5. **Cross-file typed overload lookup keeps only the last overload**, a wrong edge (f5, f6). There is no arity or label narrowing at all.
+3. **No local, property, return-type, `if let`/`guard let` or closure-parameter typing.** Only parameters, casts and constructions type a receiver. (f4, f10; still so in `lang-docs/swift/f1`)
+4. **Wrong edge**: a local whose name equals another type's lowercased name is typed as that type (f10; `high` in 0.11.0, `medium` in 0.13.3).
+5. Fixed (WS28): overloads narrow by arity and labels, and typed lookups read the whole set.
 6. **Properties, accessors, observers, subscripts, `deinit`, closures and top-level code are not callables.** Their calls are `no-enclosing-callable`. (f1, f8)
-7. **Not recorded**: implicit member calls (`.shared()`), operator and subscript uses, function values, `#selector`, key paths, optional-chained casts (`(x as? T)?.m()` → receiver `(`). (f4, f8)
-8. **No visibility, no attributes and no `override` marker.** Every dead-code finding is capped at medium. `@objc`/`@IBAction`/`@main`/`@Test` are invisible. The capability table reports `attributes: full` because of the `abstract` tag. (f3)
+7. **Not recorded**: implicit member calls (`.shared()`), operator and subscript uses, key paths, optional-chained casts (`(x as? T)?.m()` → receiver `(`). (f4, f8) Function values and `#selector` are references since WS26.
+8. **No visibility and no attributes** (the `override` marker is recorded since WS20). Every dead-code finding is capped at medium. `@objc`/`@IBAction`/`@main`/`@Test` are invisible. (f3)
 9. **Bases are carried only on method records.** A conformer or subclass with no methods (`class Empty: Base {}`, `struct R1: Runner {}`) loses its inheritance. (f4, f7)
 10. **A bare call to a method overridden in the same file is `ambiguous-in-file`**, with no nearest-override rule (f7).
 11. **`static func` requirements are not fanned out by `--dynamic-dispatch`** (f12). `class func` is not detected as static (f1).
@@ -473,17 +470,17 @@ Ignored tests: `grep -n '#\[ignore' crates/cgg-lang/src/plugins/swift.rs` finds 
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.swift` only; no shebang; `Wrap<Int>.s()` misparse repaired; no fallback re-parse |
 | 02. Callables extracted | partial | funcs, methods, inits, operators, protocol requirements, extensions; no properties, accessors, subscripts, deinit, closures or top-level; no visibility or attributes |
-| 03. Call-site forms | partial | bare, member, chained and trailing-closure calls; casts and parens peeled; implicit members, operators, subscripts, function values, arity and labels not recorded |
+| 03. Call-site forms | partial | bare, member, chained and trailing-closure calls; casts and parens peeled; constructions bind `init`; arity, labels, value refs, `#selector`, `Lambda.run` closures; implicit members, operators and subscripts not recorded |
 | 04. Imports & module resolution | minimal | `import X` recorded; cross-file bare calls only by the ≤3-candidate fallback and only in files with an import; no packages, manifests or heads.rs refusal |
 | 05. Type inference & receiver typing | minimal | parameter annotations (with `?`/`!`/`Optional`) and cast/construction receivers only; locals, properties, returns and closures untyped; name-coincidence false high |
-| 06. Inheritance, dispatch & overloading | partial | bases on methods; inherited and `super` through typed receivers; protocol dispatch fan-out; method-less types lose bases; typed overload bug; no arity |
+| 06. Inheritance, dispatch & overloading | partial | bases on methods and inits; inherited and `super` through typed receivers; protocol dispatch fan-out; arity and label narrowing; method-less types lose bases |
 | 07. Scoping & shadowing | full | `SWIFT_SPEC` locals, shadowed-by-local and lexical nesting work; no positional shadowing (by design) |
 | 08. Macros, preprocessor & codegen | none | `#if` branches all extracted; Swift macros and property wrappers invisible |
 | 09. FFI & cross-language links | none | no `@_cdecl`, C/ObjC interop or descriptor link |
-| 10. Frameworks & entry points | partial | 9 rules: uikit-lifecycle, uikit-appdelegate, cocoa-delegate, xctest and aws-lambda `handle` work; swiftui, swift-testing, combine and vapor are disclosed gaps |
+| 10. Frameworks & entry points | partial | 9 rules: uikit-lifecycle, uikit-appdelegate, cocoa-delegate, xctest and aws-lambda (`handle` and `Lambda.run`) work; swiftui, swift-testing, combine and vapor are disclosed gaps |
 | 11. Test harness entries | partial | XCTest by base type + `test*` (transitive); swift-testing and Quick not enumerated; no in-file test tagging |
-| 12. Dead-code analysis | minimal | max confidence medium; no visibility, attributes or override; spurious `attributes: full`; `toplevel:invocation` covers property bodies |
+| 12. Dead-code analysis | partial | max confidence medium; value refs full and `override` gives external-contract evidence; no visibility or attributes; `toplevel:invocation` covers property bodies |
 | 13. Builtins & stdlib tables | partial | `swift.txt` (249 names) plus Optional wrappers; no cast, top-type or implicit-package tables; literals misfiled as external |
-| 14. Confidence & certainty | partial | high for parameter/cast/self/intra-file/inherited; cross-file static medium; false high from the name heuristic |
+| 14. Confidence & certainty | partial | high for parameter/cast/self/intra-file/inherited and narrowed overloads; constructions and cross-file static medium; name heuristic gives a wrong medium edge |
 | 15. Dynamic use & reflection | none | no dynuse for selectors, KVC or `NSClassFromString` |
-| 16. Known gaps & limitations | n/a | 15 cataloged gaps; stale gap texts for xctest and aws-lambda and a stale cross_file.rs:4086 comment |
+| 16. Known gaps & limitations | n/a | 15 cataloged gaps (3 fixed since 0.11.0); stale xctest gap text |

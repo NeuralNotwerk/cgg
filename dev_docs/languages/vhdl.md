@@ -1,5 +1,7 @@
 # vhdl
 
+> Revised 2026-11-25 against cgg 0.13.3: no corrections needed; the plugin is unchanged since 0.11.0, and the absence of call sites, the `use`-gated cross-file `of <entity>` binding at medium and case-sensitive entity binding were re-confirmed (fixture `lang-docs/vhdl/a`). `file:line` citations date from the 0.11.0 audit and may have drifted.
+
 The VHDL plugin (`VhdlPlugin`, `crates/cgg-lang/src/plugins/vhdl.rs`, 322 lines including three inline tests) parses `.vhd` and `.vhdl` files with the crates.io grammar `tree-sitter-vhdl` 1.4 (`Cargo.toml:121` `tree-sitter-vhdl = "1.4"`, `crates/cgg-lang/Cargo.toml:60`; `tree_sitter_vhdl::LANGUAGE`, vhdl.rs:25-27). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:162`. The plugin does four things:
 
 - extracts `entity_declaration`, `architecture_definition` and `subprogram_definition` as callables;

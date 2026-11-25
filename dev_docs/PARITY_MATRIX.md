@@ -1,5 +1,7 @@
 # cgg language parity matrix
 
+> **Status (2026-11-25, cgg 0.13.3).** The scores and the gap ranking below are the 0.11.0 audit of 2026-10-17 and have **not** been re-scored. All 30 ranked gaps in §3 were fixed in 0.11.1 (see the status table under the gap table), and later releases (0.11.2 through 0.13.3) changed more cells, so most rows would now score higher. The category files under `matrix/` carry their own 0.13.3 re-check notes. Re-scoring is the open half of WS29 in [REMEDIATION_PLAN.md](REMEDIATION_PLAN.md).
+
 This document combines the sixteen per-category parity matrices into one view. It answers three questions:
 
 1. How evenly does cgg support each of its 46 languages across all sixteen feature categories?
@@ -15,7 +17,7 @@ It was compiled on 2026-10-17 from the `remediate/cross-language` tree (0.11.0 p
 | Layer | Files | What it holds |
 | --- | --- | --- |
 | Language catalogues | [`languages/*.md`](languages/) (46 files, one per registered plugin) | For each language, sections 01–16: what the plugin extracts and how the resolver treats it, with code citations and fixture results, then a summary scorecard. |
-| Framework catalogue | [`frameworks/rules-part-1.md`](frameworks/rules-part-1.md) · [`part-2`](frameworks/rules-part-2.md) · [`part-3`](frameworks/rules-part-3.md) · [`part-4`](frameworks/rules-part-4.md) | Every `RuleSpec` in `crates/cgg-core/src/frameworks/rules.rs` (475 specs), with its triggers, its matching semantics and whether it enumerates entries or only detects the framework. |
+| Framework catalogue | [`frameworks/rules-part-1.md`](frameworks/rules-part-1.md) · [`part-2`](frameworks/rules-part-2.md) · [`part-3`](frameworks/rules-part-3.md) · [`part-4`](frameworks/rules-part-4.md) | Every `RuleSpec` in `crates/cgg-core/src/frameworks/rules.rs` (475 specs at 0.11.0; 507 `RuleSpec`s and 390 distinct ids at 0.13.3), with its triggers, its matching semantics and whether it enumerates entries or only detects the framework. |
 | Category matrices | [`matrix/01…16-*.md`](matrix/) | One file per feature category. Each has a per-language × per-capability matrix, a ranked **Parity gaps** list, doc corrections and the fixtures run. |
 
 The sixteen categories, and the column labels used in the overview below:
@@ -163,6 +165,43 @@ The "Evidence" column gives the category file and its gap number, as `05 #1` = [
 | 29 | **Overloading languages other than Java, Scala and C++ get no arity narrowing.** Every overload binds at medium. C# and Kotlin come first. The plugins must set `RefRecord::arity`, and `accepts_arity` must handle `params`/`vararg`/defaults/labels. Related: cross-file arity-narrowed Java and Scala overloads never reach `high` (14 #4, S). | 03, 06, 14, 16 | csharp, kotlin, swift, groovy, typescript, solidity, fsharp, julia, powershell | [06 #3](matrix/06-inheritance-dispatch-overloading.md#parity-gaps), [03 #6](matrix/03-call-site-forms.md#parity-gaps), [14 #4, #5](matrix/14-confidence-certainty.md#parity-gaps) | M |
 | 30 | **JS/TS have no working test harness.** `jest`, `vitest` and `playwright` are gap-only, there is no mocha or `node:test` rule, and `it(…)` callbacks are not callables. Helpers used only by tests stay dead findings. Java, Python, Go, Rust and C# all mint harness nodes. | 10, 11, 16 | javascript, typescript | [11 #1](matrix/11-test-harness-entries.md#parity-gaps), [10 #2](matrix/10-frameworks-entry-points.md#parity-gaps), [16 #10](matrix/16-known-gaps-limitations.md#parity-gaps) | M–L |
 
+**Status at 0.13.3 (re-checked 2026-11-25).** Every one of the 30 gaps above shipped as a fix in **0.11.1** (2026-10-23), the release that carried workstreams WS19–WS31 of [REMEDIATION_PLAN.md](REMEDIATION_PLAN.md). The ranks, scores and wording above are the 0.11.0 audit and are kept as history. The "CHANGELOG" column gives the line in `CHANGELOG.md` where the fix is described. Where a check column entry is empty, the status rests on the CHANGELOG text alone.
+
+| Rank | Workstream | CHANGELOG | Checked at 0.13.3 |
+| --: | --- | --: | --- |
+| 1 | WS19 | 940 | fixture: `service = mk(); service.run()` now binds `Service.run` at `medium` |
+| 2 | WS19 | 943 | — |
+| 3 | WS19 | 949 | — |
+| 4 | WS19 | 954 | — |
+| 5 | WS20 | 991 | — |
+| 6 | WS20 | 997 | fixture: async `_ahook` now caps at `medium` (`implements-external-contract`) |
+| 7 | WS22 | 1069 | — |
+| 8 | WS22 | 1083 | fixture: TS `handler = () => { this.go() }` is `C.handler` and binds `C.go` at `high` |
+| 9 | WS19 | 960 | — |
+| 10 | WS23 | 1114 | fixture: `func (s *Server) Zap() { s.zip() }` binds `Server.zip` at `high` |
+| 11 | WS20 | 1000 | — |
+| 12 | WS21 | 1034 | fixture: C# `new T()` binds `T.T` at `high` |
+| 13 | WS21 | 1046 | — |
+| 14 | WS24 | 1157 | `rules.rs`: 23 Kotlin twins and the five Kotlin Android rules enumerate (see `frameworks/`) |
+| 15 | WS20 | 1009 | — |
+| 16 | WS23 | 1143 | — |
+| 17 | WS25 | 1218 | — |
+| 18 | WS25 | 1231 | — |
+| 19 | WS25 | 1201 | fixture: `#!/usr/bin/env pwsh` is detected as PowerShell (`shebang:pwsh`) |
+| 20 | WS25 | 1212 | fixture: `CMakeLists.txt` is detected as CMake (`filename:CMakeLists.txt`) |
+| 21 | WS20 | 1012 | `rules.rs`: `gtest`, `gtest-fixture` and `libfuzzer` enumerate |
+| 22 | WS24 | 1176 | `rules.rs`: the Swift `aws-lambda` registrar is `Lambda.run` |
+| 23 | WS20 | 1020 | — |
+| 24 | WS22 | 1087 | — |
+| 25 | WS26 | 1237 | per language, JS/TS first; see the WS26 entries that follow |
+| 26 | WS23 | 1125 | — |
+| 27 | WS27 | 1484 | Go first; C#, C, C++ and others follow |
+| 28 | WS23 | 1137 | — |
+| 29 | WS28 | 1896 | also the cross-file `high` for an overload set narrowed to one (CHANGELOG line 1916) |
+| 30 | WS24 | 1183 | `rules.rs`: `jest`, `vitest`, `playwright`, `mocha`, `node-test` and `js-test-globals` enumerate |
+
+The "Just below the line" and "Larger structural items" lists were not re-checked.
+
 **Just below the line.** These are cheap fixes with smaller reach. They are good candidates to batch with a fix above that touches the same file:
 
 - Explicit-syntax visibility: Elixir `defp`, Zig `pub`, Erlang `-export`, Clojure `defn-`, Haskell export lists. [16 #8](matrix/16-known-gaps-limitations.md#parity-gaps). S each.
@@ -182,8 +221,8 @@ The "Evidence" column gives the category file and its gap number, as `05 #1` = [
 ## 4. Coverage notes
 
 - **Language catalogues: complete.** There are 46 files under `languages/`, one for each `reg.register(…)` line in `crates/cgg-lang/src/plugins.rs` (46). Each has all sixteen sections, 01–16, plus a summary scorecard. Jupyter notebooks have no file of their own. They are covered under [python](languages/python.md) §01 and §15, because the notebook extractor feeds the Python plugin.
-- **Category matrices: complete.** There are 16 files under `matrix/`, each with a 46-row matrix and a ranked parity-gaps list. No category is missing.
-- **Framework catalogue: complete for `rules.rs`.** The four `frameworks/rules-part-*.md` files cover all 475 `RuleSpec` entries by line range. Frameworks that exist only as gap prose inside a rule's `gap` text are listed there, not as separate files.
+- **Category matrices: complete.** There are 17 files under `matrix/`: the sixteen scored categories, each with a 46-row matrix and a ranked parity-gaps list, plus [17 external dependencies](matrix/17-external-dependencies.md) (added with `--externals` in 0.12.0), which is not scored in §2. No category is missing.
+- **Framework catalogue: complete for `rules.rs`.** The four `frameworks/rules-part-*.md` files cover all 475 `RuleSpec` entries of 0.11.0 by line range; the 32 specs added by 0.11.1 (23 Kotlin twins of Java rules, `gtest-fixture`, `libfuzzer` ×2, `mocha` ×2, `node-test` ×2, `js-test-globals` ×2) were added to those files on 2026-11-25. Frameworks that exist only as gap prose inside a rule's `gap` text are listed there, not as separate files.
 - **Unverified cells.** Some cells are marked ❔/? ("doc silent, no fixture run"): 37 in category 16, 26 in category 14, 14 in category 03, 3 in category 06 and 2 in category 05. They are excluded from the scores above. Those scores can rise or fall once the cells are checked.
 - **Gaps not backed by a fixture.** Gap 4 (the return-type map key) was found by code reading only, as category 05 notes. The external-module behaviour of Perl, Lua and Nix under gap 9 is marked "likely" in the source and was not run.
 - **Doc corrections.** Every category file ends with a **Doc corrections** section, which lists places where `CLAUDE.md` or README prose disagrees with the code. One example: CLAUDE.md says a guessed receiver type "is never `high`", and gap 1 shows that this holds cross-file only. These corrections have not been applied. This page does not edit `CLAUDE.md`.

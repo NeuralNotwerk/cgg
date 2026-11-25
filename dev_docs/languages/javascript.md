@@ -1,5 +1,7 @@
 # javascript
 
+> Revised 2026-11-25 against cgg 0.13.3: class fields holding functions are methods, function values (including `bind`) are references, constructed/annotated locals and member-read aliases type receivers, test callbacks enter through jest/vitest/mocha/node-test/playwright/js-test-globals harness nodes, unreachable regions are consumed, lambda parameters shadow, receiver fan-out keeps methods, and other files' nested functions are refused. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The JavaScript plugin (`JavaScriptPlugin`, `crates/cgg-lang/src/plugins/javascript.rs`, 1,621 lines including inline tests) uses the crates.io grammar `tree-sitter-javascript` (`tree_sitter_javascript::LANGUAGE`, javascript.rs:45-47); nothing is vendored. A single recursive walker, `JsWalker` (javascript.rs:118-1340), records definitions, call sites, ESM/CommonJS imports, re-exports and local exports. Its scope stack holds only class and interface names, never functions or object literals. The walker is `pub(crate)` and is reused unchanged by the TypeScript plugin (`typescript.rs:12,76`). That is why the walker has branches for TypeScript-only node kinds (`interface_declaration`, `abstract_class_declaration`, `method_signature`, `import_require_clause`) that never fire on JavaScript input. The plugin declares the signals `unreachable`, `attributes`, `impls` and `value_refs` (javascript.rs:35-43). It does **not** declare `visibility`, `exports`, `test_defs` or `dyn_uses`. No resolver kind is declared, and resolution is handled by the generic pipeline. JS has JS/TS-specific branches in `cgg-resolve`:
 
 - `modules.rs`: `ModuleIndex`/`FileModules`, which follows imports to files.
@@ -14,7 +16,7 @@ Fixtures cited below live under `<scratch>/parity/javascript/` (f1 … f11). The
 - **Extensions `.js`, `.mjs`, `.cjs`, `.jsx`.** Evidence: javascript.rs:29-31; detect.rs:681-682 test table (`c.js`, `d.mjs`); `crates/cgg/tests/detect.rs:70` (`j.js`). Fixture f6: `x.cjs` → `extension:.cjs` and `x.mjs` → `extension:.mjs`.
 - **`.jsx` is parsed with the plain JavaScript grammar**, which accepts JSX (fixture f3 `comp.jsx` parsed `ok`). There is no `ts_language_for` override and no separate JSX grammar.
 - **Shebang `node`**: `#!/usr/bin/env node` with no extension is detected as `javascript` (`shebang:node`). Evidence: javascript.rs:32-34; test `node_shebang_maps_to_javascript` (detect.rs:720).
-  - Fixture f6: `#!/usr/bin/env nodejs` and `#!/usr/bin/env -S node --experimental` are both also detected as `shebang:node`, so the shebang match is by prefix.
+  - Fixture f6: `#!/usr/bin/env nodejs` and `#!/usr/bin/env -S node --experimental` are both detected as JavaScript. Since WS25 the interpreter is the program's basename or the first operand after `env` (options skipped) and must equal a keyword (`node`, `nodejs`; javascript.rs:33) or the keyword plus a version, so `ts-node` is no longer claimed by `node`.
   - **Not JS**: `#!/usr/bin/env bun` and `#!/usr/bin/env deno` are detected as **typescript** (fixture f6, `shebang:bun`, `shebang:deno`).
 - **Unsupported extensions**: `.es6` is skipped as `unknown-extension` (fixture f6). `.vue`, `.svelte` and `.astro` are not parsed at all; this is stated in the `vue`/`svelte`/`astro` rule gaps (rules.rs:11574, 11608, 1921).
 - **Content detection**: none for JS. Content detection exists only for OpenAPI/AsyncAPI YAML/JSON and C/C++ headers.
@@ -64,13 +66,14 @@ Qualified names are the class/interface scope joined with `.` (`JsWalker::qn`, j
 - **Synthetic inline handlers**: an anonymous closure passed to a **registrar-verb** call with a registration shape (route string) becomes `NamedClosure` `handler_at_<line>`, attribute `synthetic` (extract_inline_handler, javascript.rs:1268-1340). Fixture f3: `handler_at_8` for `router.post('/admin', function(req,res){…})` and `handler_at_3` for `parentPort.on('message', m => …)`.
 - **Bodiless/abstract members** (`method_signature`, `abstract_method_signature` → `TraitMethod` tagged `abstract`, javascript.rs:212-221, 359-391) are TypeScript-only node kinds. They are not applicable to JavaScript.
 - **Bases on members**: every method record carries the enclosing class's `extends` list in `DefRecord::base_types` (`attrs::base_types`, javascript.rs:170, 350). This is the only class record JS writes; `FileFacts::classes` is not written (grep finds no `classes.push` in javascript.rs).
+- **Class fields holding a function** (`field = () => this.run()`, `static sfield = function(){}`) are methods of the class (`field_definition`/`public_field_definition`, javascript.rs:211; WS22). Fixture (0.13.3) f1: `Base.field` and `Base.sfield` are `method` nodes, and `Base.field -> Base.run` is high.
+- **Test callbacks**: in a file classified as test code, a callback of `describe`/`it`/`test`/hooks (and `.only`/`.skip` chains), called bare or chained off another block verb, is a synthetic `handler_at_<line>` closure with the description as its route (section 11).
 - **Decorators** `@logged run(){}` are captured into `attributes` (`attrs::collect_with_preceding`, javascript.rs:303, 349). Fixture f9: `Svc.run ['@logged']`.
 - **Not extracted** (fixture evidence):
-  - **Class fields holding functions**: `field = () => this.run()` and `static sfield = function(){}` (`field_definition` is not handled). Fixture f1: no `Base.field` node. The calls inside such a field have no enclosing callable (`this.run` at L18 recorded with `src=None`).
   - **Anonymous object-literal values**: `{ p: function(){}, q: () => 4 }`. Fixture f1: `obj.p()`/`obj.q()` produced no edge.
   - **Anonymous default export** `export default function () {}` (fixture f4: no node).
   - **Anonymous IIFE / arrow IIFE** `(() => { cb(); })()`. Fixture f4: `cb` recorded `no-enclosing-callable`.
-  - **Anonymous callbacks** that are not on a registrar verb: `describe('x', () => {…})`, `.map(x => …)`. Their calls are attributed to the enclosing named function, or to none at top level. Fixture f3: `fixtureHelper()` inside `it(…)` → `no-enclosing-callable`.
+  - **Anonymous callbacks** that are not on a registrar verb or a test-block verb in a test file: `.map(x => …)`. Their calls are attributed to the enclosing named function, or to none at top level.
   - **Class `static { }` blocks**. Fixture f9: `Svc.init()` inside one → `no-enclosing-callable`.
   - **Destructured declarations** `const { a } = …`: only an `identifier` declarator name is read (javascript.rs:482-484).
   - **`Object.assign(X.prototype, { wave(){} })`** members are owner-less `wave` (fixture f4).
@@ -96,18 +99,15 @@ Qualified names are the class/interface scope joined with `.` (`JsWalker::qn`, j
 - **`yield*`/`await` operands** are ordinary calls (fixture f9 `g -> other`, `aw -> fetchIt`).
 - **Super calls** `super.step()` → receiver `super`, resolved through the base chain (section 06). A bare `super()` in a constructor produced no edge in fixture f5 (the base had no constructor).
 - **Private method call** `this.#secret()` → `Base.#secret` high (fixture f1).
-- **Value references / callbacks passed as values**: recorded **only** in argument position of a call whose last segment is a **registrar verb** of some JS rule (`registrar::capture`, javascript.rs:1253-1256; registrar.rs:424-498). These are `VALUE_REF_HINT` records, which become `Via::Reference` edges only with `--reference-edges`.
-  - Fixture f10 with `--reference-edges`: `app.get('/x', listUsers)` → `setup -> listUsers` (medium, `reference`), and `app.on('evt', mapper)` → `setup -> mapper`.
-  - **Not supported**: the ungated `capture_value_refs`/`capture_value_position` passes are wired only for Python (grep: only `python.rs` calls them). So these produce nothing, even with `--reference-edges`:
-    - `[1].map(mapper)` and `lodash.map([], mapper)` (fixture f10).
-    - `setTimeout(cb, 1)`, `const f = viaVar; f()`, `{ run: helper }` and `o.run()` (fixture f4).
-  - This contradicts README.md:1514-1517, which lists javascript among the languages whose "function-as-value capture" is covered.
+- **Value references / callbacks passed as values** (WS26): registrar-verb arguments are still captured by `registrar::capture`. In addition, under `--reference-edges` or `--dead-code` (`ExtractCtx::reference_sites`), a function named bare, through `this`, or through a namespace/`require` import is a `RefRecord::value_ref` in call arguments, array elements, object values and shorthand (`{ k: f }`, `{ f }`), assignment/declarator/class-field values, `export default`, `module.exports = f`, `return`, arrow bodies and JSX attributes (`onClick={this.handle}`). A bound function is the function: `f.bind(x)` and `this.m.bind(this)` name `f`/`m` (`JS_FUNCTION_VALUE_ADAPTERS`, stdlib.rs:442). A member read through any other receiver, a string or object key spelling the name, and a name a parameter or local binds are not references; nothing is recorded in a minified file.
+  - Fixture (0.13.3) f1 with `--dead-code`: `[1].map(mapper)`, `{ k: mapper }` and `setTimeout(helper.bind(null), 1)` each gave a `reference` edge, high intra-file. Fixture f2: `onClick={this.handle}` → `Widget.handle` and `onFocus={onClickH}` → `onClickH`.
+- **Member-read aliases**: `const f = b.step; f()` is rewritten to `b.step()` (`cgg_lang::member_aliases`, `type_hints::rewrite_member_alias_calls`) and typed like any receiver. Fixture f1: `useAll -> Base.step` high.
 - **String targets**: registrar capture also emits `STRING_REF_HINT` records for string arguments other than the route. An only argument is kept: `new Worker('./w.js')` (registrar.rs:452-462). They are used only by framework rules.
-- **`fn.call/apply/bind`, `Reflect.apply`**: recorded as calls named `call`/`apply`/`bind` on receiver `fn`. They never reach `fn` (fixture f4: no edge to `helper`/`cb`).
+- **`fn.call/apply`, `Reflect.apply`**: recorded as calls named `call`/`apply` on receiver `fn`. They never reach `fn` (fixture f2, 0.13.3: `cleanup.call(null)` is refused `candidates-in-other-files`). `fn.bind(x)` in a value position is a reference to `fn` (above).
 - **Computed member** `obj["m"]()` / `this[name]()`: the `function` is a `subscript_expression`, which `record_call` drops (`_ => return`, javascript.rs:1234). Fixture f1 L60 and f4: no record.
 - **Dynamic import** `import('./b.js').then(m => m.later())`: not modelled as an import. `m.later()` fell back to by-name (fixture f4 `later` medium). In fixture f2, `m.doWork()` fanned out to both `doWork`s.
 - **JSX**: `<Widget />` and `onClick={this.handle}` are not calls (fixture f3: no edge to `Widget` or `Widget.handle`; also the `react-hooks` rule gap, rules.rs:11496).
-- **Arity**: not recorded (`arity: None`; JS is not in `OVERLOAD_ARITY_LANGS`, type_hints.rs:1583).
+- **Arity**: not recorded (`arity: None`; JS is not in `OVERLOAD_ARITY_LANGS`, type_hints.rs:2357).
 - **Keyword arguments**: not applicable (`kwargs: Vec::new()`).
 - **Explicit generics / paren-less calls / `path_receiver` / `dot_call`**: never set by the JS plugin.
 - **Registrar verbs** for JS are the union of the JS rules' `registrars` (`registrar_verbs_for`, rules.rs:11929-11950):
@@ -192,10 +192,8 @@ Resolution:
 - **Receiver shape typing** (`receiver::peel`, receiver.rs:54-135, 200): `new Foo().m()` and `(new Foo()).m()` give `typed_receiver = true` and type `Foo`. Fixture f1: `(new Child(3)).run()` → `Child.run` high.
 - **Name-convention typing** (`find_constructor_assignments`, type_hints.rs:2404-2461): a receiver whose name is a lower-cased class name declared **in the same file** is typed as that class. Fixture f1: `base.step()` → `Base.step` **high** (intra-file).
   - **Partial**: the same file's `b.run()` (`const b = new Base(1)`) and `c.step()` (`const c = new Child(2)`) were **not** typed and fanned out to `Base.*` and `Child.*` (medium).
-- **`const x = new Foo()` is not a typing source**:
-  - Fixture f2: `const e = new Engine(); e.start()` → three `start` candidates across files (medium).
-  - Fixture f5: `const d = new Dog(); d.bark()` → medium by name.
-- **`this.field = new Foo()` field typing**: not supported. Fixture f9: `this.repo.find()` with `this.repo = new Repo()` produced **no edge** (`candidates-in-other-files`, 1 candidate) although `Repo.find` is in the same file.
+- **Constructed locals** (WS23): `const t = new Svc()` (and `let`/`var`) types `t` where that declaration is the binding in scope (`FileFacts::locals`); a constructed `let`/`var` reassigned in its scope (`REASSIGNED_LOCAL`) types nothing. Fixture (0.13.3) f1: `const b = new Base(1); b.run()` → `Base.run` high and `const c = new Child(2); c.run()` → `Child.run` high (both fanned out in 0.11.0).
+- **`this.field = new Foo()` field typing**: not supported. Fixture (0.13.3) f1: `this.repo.find()` with `this.repo = new Repo()` is `candidates-in-other-files` (2 candidates) although `Repo.find` is in the same file.
 - **`declared_type` tables**: `NULL_TYPE_MEMBERS` has a `javascript` row (`null`, `undefined`, `void`; stdlib.rs:134). It has no effect without annotations; the row exists because the walker is shared with TypeScript. JS has no `MAYBE_TYPE_WRAPPERS` row (TypeScript does, stdlib.rs:120).
 - **Return-type propagation**: `build_return_type_map` reads declared return types, which JS has none of. `javascript` appears in `lang_tallies_table!` (type_hints.rs:336-353), but only for profiling counters.
 - **Closure parameter typing, implicit receivers, casts** (`CAST_INTRINSICS`), `CONSTRUCTING_METHODS`: none for JS (stdlib.rs:35-58).
@@ -220,9 +218,9 @@ Resolution:
   - `Object.assign(X.prototype, {…})` mixins: not modelled (fixture f4 `wave`).
   - `extends mixin(Base)` (a call expression in the heritage clause): **unverified**. `attrs::base_types` keeps only type-name-shaped parts (attrs.rs:199-213).
 - **Extension methods, traits, included modules**: not applicable.
-- **Arity overload narrowing**: not applicable (JS is not in `OVERLOAD_ARITY_LANGS`, type_hints.rs:1583).
+- **Arity overload narrowing**: not applicable (JS is not in `OVERLOAD_ARITY_LANGS`, type_hints.rs:2357).
 - **Duck-typed fan-out**:
-  - An untyped receiver fans out to every same-named callable up to `--fanout-cap` (default 5), **including free functions**. Fixture f5: `x.sound()` → `Animal.sound`, `Dog.sound` and the free function `sound` (all medium).
+  - An untyped receiver fans out to every same-named callable up to `--fanout-cap` (default 5). JS is in `RECEIVER_METHOD_LANGS` (cross_file.rs:5560): a set mixing methods and free functions keeps the methods, and when one candidate calls another through a `high` edge the site goes to that facade only. Fixture (0.13.3) f3: `x.sound()` with a class method `A.sound` and a free `sound` bound only `A.sound` (medium); in 0.11.0 the free function was bound too.
   - Over the cap, nothing is bound. Fixture f5: `x.close()` with 7 `close`s → `candidates-in-other-files {'candidates': 7}`.
 
 ## 07. Scoping & shadowing
@@ -230,6 +228,8 @@ Resolution:
 - **`FileFacts::locals`**: the JS spec (`JS_SPEC`, locals.rs:152-181) covers parameters (including destructured and rest), `variable_declarator` names, `for…in/of` bindings, `catch` parameters and arrow parameters. Bindings are collected only **inside functions**: module-level `const top` is not a binding. Test `javascript_params_locals_and_closure_params` (locals.rs:696). A declaration is not in scope in its own initializer (test `a_declaration_is_not_in_scope_in_its_own_initializer`, locals.rs:714, JS case at 742).
 - **shadowed-by-local**: fixture f5 `function shadowTest(a1) { return a1(); }` → `a1` recorded `shadowed-by-local`, never bound to the file's `a1`. Test `a_parameter_or_local_shadows_the_files_function` (intra_file.rs:1102). A local equal to its own `require`, or a same-named member alias (`var pick = H.pick`), keeps the import reading (CHANGELOG.md:561-577; test `a_same_named_member_alias_is_not_a_binding`, locals.rs:810).
 - **Lexical narrowing of nested definitions**: JS is in `lexically_scoped` (intra_file.rs:118-135). It applies only when the file's locals were read, so not in minified files (intra_file.rs:360-366). Fixture f5: `outerA -> inner` and `outerB -> inner` each bound to their own nested `inner` (high).
+- **Lambda and arrow parameters shadow**: they are `LocalBinding::param`, so `(go) => go()` never binds a function named `go`.
+- **Other files' nested functions** are never bare-name candidates (`cross_file::nested_function_ids`, WS33). Fixture (0.13.3) f1: `inner()` in `b.js` against `a.js`'s nested `inner` is `candidates-in-other-files`.
 - **Nested named functions** are extracted with the enclosing *class* scope, not the function scope. Fixture f1: `nested`, `nestedArrow` inside `outer` have QNs `nested`, `nestedArrow`.
 - **A local named arrow shadows a same-named global**: fixture f5 `const close = () => 1; close()` → the local `close` (high).
 - **Positional shadowing** (OCaml/F#/Lua): not applied to JS.
@@ -299,11 +299,10 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
 
 ## 11. Test harness entries
 
-- **Rules of kind `test`** for JS: `vitest`, `jest` and `playwright` (rules.rs:8716, 8750, 8820). All three are detect-only with a `gap`, so **no `<framework-entry>::test::…` harness node is ever minted for JS**. There are no `mocha`, `node:test`, `ava`, `tap`, `jasmine` or `cypress` rules (grep finds none). Fixture f3 (`test/server.test.js` with `describe`/`it`/`test`, `jest` in `devDependencies`): no test entry.
-- **Test blocks are not callables**: `describe('…', () => …)` and `it(…)` arrows are not extracted. Calls inside them have no enclosing callable (fixture f3: `fixtureHelper` → `no-enclosing-callable`), which makes the callee a `toplevel:invocation` root in the dead-code report.
-  - A **named** test function (`test('top', function namedTest(){…})`) is extracted. It was reported `never-referenced` (fixture f3 dead-code JSON).
+- **Rules of kind `test`** for JS (WS24): `vitest`, `jest`, `mocha`, `node-test`, `playwright` and `js-test-globals` (rules.rs:9334-9556). Each mints ONE `<framework-entry>::test::<id>` node with an entry edge to each test callback. The block verbs gate only files `classify_test_file` marks as test code, and only called bare or chained off another block verb (`re.test(s)` is not a test). Harness choice is per file (`HarnessChoice`, resolve frameworks/mod.rs:1678; `harness_globals_rank`, rules.rs:13169): the harness the file imports, else the tree's globals harness (Jest, Mocha or Vitest, detected by import or config file), else `js-test-globals`. There are no `ava`, `tap`, `jasmine` or `cypress` rules.
+- **Test blocks are callables**: each `describe`/`it`/`test`/hook callback is a `handler_at_<line>` closure (attribute `synthetic`, `test_role = support`) whose route is the description; a function passed by name (`test("x", namedCase)`) is entered too. Fixture (0.13.3) f1 (`test/a.test.js`, no harness import, `jest` only in `devDependencies`): `<framework-entry>::test::js-test-globals` → `handler_at_2` (`describe`) and `handler_at_3` (`it`), and `handler_at_3 -> useAll` high. Production code reached only from tests is `only-used-by-tests`, not dead.
 - **Test-file classification** (`testfile.rs`):
-  - By name, `.test.{js,jsx,mjs,cjs}` and `.spec.{js,jsx}` (testfile.rs:84-97). **Gap**: `.spec.mjs`/`.spec.cjs` are not listed.
+  - By name, `.test.{js,jsx,mjs,cjs}` and `.spec.{js,jsx,mjs,cjs}` (testfile.rs:84-100; the `.spec.mjs`/`.cjs` arms were added in 0.11.1).
   - By directory, `test`, `tests`, `__tests__`, `spec`, `specs`, `testdata`, `e2e` (testfile.rs:35-45; test `generic_test_directories_are_the_weakest_signal`, testfile.rs:208).
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: python, php and ruby only (rules.rs:11806). Not JS.
 - **`test_defs` signal**: not declared, so the dead-code capability table shows `test_tagging: none` (fixture f3 dc.json).
@@ -315,7 +314,7 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
   - JS findings therefore never reach `high`: every finding in fixtures f3/f9 is `medium` or `low`.
 - **Visibility**: class members get `Vis::Public`/`Private` (`#name`) through `class_member_vis` (javascript.rs:1364-1390). Module-level `export` is not modelled, so the signal is not claimed (javascript.rs:338-342, README.md:1527-1530). Evidence kinds seen: `language-lacks-visibility`, `public-visibility`.
 - **Exports are not roots**: the JS plugin writes no `FileFacts::exports`, so the "declared exports are public API" root (roots.rs:890-915) never fires for JS. Fixture f3: `export function FnComp` reported `never-referenced`.
-- **Roots seen** (fixture f3 `roots`):
+- **Roots seen** (fixture f3 `roots`; 0.13.3 adds `framework:test-harness` for the test harness nodes):
   - `framework:entry-node` (synthesized entries).
   - `framework:rule` (`react:base-type` for `componentDidMount`).
   - `toplevel:invocation`, a call from module top level (`em.on('data', onData)`, `app.get('/users', listUsers)`, and the call inside an anonymous `it(…)` block).
@@ -325,8 +324,7 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
 - **Doubt**: a same-named unresolved site downgrades a finding to `low` with `name-matches-unresolved-site` (fixture f9: `Repo.find` low).
 - **Blind spot** listed for JS: "obj[expr] dynamic property access" (caps.rs:57).
 - **Unreachable code**: `cfg::unreachable_after_terminator` with the `JS` spec runs under `--dead-code`. The spec has return/throw/break/continue terminators and hoisted function/class/var declarations (cfg.rs:135-150; javascript.rs:74-76; tests at cfg.rs:297-303).
-  - **No consumer of `FileFacts::unreachable` was found** in `cgg-resolve` or `cgg` (grep for `.unreachable` hits only the plugins writing it).
-  - Fixture f9: `afterReturn()` after a `return` still produced `dead -> afterReturn` (high).
+  - Consumed by `cgg_resolve::unreachable`: under `--dead-code` an edge from a site in a region is capped at medium and keeps nothing alive (`incoming-only-from-unreachable-code`). Fixture (0.13.3) f1: `return 1; helper();` gave `dead -> helper` medium.
 - **Caps**: `implements-external-contract` (needs `@Override`/`override` or an outside base). A JS class extending an outside base (`React.Component`) is not shown capped (fixture f3: `Widget.render` medium, but that is already the language cap). `macro-generated` is not applicable. `reflection` caps come from `dyn_uses` (section 15).
 - **Synthetic closures and harness**: `handler_at_*` closures are rooted through their entry nodes.
 
@@ -345,6 +343,7 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
 - **`NULL_TYPE_MEMBERS`** has a `javascript` row (stdlib.rs:134). It is inert without annotations.
 - **Implicit packages** (`SCALA_IMPLICIT_PACKAGES`-style): none for JS. JS globals are covered by the stdlib name list instead.
 - **`rust_types`-like wrapper tables**: not applicable.
+- **`--externals[=KINDS]`** (0.12.0) attributes every post-reconciliation stdlib/external site to a library and kind without changing any in-tree edge. Row: `crates/cgg/tests/externals.rs:116`.
 
 ## 14. Confidence & certainty
 
@@ -354,6 +353,7 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
   - `this.#m()`.
   - Optional-chained and tagged-template calls.
   - A typed receiver from `new X()` in the expression (`(new Child(3)).run()`).
+  - A receiver typed by a constructed local in scope (`const b = new Base(1); b.run()`, fixture f1 0.13.3), and a member-read alias of one.
   - The same-file name-convention receiver (`base.step()`).
   - Same-file `super.m()`.
   - Import-anchored cross-file calls (fixture f2: ESM, CJS, barrel, workspace package, jsconfig alias, instance export; `CertainCtx::path`, cross_file.rs:4485-4497).
@@ -381,25 +381,22 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
 
 ## 16. Known gaps & limitations
 
-- **Callables missing**: class fields holding functions (`handle = () => …`, very common in React class components); anonymous object-literal function values; anonymous default exports; anonymous IIFEs; `static {}` blocks; test `describe`/`it` blocks (fixtures f1, f4, f3, f9).
+- **Callables missing**: anonymous object-literal function values; anonymous default exports; anonymous IIFEs; `static {}` blocks (fixtures f1, f4, f9).
 - **Owner-less QNs**: object-literal methods, `X.prototype.m = …`, `exports.m = …` and nested functions get bare QNs. Prototype classes cannot be told apart, and calls on them bind by name (fixtures f1, f4).
 - **Duplicate QNs** for getter/setter pairs (fixture f1 `Base.label` ×2).
-- **No local type inference**: `const x = new Foo(); x.m()` and `this.f = new Foo(); this.f.m()` are not typed (fixtures f2, f5, f9). This is the main source of medium fan-out.
-- **Value references are registrar-gated only**: `.map(fn)`, `setTimeout(fn)`, `{ k: fn }` and `const f = g` produce no reference record, even with `--reference-edges` (fixtures f4, f10). This contradicts README.md:1514-1517.
-- **Dynamic import / computed access / call-apply-bind** are not followed (fixture f4).
-- **JSX element names and `on*` props are not calls**. Function components and JSX-bound handlers read as dead (`react-hooks` gap; fixture f3).
+- **No field type inference**: `this.f = new Foo(); this.f.m()` is not typed (fixture f1, 0.13.3). Constructed locals are typed since WS23.
+- **Dynamic import / computed access / `call`/`apply`** are not followed (fixtures f4, f2).
+- **JSX element names are not calls**, so function components read as dead (`react-hooks` gap; fixture f3). JSX attribute values are references under `--dead-code`/`--reference-edges` (section 03).
 - **The `react` rule omits `render`** (rules.rs:11447-11470; fixture f3 `Widget.render` dead).
-- **No enumerating test harness**: jest/vitest/playwright are gap-only (section 11).
 - **Many detect-only web frameworks**: koa, hapi, fastify, remix, sveltekit, nuxt, astro, socket-io, feathers, graphql-yoga, apollo-server, express-gateway, meteor, sails, nextjs (`gap_for`, rules.rs:11870-11876).
 - **Named-function-in-registrar duplicate**: `on('x', function f(){})` mints both `f` and `handler_at_N` over one span; the entry targets the synthetic one and `f` reads dead (fixture f3).
 - **Express `app.use(fn)` without a route**: no entry node (fixture f3 `handler_at_9`).
 - **Dead-code ceiling is medium** (no `visibility`/`exports` signal); exports are not roots (section 12).
-- **Unreachable regions are computed but unused**: no consumer was found by grep (section 12).
 - **No camelCase napi mapping** (section 09).
 - **External vs not-in-imported-module** misfiling for an unknown member of a workspace package (fixture f2 `core.missing`). CHANGELOG.md:1320-1325 records related misses: run-time-built exports, `next/headers`-style directories, and tsconfig `paths` targets.
 - **Bundler-only aliases** are not read (CHANGELOG.md:1214).
 - **WS14 follow-up**: "a JS/TS prop holding a bound action creator of the same name when the file does not import it" (CHANGELOG.md:1351-1352).
-- **Shebang**: only the `node` prefix. `bun`/`deno` scripts are classed as TypeScript (fixture f6).
+- **Shebang**: `node` and `nodejs` (the interpreter must equal the keyword since WS25, so `ts-node` is TypeScript); `bun`/`deno` scripts are classed as TypeScript (fixture f6).
 - **`.es6`, `.vue`, `.svelte`, `.astro`** are not analyzed.
 - **Parse errors** can misclassify functions as methods (fixture f6 `ok`).
 - **Ignored tests**: none (`grep -rn '#\[ignore'` over `crates/` returns 0).
@@ -409,17 +406,17 @@ Every `RuleSpec` with `language: "javascript"` (37 rules, extracted from `crates
 | section | support | note |
 | --- | --- | --- |
 | 01 Detection & parsing | full | `.js/.mjs/.cjs/.jsx` and the `node` shebang; JSX via the JS grammar; minified handling; no error-recovery re-parse |
-| 02 Callables extracted | partial | functions, arrows, classes, accessors, CJS assignments; class-field functions, anonymous object values and IIFEs missing; owner-less prototype and object members |
-| 03 Call-site forms | partial | bare, member, `new`, optional, tagged, chained; computed access, call/apply/bind, JSX, dynamic import missing; value refs only on registrar verbs |
+| 02 Callables extracted | partial | functions, arrows, classes, class-field functions, accessors, CJS assignments, test callbacks; anonymous object values and IIFEs missing; owner-less prototype and object members |
+| 03 Call-site forms | partial | bare, member, `new`, optional, tagged, chained, value refs (incl. `bind`, JSX attributes), member-read aliases; computed access, call/apply, JSX elements, dynamic import missing |
 | 04 Imports & module resolution | full | ESM, CJS, re-export barrels, default/instance exports, package.json/deno/jsconfig/tsconfig names and exports; dynamic import missing |
-| 05 Type inference & receiver typing | minimal | only `new X().m()` shape and the same-file lowercase-name convention; no `const x = new X()` or field typing |
+| 05 Type inference & receiver typing | partial | `new X().m()`, constructed locals in scope, member-read aliases, same-file lowercase-name convention; no field typing |
 | 06 Inheritance, dispatch & overloading | partial | `extends` bases, `super`, inherited members, inheritance fan-out; prototype/mixin inheritance not modelled; no overloads |
 | 07 Scoping & shadowing | full | locals, shadowed-by-local, lexical nesting (not in minified files) |
 | 08 Macros, preprocessor & codegen | n/a | no macro system; only synthetic `handler_at_*` closures |
 | 09 FFI & cross-language links | minimal | napi/wasm-bindgen callable-to-callable by exact name only; descriptor links work |
 | 10 Frameworks & entry points | partial | 37 rules; about 16 enumerate (express, hono, electron, lambda, cloud functions, event emitter, …); about 21 are detect-only gaps |
-| 11 Test harness entries | none | jest/vitest/playwright are gap-only; test blocks are not callables |
-| 12 Dead-code analysis | partial | capped at medium (degraded: no visibility/exports signal); exports not roots; unreachable regions unused |
+| 11 Test harness entries | full | jest/vitest/mocha/node-test/playwright/js-test-globals harness nodes over `handler_at_*` test callbacks |
+| 12 Dead-code analysis | partial | capped at medium (degraded: no visibility/exports signal); exports not roots; unreachable regions consumed |
 | 13 Builtins & stdlib tables | full | 569-name stdlib list including Node core modules; no cast/construct tables (none needed) |
 | 14 Confidence & certainty | partial | high for intra-file, `this`, and import-anchored calls; typed-owner high only within the caller's file; much medium fan-out |
 | 15 Dynamic use & reflection | minimal | only `require`/`importScripts` module-load screens; no reflection screen for `obj[k]` |

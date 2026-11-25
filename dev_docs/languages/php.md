@@ -1,6 +1,8 @@
 # php
 
-The PHP plugin (`crates/cgg-lang/src/plugins/php.rs`, 529 lines, `PhpPlugin`, id `"php"`) is a hand-written recursive tree-sitter walker (`PhpWalker`, php.rs:60-393) over the `tree-sitter-php` crate (`Cargo.toml:99`, `tree-sitter-php = "0.24"`, bound as `tree_sitter_php::LANGUAGE_PHP`, php.rs:31-33). Nothing is vendored. It extracts named functions, class/interface/trait/enum methods, PHP 8 attributes, `extends`/`implements`/`use Trait` bases, `namespace`/`use` imports, `require`/`include` statements, and every function/method/nullsafe/static call. It declares the signals `dyn_uses`, `attributes`, `impls` and `value_refs` (php.rs:21-29), although only `dyn_uses` and `attributes` are backed by extraction: it never sets `trait_impl_target`, `RefRecord::value_ref`, visibility, arity, locals or local types. There is no per-plugin resolver kind (`resolver_kind` does not exist in `cgg-lang`). PHP files go through the shared intra-file / cross-file pipeline plus one PHP-specific resolver, `PhpIndex` in `crates/cgg-resolve/src/libscope.rs:1876-2265`, called from `cross_file.rs:5500-5525`. `PhpIndex` resolves namespaces, `use` tables, `parent::`/`self::`/`static::`/`$this->`, inherited and trait members, and copies of a function narrowed by the `require`/`include` chain.
+> Revised 2026-11-25 against cgg 0.13.3: `new T` now calls `T::__construct` (WS21), bodiless interface/abstract methods are tagged `abstract` (WS22), callables handed to the core functions in `PHP_CALLABLE_ARG_FUNCS` are value references (WS26), `#[\Override]` caps a finding at medium, `\strlen` is stdlib, and `get_class_methods(T::class)` screens `T`'s methods. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The PHP plugin (`crates/cgg-lang/src/plugins/php.rs`, 529 lines, `PhpPlugin`, id `"php"`) is a hand-written recursive tree-sitter walker (`PhpWalker`, php.rs:60-393) over the `tree-sitter-php` crate (`Cargo.toml:99`, `tree-sitter-php = "0.24"`, bound as `tree_sitter_php::LANGUAGE_PHP`, php.rs:31-33). Nothing is vendored. It extracts named functions, class/interface/trait/enum methods, PHP 8 attributes, `extends`/`implements`/`use Trait` bases, `namespace`/`use` imports, `require`/`include` statements, and every function/method/nullsafe/static call. It declares the signals `dyn_uses`, `attributes`, `impls` and `value_refs` (php.rs:21-29), of which `dyn_uses`, `attributes` and (since WS26) `value_refs` are backed by extraction: it never sets `trait_impl_target`, visibility, arity, locals or local types. There is no per-plugin resolver kind (`resolver_kind` does not exist in `cgg-lang`). PHP files go through the shared intra-file / cross-file pipeline plus one PHP-specific resolver, `PhpIndex` in `crates/cgg-resolve/src/libscope.rs:1876-2265`, called from `cross_file.rs:5500-5525`. `PhpIndex` resolves namespaces, `use` tables, `parent::`/`self::`/`static::`/`$this->`, inherited and trait members, and copies of a function narrowed by the `require`/`include` chain.
 
 Fixtures are in `<scratch>/parity/php/`, directories `p1` … `p14`, with a JSON dumper at `dump.py`. They were run with `target/release/cgg` (0.11.0).
 
@@ -32,10 +34,10 @@ Supported:
 - **Function inside a namespace** `namespace App\Util; function fmt() {}` → qn `fmt`, with no namespace prefix. The namespace is applied only inside `PhpIndex` (libscope.rs:2010-2050, `php_join(ns, simple_name)`). Fixture p1: `fmt`.
 - **Class method** `class User { public function run() {} }` → qn `User::run`, `DefVariant::InherentMethod`, kind `method` (php.rs:165-175). Static methods are the same: `Helper::stat` in fixture p1.
 - **Interface method** `interface Named { public function name(): string; }` → `Named::name`, a plain method (php.rs:94-97). Fixture p1.
-- **Abstract method** `abstract public function name();` → `Base::name`, a plain method. It is not tagged `abstract`, so `stub_ids` (cross_file.rs:1161-1186, which keys on an `abstract`/`abstractmethod` attribute or a Protocol/ABC base) never sees it. Fixture p1.
+- **Abstract and interface methods** `abstract public function name();`, `interface I { function a(); }` → `Base::name` / `I::a`, a method tagged `abstract` when it has no body (`attrs::mark_abstract_from`, php.rs:174; test `bodiless_interface_and_abstract_methods_are_tagged_abstract`; WS22, 0.11.1). Duck-typed and intra-file narrowing therefore prefer a concrete candidate over them.
 - **Trait method** `trait Greets { function greet() {} }` → `Greets::greet` (php.rs:94-97). Fixture p1.
 - **Enum method** `enum Suit: string { public function label() {} }` → `Suit::label`. Fixture p1.
-- **Constructor / destructor / magic methods** `__construct`, `__destruct`, `__get`, `__toString`, `__call`, `__callStatic`, `__invoke` are recorded as ordinary methods: kind `method`, not `Constructor`/`Destructor` (fixtures p1 and p2, `Ctor::__construct` kind `method`).
+- **Constructor / destructor / magic methods** `__construct`, `__destruct`, `__get`, `__toString`, `__call`, `__callStatic`, `__invoke` are recorded as ordinary methods: kind `method`, not `Constructor`/`Destructor` (fixtures p1 and p2, `Ctor::__construct` kind `method`). `__construct` is reached by constructions (§03).
 - **Constructor property promotion** `__construct(private Helper $h)`: the constructor is a callable, and the promoted parameter's type is read as a parameter type (type_hints.rs:3459-3464, `private ?Foo $e` → `$e: Foo`).
 - **Nested named function** `function outer() { function nested() {} }` → a free function `nested`, qn `nested` with no owner (fixture p2 `inner_fn`, fixture p10 `nested`). This matches PHP semantics, where nested functions are global once defined.
 - **Conditional function** `if (!function_exists('f')) { function f() {} }`, in both brace and `: … endif;` forms → `DefRecord::conditional = true` (`is_conditional`, php.rs:395-411). Test: `a_guarded_function_is_conditional` (php.rs:513).
@@ -45,7 +47,7 @@ Supported:
 Not supported or partial:
 
 - **Closures, arrow functions and static closures** (`function ($a) {…}`, `fn($b) => …`, `static fn() => …`) are not callables. Calls inside them are attributed to the enclosing named callable. In fixture p1, `helper_fn` called inside `$fn = function…` and `$arrow = fn…` shows up as `User::run -> helper_fn` (L41, L42). At file top level they have no enclosing callable: the routes closure in fixture p2 `routes/web.php` produced no node. php.rs has no arm for `anonymous_function`/`arrow_function` (php.rs:85-210).
-- **Anonymous classes** `new class { public function anon() {} }`: the methods are attributed to the *enclosing* class, because the scope is not pushed for a nameless class (php.rs:139-145). Fixture p2 yields the qn `Factory::anon`, which is the wrong owner.
+- **Anonymous classes** `new class { public function anon() {} }`: the methods are attributed to the *enclosing* class, because the scope is not pushed for a nameless class (php.rs:139-145). Fixture p2 yields the qn `Factory::anon`, which is the wrong owner (still so in 0.13.3, fixture `lang-docs/php/p1`: `User::anon`).
 - **Property hooks (PHP 8.4)**, **enum cases** and **class constants** are not callables. php.rs has no arm for them, and the fixture p1 enum case `Hearts` produced no node.
 - **Braced namespaces** `namespace A { … }` are mis-recorded (see §04). Callables are still extracted with their class-scoped qns, as fixture p4 shows.
 - **Namespace-qualified callable names**: two classes `App\A\User` and `App\B\User` both yield `User::m` qns. Only `PhpIndex` distinguishes them, by file.
@@ -70,12 +72,12 @@ Supported:
 
 Not supported or partial:
 
-- **`new Foo(...)` as a call**: `object_creation_expression` is never recorded as a call site (php.rs has no arm for it), so no edge reaches `__construct` from a construction. `constructor_names("php") = ["__construct"]` (cross_file.rs:387) is unreachable because PHP never emits a bare `Foo(…)`. Fixture p2: `Factory::create` does `new Ctor()` and there is no `-> Ctor::__construct` edge. Fixture p14 shows the same.
+- **`new Foo(...)` is a call of `Foo::__construct`** since 0.11.1 (WS21): `object_creation_expression` records a `RefRecord { name: "__construct", receiver_hint: <class as written> }` (php.rs:217-234; test `new_calls_the_constructor_of_the_class_as_written`). `new Foo`, `new \App\Bar` and `new self` are recorded; `new $cls` is not. fixture `lang-docs/php/p1` (0.13.3): `$y = new Helper(1)` gives `User::run -> Helper::__construct` high. A class outside the tree binds nothing (`new \Exception` lands in the stdlib bucket, fixture `lang-docs/php/p2`).
 - **Variable functions and callable invocation** `$fn(1)`, `$inv()`: recorded with name `$fn` / `$inv`, which then become `<external>::$fn` (fixture p1). `call_operator_names("php") = ["__invoke"]` (cross_file.rs:397) needs `local_types`, which PHP never records, so `$inv()` never reaches `Helper::__invoke` (fixture p1).
 - **Dynamic method names** `$this->$m()` and `$this->{$name}()` are recorded as name `$m` and become `<external>::this::$m` (fixture p1).
-- **Callables as values** `array_map('helper_fn', …)`, `array_map([$this, 'name'], …)`, `call_user_func([$this,'name'])`, `Closure::fromCallable('f')`, `strlen(...)`: no edge and no reference unless the callee is a registrar verb (fixture p1: no edge to `User::name`; fixture p1 with `--reference-edges` gives 0 `ref` edges). php.rs never calls `registrar::capture_value_refs` or `capture_value_position` (registrar.rs:517, 563).
+- **Callables handed to core functions are value references** since 0.11.1 (WS26), recorded only under `--reference-edges` or `--dead-code` (`ExtractCtx::reference_sites`). `record_callable_arg` (php.rs:436) reads the callback position listed in `cgg_core::stdlib::PHP_CALLABLE_ARG_FUNCS` (`array_map`, `array_filter`, `usort`, `preg_replace_callback`, `spl_autoload_register`, `set_error_handler`, `Closure::fromCallable`, …) and accepts `'f'`, `'C::m'`, and `[$this|self::class|C::class|'C'|$o, 'm']`. fixture `lang-docs/php/p1` with `--reference-edges`: `usort($xs, [$this, 'cmp'])`, `array_map('App\fmt', $xs)` and `array_filter($xs, [Helper::class, 'keep'])` give `ref` edges to `User::cmp`, `fmt` and `Helper::keep`, all high. `call_user_func(_array)` stays with the reflection screen, a first-class callable (`f(...)`) is still recorded as a call, and a callable passed to any other function is still not recorded.
 - **Chained calls on a call result** `Svc::make()->uniqueM()`, `$s->self_chain()->uniqueM()`: the receiver is the call text and becomes external (fixture p3 `<external>::Svc::make()::uniqueM`).
-- **Arity**: `RefRecord::arity` is never set, and PHP is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- **Arity**: `RefRecord::arity` is never set, and PHP is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357).
 - **Paren-less calls, explicit generics, operator overloading**: not applicable to PHP.
 - **`require`/`include` written as a function call** (`require_once('x.php')`) becomes an import, not a call (php.rs:320-344). The grammar normally yields `require_once_expression`, which is handled at php.rs:179-197.
 
@@ -145,7 +147,7 @@ Not supported or partial:
 - **Trait conflict resolution** `use A, B { A::m insteadof B; B::m as n; }`: `insteadof`/`as` aliases are not read (php.rs:120-137 reads only `name`/`qualified_name` children).
 - **`__call` / `__callStatic` / `__get` magic dispatch**: calls to undeclared methods are not routed to them.
 - **Wrong-owner binding at high in intra-file**: `class A { function r() { $this->x(); } } class B { function x() {} }` binds `A::r -> B::x` *high intra-file* (fixture p10). The intra-file pass binds a unique same-file name before `PhpIndex` sees `this`.
-- **Overloading / arity narrowing**: not applicable (PHP is not in `OVERLOAD_ARITY_LANGS`, type_hints.rs:1583).
+- **Overloading / arity narrowing**: not applicable (PHP is not in `OVERLOAD_ARITY_LANGS`, type_hints.rs:2357).
 - **Extension methods, mixins beyond traits**: not applicable.
 
 ## 07. Scoping & shadowing
@@ -221,21 +223,21 @@ Gaps found:
 
 ## 12. Dead-code analysis
 
-- **Signal coverage** (`--dead-code` table, fixture p2/p6): `php … class degraded, vis no, attrs yes, refs yes, disp yes`. The class is "degraded" because no PHP callable carries a visibility (caps.rs:160-170). `refs`/`disp` show "yes" because the plugin *declares* `value_refs`/`impls` (php.rs:21-29), not because reference edges or `trait_impl_target` exist.
+- **Signal coverage** (`--dead-code` table, fixture p2/p6): `php … class degraded, vis no, attrs yes, refs yes, disp yes`. The class is "degraded" because no PHP callable carries a visibility (caps.rs:160-170). `refs` is backed by the WS26 callable-argument references (§03); `disp` shows "yes" because the plugin *declares* `impls` (php.rs:21-29), not because `trait_impl_target` exists.
 - **Visibility**: never extracted (php.rs:239), so every finding carries `language-lacks-visibility`, which caps it at medium (deadcode.rs:324; evidence.rs:320). With the default `--dead-code-confidence high`, PHP reports nothing (fixture p2: every finding was in the `medium` band). `private` methods are not treated as file/class-local and `public` ones are not exported roots (fixture p2 `UserController::deadPrivate` is medium, like `unusedAction`).
 - **Roots**: `toplevel:invocation`, where a call in file-level script code roots its callee (roots.rs:552-610). Fixture p6: `script_fn` in a shebang script and `render_item` in a `.phtml` template are live. Other roots are framework entries (§10), test roots (§11), and `UNIVERSAL_ENTRY` `main` (roots.rs:20).
-- **Dunder lifecycle**: PHP is in `DUNDER_LANGS` (roots.rs:160-161), but `is_dunder` requires a trailing `__` (roots.rs:967-969), so PHP magic methods (`__construct`, `__destruct`, `__invoke`, `__call`, `__callStatic`, `__get`, `__toString`) are never rooted. PHP has no `LIFECYCLE` entry (roots.rs:96-158). Fixture p2 reports `Ctor::__construct`, `Ctor::__destruct`, `Factory::__call` and `Factory::__callStatic` unreferenced, and fixture p8 reports `Plug::__construct`. `CONVENTIONAL_METHODS` (roots.rs:162-170) holds no PHP names.
-- **`implements-external-contract`**: never applies to PHP. It needs an `@Override`/`override` marker (deadcode/mod.rs:409, 496-505) or Python. PHP 8.3 `#[\Override]` is recorded as the text `#[\Override]` and does not match. Fixture p6: `Hooked::marked` (`#[\Override]`, extends `Vendor\Base`) and `Hooked::unmarked` are both plain medium findings.
+- **Dunder lifecycle** (constructors aside, which constructions now reach, §03): PHP is in `DUNDER_LANGS` (roots.rs:160-161), but `is_dunder` requires a trailing `__` (roots.rs:967-969), so PHP magic methods (`__construct`, `__destruct`, `__invoke`, `__call`, `__callStatic`, `__get`, `__toString`) are never rooted. PHP has no `LIFECYCLE` entry (roots.rs:96-158). Fixture p2 reports `Ctor::__construct`, `Ctor::__destruct`, `Factory::__call` and `Factory::__callStatic` unreferenced, and fixture p8 reports `Plug::__construct`. `CONVENTIONAL_METHODS` (roots.rs:162-170) holds no PHP names.
+- **`implements-external-contract`**: since 0.11.1 (WS20) PHP 8.3 `#[\Override]` is read through `override_marker_text` (test at `crates/cgg-resolve/src/deadcode/mod.rs:2470`). fixture `lang-docs/php/p2` (0.13.3): `Impl::handle` (`#[\Override]`, implements the external `Vendor\Ext\Contract`) carries `implements-external-contract`; the unmarked `Impl::unused` does not. Both are medium, as every PHP finding is.
 - **Reflection doubt** (§15): `method_exists($this, 'reflected')` adds `name-collides-with-screened-site:reflection` (fixture p2 `Factory::reflected`).
 - **Unresolved-name doubt**: `name-matches-unresolved-site` drops a finding to low (fixture p2 `Factory::anon`, called via untyped `$o->anon()`).
 - **Inheritance fan-out under `--dead-code`**: overrides of in-tree declarations are reached (dispatch.rs:110-123).
-- Not supported: visibility-scoped reasoning, a magic-method lifecycle, `#[\Override]`, `__invoke`-as-callable roots, autoload/class-string roots (`$container->get(Foo::class)`), and hooks named by string in config (Drupal, Magento, Laravel `$listen`).
+- Not supported: visibility-scoped reasoning, a magic-method lifecycle (`__destruct`, `__call`, `__toString`, …; fixture `lang-docs/php/p3` reports `Ctor::__destruct`), `__invoke`-as-callable roots, autoload/class-string roots (`$container->get(Foo::class)`), and hooks named by string in config (Drupal, Magento, Laravel `$listen`).
 
 ## 13. Builtins & stdlib tables
 
 - **`crates/cgg-core/src/stdlib/php.txt`**: 324 non-empty, non-comment names (functions such as `array_map`, `strlen`, `call_user_func`, and classes such as `ArrayIterator`). It is loaded at stdlib.rs:196 and 237. Fixture p1 with `--include-stdlib` gives `<stdlib>::array_map`, `<stdlib>::strlen` and `<stdlib>::call_user_func`.
-- **Case sensitivity**: the lookup is case-sensitive, although PHP function names are not. Fixture p3: `STRLEN("a")` became `<external>::STRLEN`, not stdlib.
-- **Leading backslash**: `\strlen('y')` became `<external>::\strlen` (fixture p5). The global-namespace prefix is not stripped before the stdlib lookup.
+- **Case sensitivity**: the lookup is case-sensitive, although PHP function names are not. Fixture p3: `STRLEN("a")` became `<external>::STRLEN`, not stdlib (unchanged in 0.13.3, fixture `lang-docs/php/p3`). `get_class_methods` is not in `php.txt` and lands in the external bucket.
+- **Leading backslash**: fixed in 0.11.1 (WS25): a call's qualifier is split on `\` too, so `\strlen('y')` is stdlib (fixture `lang-docs/php/p3`, 0.13.3: `\strlen` in `stdlib_calls`). In 0.11.0 it became `<external>::\strlen`.
 - **Stdlib method names on untyped receivers**: not applicable, since PHP never reaches step-5 fan-out (§14).
 - **Other tables**: `NULL_TYPE_MEMBERS` has a PHP entry (stdlib.rs:135). There are no PHP entries in `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, `MAYBE_TYPE_WRAPPERS`, `UNION_TYPE_CONSTRUCTORS`, `TOP_TYPES` or `CALLBACK_TYPE_CONSTRUCTORS`, and there is no `rust_types`-style wrapper table. There are no implicit packages: the global namespace is the fallback in `PhpIndex` (libscope.rs:2228-2229).
 - **`--include-stdlib` / `--include-external`** behave as in every language: they mint `<stdlib>::`/`<external>::` leaves (fixture p1).
@@ -261,7 +263,8 @@ Gaps found:
 - **Not captured**:
   - **Namespaced strings** `call_user_func('App\Misc\target_fn')` fail `is_identifier_shaped`, because `\` is not allowed (dynuse.rs:58-66). Fixture p2: `target_fn` is reported with no reflection risk.
   - **Array callables** `call_user_func([self::class,'create'])`: only string arguments are read (dynuse.rs:118-121).
-  - **Not in the allowlist**: `is_callable`, `property_exists`, `ReflectionClass`/`ReflectionMethod`, `new $class`, `$class::method()`, `$obj->$name()`, `array_map('f', …)`, `usort(…, 'cmp')`, `Closure::fromCallable`, `forward_static_call`, `constant()`, and `$$var`.
+  - **Reflective enumeration** (since 0.11.1): `get_class_methods(T::class)` and `(new ReflectionClass(T::class))->getMethods()` (`cgg_core::stdlib::MEMBER_ENUMERATION_APIS`) put every method `T` declares under the `reflection` screen. fixture `lang-docs/php/p3`: `get_class_methods(Refl::class)` gives `Refl::hidden` the evidence `name-collides-with-screened-site`.
+- **Not in the allowlist**: `is_callable`, `property_exists`, `ReflectionClass`/`ReflectionMethod`, `new $class`, `$class::method()`, `$obj->$name()`, `constant()`, and `$$var`. (`array_map('f', …)`, `usort(…, 'cmp')`, `Closure::fromCallable` and `forward_static_call` are value references since WS26, §03, not reflection.)
   - **`eval()` and `create_function()`**: not modelled.
 - **Module load** (`DYN_MODULE_LOADERS` = `require`, `importScripts`, `import_module`, facts.rs:165): PHP's `require`/`include` with dynamic paths is not a dyn-use. They are import records (§04), and an unresolvable path just fails to narrow.
 - **Magic dispatch** (`__call`, `__callStatic`, `__get`): not modelled (§06).
@@ -273,34 +276,34 @@ From code and docs:
 - `gap:` strings on 8 PHP rules: slim, cakephp, yii, drupal, magento, laravel-events, swoole, roadrunner (rules.rs:2874, 2891, 2908, 2925, 2942, 10686, 10703, 10720).
 - CHANGELOG.md:705-708: "Not covered (WS14b): … PHP functions with two unconditional copies (WordPress `__`)". Confirmed in fixture p10 (`dup`).
 - type_hints.rs:720-724 and 3268-3271: PHP records no `scope_byte`, so locals stay file-wide, and the scoped lookup "cost PHP 8,142 typed-receiver edges" when it was tried. type_hints.rs:1465-1470: the C++ parameter parser must not be used for PHP.
-- README.md:498 still lists PHP as `require_once/include | — | —`. That is stale: namespaces, `use`, and parameter and construction typing exist.
+- README.md:508 (0.13.3) still lists PHP as `require_once/include | — | —`. That is stale: namespaces, `use`, and parameter and construction typing exist.
 - No `#[ignore]` PHP tests were found (`grep -rn ignore` over the PHP test names above shows none).
 
 Found while cataloguing, each with a fixture:
 
-1. **`new Foo()` is never a call**: there are no edges to `__construct` (p2, p14).
-2. **Magic methods are never runtime roots**, because `is_dunder` needs `__x__` (p2, p8). `__construct` and the others are false-positive dead code.
+1. ~~**`new Foo()` is never a call**~~: fixed in 0.11.1 (WS21); `new Foo` calls `Foo::__construct` (§03).
+2. **Magic methods are never runtime roots**, because `is_dunder` needs `__x__` (p2, p8). `__destruct`, `__call`, `__toString` and the others are false-positive dead code; `__construct` is reached only when a construction names its class.
 3. **Untyped `$var->m()` is never resolved**: there is no duck fan-out (cross_file.rs:6853-6860; p3, p14). There is also no local-assignment, property, docblock or chained-return typing (p1, p3).
 4. **Braced `namespace X { }` is mis-recorded**: the whole block text is taken as the namespace, and the record is dropped beyond 400 bytes (php.rs:250-262; p4, p5).
 5. **Wrong-owner high edge**: `$this->x()` binds another class's unique `x` in the same file (p10).
 6. **Closures, arrow functions and anonymous-class methods**: closures are not callables, and anonymous-class methods are mis-owned (p1, p2).
 7. **A case-mismatched or `\`-qualified call that resolves also emits an `<external>` leaf** for the same site (p3 `$s->UNIQUEM()`; p5 `\A\use_base`). The cause is unverified, probably case/backslash-sensitive audit reconciliation.
-8. **Stdlib lookup is case-sensitive and does not strip a leading `\`** (p3 `STRLEN`, p5 `\strlen`).
+8. **Stdlib lookup is case-sensitive** (p3 `STRLEN`); a leading `\` is handled since WS25.
 9. **Attributes**: fully-qualified, comma-grouped, class-level and docblock attributes are missed (p8, p12, p13).
 10. **Bases of method-less classes are lost**, which breaks inheritance chains (p9).
-11. **No visibility**, so all dead-code findings are capped at medium and nothing shows at the default `high` band (p2). `#[\Override]` is ignored (p6).
+11. **No visibility**, so all dead-code findings are capped at medium and nothing shows at the default `high` band (p2). `#[\Override]` is read since WS20.
 12. **Detection**: `.inc`, `.module`, `.install` and `.php5` are not detected, and there is no `<?php` content detection (p6, p7).
 13. **Include chain**: basename-only matching, and no narrowing among copies in one file (libscope.rs:2004-2009, 2059-2063; p1).
 14. **Registrar quirk**: a handler string after a non-string first argument is dropped (p8 `register_activation_hook`).
-15. **Callables as values** (`'fn'`, `[$this,'m']`, `f(...)`) give no reference edges outside registrar verbs, and first-class callable syntax is recorded as a direct call (p1, p2).
+15. **Callables as values** (`'fn'`, `[$this,'m']`) are references only at the callback positions of `PHP_CALLABLE_ARG_FUNCS` and registrar verbs (WS26); elsewhere (`$cb = [$this, 'm']`, a user-defined higher-order function) they give nothing, and first-class callable syntax is recorded as a direct call (p1, p2).
 
 ## Summary scorecard
 
 | section | support | note |
 | --- | --- | --- |
 | 01 Detection & parsing | partial | `.php`/`.phtml`/shebang only; no `.inc`/`.module`/content detection; depth skip works |
-| 02 Callables extracted | partial | functions, methods, interface/trait/enum members, conditional defs; no closures/arrow fns; anon-class methods mis-owned |
-| 03 Call-site forms | partial | bare/member/nullsafe/static/FQ calls; `new Foo()` not a call; variable/dynamic calls and callable values unmodelled |
+| 02 Callables extracted | partial | functions, methods, interface/trait/enum members (bodiless ones `abstract`), conditional defs; no closures/arrow fns; anon-class methods mis-owned |
+| 03 Call-site forms | partial | bare/member/nullsafe/static/FQ calls; `new Foo()` → `__construct`; callables at core-function callback positions are value refs; variable/dynamic calls unmodelled |
 | 04 Imports & module resolution | partial | namespaces, `use` (grouped, function, alias), require chain via PhpIndex; braced namespaces broken; no composer/PSR-4 |
 | 05 Type inference & receiver typing | minimal | typed params (nullable/union/promoted) and `(new X)->m()` only; no locals, fields, docblocks or return-type chains |
 | 06 Inheritance, dispatch & overloading | partial | parent/self/static/$this through bases and traits, external bases, inheritance fan-out; wrong-owner intra-file high edge; method-less classes drop bases |
@@ -309,8 +312,8 @@ Found while cataloguing, each with a fixture:
 | 09 FFI & cross-language links | minimal | only the language-agnostic proto→host descriptor link; no PHP FFI/extension links |
 | 10 Frameworks & entry points | partial | 17 rules (9 enumerate, 8 gap-only); FQ, comma-grouped, class-level and docblock attributes missed |
 | 11 Test harness entries | partial | PHPUnit base+`test*` and `#[Test]`, class members as test roots; no DataProvider, Pest, Behat, indirect bases |
-| 12 Dead-code analysis | minimal | no visibility so everything is capped at medium; magic methods never rooted; `#[\Override]` ignored |
-| 13 Builtins & stdlib tables | partial | 324-name php.txt; case-sensitive and `\`-prefixed lookups miss |
+| 12 Dead-code analysis | minimal | no visibility so everything is capped at medium; magic methods other than constructed `__construct` never reached; `#[\Override]` → `implements-external-contract` |
+| 13 Builtins & stdlib tables | partial | 324-name php.txt; `\`-prefixed calls handled; case-sensitive lookups miss |
 | 14 Confidence & certainty | partial | PhpIndex certainty is sound for own-class lookups; no duck fan-out; one wrong high (intra-file owner) |
-| 15 Dynamic use & reflection | minimal | `call_user_func`/`call_user_func_array`/`method_exists` with plain-identifier strings only |
+| 15 Dynamic use & reflection | minimal | `call_user_func`/`call_user_func_array`/`method_exists` with plain-identifier strings, plus `get_class_methods`/`ReflectionClass` member enumeration |
 | 16 Known gaps & limitations | n/a | 15 fixture-backed gaps listed above |

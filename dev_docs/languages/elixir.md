@@ -1,5 +1,7 @@
 # elixir
 
+> Revised 2026-11-25 against cgg 0.13.3: a bare call in one of several same-file modules now binds the caller's own module (medium), imported bare calls with one candidate bind at high, and the `OVERLOAD_ARITY_LANGS` list is current; the other gaps were re-run and still hold. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Elixir plugin is `ElixirPlugin`, in `crates/cgg-lang/src/plugins/elixir.rs` (1,091 lines including inline tests). It parses `.ex` and `.exs` files with the crates.io grammar `tree-sitter-elixir` 0.3.5 (`Cargo.toml:110`, `tree-sitter-elixir = "0.3"`; Cargo.lock 0.3.5). It calls the grammar through `tree_sitter_elixir::LANGUAGE` (elixir.rs:27-29). Nothing is vendored.
 
 One recursive `ElixirWalker` (elixir.rs:53-735) does all the extraction:
@@ -131,9 +133,9 @@ Not applicable. The Elixir plugin records no `local_types`, parameter types, `sc
 - **Cross-file module-qualified arity narrowing**: `first_clause_per_arity` (intra_file.rs:936-984), applied in cross_file.rs:5547-5552. Fixture f6: `W.m(1)` binds `m/1`.
 - **Default arguments** are not expanded into extra arities. `clause_arity` counts commas (intra_file.rs:988+), so `def m(a, b \\ 1)` is m/2 only. In fixture f6, `W.m(1)` bound only to `m/1`.
 - **Gap: arity is ignored for imported bare calls.** Step 1b (cross_file.rs:5943+) looks up `prefix.f` without arity:
-  - Fixture f5: `h2(1)` and `h2(1, 2)` under `import B` both bind to `B::h2/2` (line 4) at medium, and mermaid shows `?2x`.
+  - Fixture f5: `h2(1)` and `h2(1, 2)` under `import B` both bind to `B::h2/2` (line 4) at medium, and mermaid shows `?2x`. Re-run on 0.13.3 (fixture `lang-docs/elixir/b`): with `h2/2` and `h2/3` in `B`, both `h2(1)` and `h2(1, 2)` bind `h2/3` at medium; with only `h2/2`, `h2(1)` binds it at **high** (a false high: no `h2/1` exists).
   - Fixture f1: `fmt(1)` under `import MyApp.Helpers, only: [fmt: 1]` binds `fmt/2` (helpers.ex:3), so the wrong clause is chosen.
-- **`OVERLOAD_ARITY_LANGS`** is `["java","scala","cpp"]` (type_hints.rs:1583). Elixir is not in it, and uses the clause path instead.
+- **`OVERLOAD_ARITY_LANGS`** is `["java","scala","cpp","csharp","groovy","swift","kotlin","typescript"]` (type_hints.rs:2357). Elixir is not in it, and uses the clause path instead.
 - **`INHERITANCE_LANGS`** does not include Elixir (dispatch.rs:110+), so `inheritance_fanout` does not run for it. `trait_impl_target` is never set, so `--dynamic-dispatch` adds nothing.
 - **Behaviours** (`@behaviour M`, `@callback`, `@impl true`) are not read as contracts, and are recorded as call sites instead (§03). OTP callbacks are rooted by name rules instead (§10, §12).
 - **Protocols** (`defprotocol` / `defimpl … for:`): no dispatch link, and `MyProto.size(x)` is external (fixture f3), because the protocol is not an `elixir-module`.
@@ -145,7 +147,7 @@ Not applicable. The Elixir plugin records no `local_types`, parameter types, `sc
 
 - **No `FileFacts::locals` table**: `locals::spec` has no `elixir` arm (locals.rs:380-393). So `shadowed-by-local` never fires. Elixir variables cannot be called bare (`f.()` is required), so this costs little.
 - **Module-scoped bare calls cross-file**: WS14 (§04).
-- **Gap: same-file modules defining the same name are ambiguous.** Fixture f6 has `X.h` and `Y.h` in one file. `X.go`'s `h()` and `Y.go2`'s `h()` are both `ambiguous-in-file` instead of binding to the caller's own module. Intra-file does not prefer the enclosing module for Elixir.
+- **Same-file modules defining the same name.** Intra-file still finds two candidates, but the WS14 module-scoped cross-file step then binds the caller's own module, at **medium**. Fixture `lang-docs/elixir/b` (0.13.3): `X.h` and `Y.h` in one file; `X.go`'s `h()` → `X::h` and `Y.go2`'s `h()` → `Y::h`, both medium, `cross-file:imports`. (The 0.11.0 audit, fixture f6, saw both as `ambiguous-in-file`.)
 - **Nested module visibility**: `X.In.i` calling `h()` (defined in the parent `X`) is not bound. That is correct Elixir, because nested modules do not see the parent's functions. Fixture f6 reports it `ambiguous-in-file`.
 - **Lexical narrowing of nested definitions and positional shadowing**: not applicable. Elixir is not in either list (CLAUDE.md architecture), and there are no nested named functions.
 - **Conditional definitions** (`if Code.ensure_loaded?(X) do def … end`): no `DefRecord::conditional` is set. A def inside an `if` is extracted like any def (unverified by fixture).
@@ -285,7 +287,7 @@ The gaps below are ordered by how much they change the graph.
 
 1. **Imported bare calls ignore arity.** `import B` + `h2(1)` binds `h2/2` at medium (fixtures f5 and f1 `fmt`; cross_file.rs:5943+ step 1b has no clause narrowing).
 2. **Imports are file-scoped.** Another module in the same file inherits an `import` and binds at high (fixture f5 `E::e -> B::helper`).
-3. **Same-file modules sharing a function name are `ambiguous-in-file`.** The caller's own module is not preferred (fixture f6).
+3. **Same-file modules sharing a function name bind only at medium.** The caller's own module is chosen by the cross-file module-scoped step, not intra-file (fixture `lang-docs/elixir/b`; §07).
 4. **No visibility (`def` vs `defp`), attributes (`@impl`, `@doc false`), behaviours or protocols.** Dead code caps at medium for the whole language (fixture f1 capabilities).
 5. **Later clauses of a called function are flagged dead** (fixture f1 `transform` line 32).
 6. **ExUnit has no harness rule and test blocks are not callables.** Calls from tests either root by bare name across the tree or are lost (fixture f1 `--why-live`).

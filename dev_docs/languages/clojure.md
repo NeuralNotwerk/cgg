@@ -1,20 +1,22 @@
 # clojure
 
-The Clojure plugin (`ClojurePlugin`, `crates/cgg-lang/src/plugins/clojure.rs`, 800 lines including 21 inline tests) parses Clojure, ClojureScript and `.cljc`/`.edn` files with the crates.io grammar `tree-sitter-clojure-orchard`. The workspace pins `"0.2"` (Cargo.toml:90), resolved to 0.2.5 (Cargo.lock:1448-1449), and the plugin uses `tree_sitter_clojure_orchard::LANGUAGE` (clojure.rs:21-23). Nothing is vendored.
+> Revised 2026-11-25 against cgg 0.13.3: name metadata, protocol/type methods, multimethods, `letfn`, `#_`, `#(…)`, value references, the locals table, `:refer` scoping, `import-vars`, schema `defn`s and external-contract roots now work, so the stale gaps, fixture results and scorecard were corrected. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
 
-A single recursive `ClojureWalker` (clojure.rs:45-476) looks only at `list_lit` forms (clojure.rs:65-79):
+The Clojure plugin (`ClojurePlugin`, `crates/cgg-lang/src/plugins/clojure.rs`, 2,450 lines including inline tests at 0.13.3) parses Clojure, ClojureScript and `.cljc`/`.edn` files with the crates.io grammar `tree-sitter-clojure-orchard`. The workspace pins `"0.2"` (Cargo.toml:90), resolved to 0.2.5 (Cargo.lock:1448-1449), and the plugin uses `tree_sitter_clojure_orchard::LANGUAGE` (clojure.rs:21-23). Nothing is vendored.
 
-- An `(ns …)` form sets the file's namespace and records its `:require`/`:use`/`:import` entries as `ImportRecord`s.
-- A `(def* name …)` form whose head is one of 13 symbols becomes a `FreeFunction` named `<ns>/<name>`.
-- Every other list whose head is a `sym_lit` that does not start with `:` becomes a bare `RefRecord`. The whole symbol text, `alias/f` included, goes into `name`, and `receiver_hint` stays empty.
-- When the head is a framework registrar verb (Compojure), the plugin also captures the route string and handler arguments, and it synthesizes `handler_at_<line>` closures for handlers written in place (clojure.rs:291-475).
+A single recursive `ClojureWalker` (`walk`, clojure.rs:133-192) handles `list_lit` and `anon_fn_lit` forms, skips `dis_expr` (`#_`) entirely, and under `reference_sites` also reads `quoting_lit` and `var_quoting_lit` (`#'f`):
 
-The plugin overrides neither `signals()` nor `max_line_bytes` nor `ts_language_for`, so every `PluginSignals` bit is false: no visibility, attributes, exports, test_defs, value_refs, dyn_uses, unreachable or impls (lib.rs:269-306). It reads `ExtractCtx` only for the registrar gate (`ctx.is_registrar_verb`, clojure.rs:292). It never reads `reference_sites`. There is no `resolver_kind` method on the trait, so resolution goes through the generic pipeline. Two Clojure-specific branches exist in `cross_file.rs`:
+- An `(ns …)` form sets the file's namespace and records its `:require`/`:use`/`:import` entries (inside reader conditionals too) as `ImportRecord`s, plus `refer`/`refer-all` records for `:refer [f]`/`:refer :all`/`:use`.
+- A method list inside `deftype`/`defrecord`/`reify`/`proxy`/`extend-type`/`extend-protocol`, or a `defprotocol`/`definterface` signature, becomes a method (`method_spec`/`record_method`, clojure.rs:521-637).
+- A `letfn` spec becomes a nested callable (`record_letfn`, clojure.rs:650).
+- A `(def* name …)` form whose head is one of 13 symbols becomes a `FreeFunction` named `<ns>/<name>` (`record_callable`, clojure.rs:393).
+- `(import-vars …)` records re-exports; a qualified `x/defn` head is a tentative definition settled after extraction (`settle_defn_macros`, clojure.rs:989).
+- Every other list whose head is a `sym_lit` that does not start with `:` becomes a bare `RefRecord` (`record_call`, clojure.rs:710). The whole symbol text, `alias/f` included, goes into `name`.
+- When the head is a framework registrar verb (Compojure), the plugin also captures the route string and handler arguments, and it synthesizes `handler_at_<line>` closures for handlers written in place (clojure.rs:758-962).
 
-- the shared `"require"` import arm (cross_file.rs:1846-1892);
-- the `alias/f` exact-namespace lookup (cross_file.rs:5524-5539).
+The plugin overrides neither `max_line_bytes` nor `ts_language_for`. It reads `ExtractCtx` for the registrar gate and for `reference_sites` (value references, §03). It builds its own locals table (`binding_spans`, §07). Resolution goes through the generic pipeline with Clojure-specific branches in `cross_file.rs` (the `require`/`refer`/`refer-all` import arms near cross_file.rs:1958-2020, the `alias/f` exact lookup and re-export following near cross_file.rs:6322 and 6780-6815) and `intra_file.rs` (`clojure_letfn_visible`, intra_file.rs:991).
 
-Fixtures cited below live under `<scratch>/parity/clojure/` (p1 … p5). Each was run with `target/release/cgg` 0.11.0 using `-t json -o pN.json`, optionally with `--include-external --include-stdlib`. The results were dumped with `show.py` in the same directory. `dc.json` is the `--dead-code --dead-code-format json` report for p1.
+Fixtures cited below live under `<scratch>/parity/clojure/` (p1 … p5). Each was run with `target/release/cgg` 0.11.0 using `-t json -o pN.json`, optionally with `--include-external --include-stdlib`. The results were dumped with `show.py` in the same directory. `dc.json` is the `--dead-code --dead-code-format json` report for p1. Claims marked 0.13.3 were re-checked on new fixtures under `<scratch>/lang-docs/clojure/` (p1, p2), run with `target/release/cgg` 0.13.3 (`-t json`, `--include-external --include-stdlib`, `--reference-edges --dynamic-dispatch`, `--dead-code`).
 
 ## 01. Detection & parsing
 
@@ -22,140 +24,134 @@ Fixtures cited below live under `<scratch>/parity/clojure/` (p1 … p5). Each wa
 - **No shebangs** (clojure.rs:18-20). Babashka scripts (`#!/usr/bin/env bb`, extensionless) are skipped as `unknown-extension` (p1 `script`, audit `file_skipped`). `.bb` is not a registered extension.
 - **No content detection.** Clojure has no entry in `cgg-lang/src/detect.rs`: `grep clj/edn` finds nothing there.
 - **One grammar for every dialect.** `.cljs` and `.cljc` use the same grammar, and there is no `ts_language_for` override. Reader conditionals `#?(:clj (a) :cljs (b))` are walked as plain children, so **both** branches produce edges (p1: `app.shared/plat -> inner-clj` and `-> inner-cljs`, both `high`).
-- **No re-parse or fallback on parse errors.** The tree-sitter ERROR tree is walked as-is (test `unbalanced_source_does_not_panic`, clojure.rs:671-676).
+- **Reader conditionals in `ns`.** `#?(:clj [a.b :as x])` and `#?@(:clj ([a :as x]))` require entries are read (`reader_branches`, clojure.rs:1051; test `reader_conditional_requires_are_recorded`). Fixture `<scratch>/lang-docs/clojure/p1` (0.13.3): `(o2/z)` through `#?(:clj [app.other :as o2])` binds `app.other/z` `high`.
+- **No re-parse or fallback on parse errors.** The tree-sitter ERROR tree is walked as-is (test `unbalanced_source_does_not_panic`).
 - **Skip conditions.** Only the generic ones apply:
   - `MAX_TREE_DEPTH` = 4,000 → `SkipReason::TooDeep` (crates/cgg/src/lib.rs:155, 451-454).
   - No `max_line_bytes` limit (default `None`, lib.rs:313).
-  - Clojure has no locals table, so the minified-file locals skip (lines over 2,000 bytes) does not apply.
-- **Test-file classification** is generic and path-based: p1 `test/app/core_test.clj` gets `test_role: directory`, and its `defn test-helper` gets `test_role: support`.
+  - Value references are not recorded in files over `cgg_lang::MINIFIED_LINE_BYTES` (CLAUDE.md).
+- **Test-file classification**: the generic directory rule, plus a Clojure file-name arm `_test.clj`/`_test.cljs`/`_test.cljc` (cgg-core/src/testfile.rs:152-153). The 0.13.3 fixture's `test/app/core_test.clj` `defn test-helper` gets `test_role: support`.
 
 ## 02. Callables extracted
 
 - **13 `def*` heads become callables** (`is_defn_form`, clojure.rs:101-123): `defn`, `defn-`, `defmacro`, `defmacro-`, `def`, `defonce`, `defprotocol`, `definterface`, `deftype`, `defrecord`, `defstruct`, `defmulti`, `defmethod`. The test `every_def_form_is_recognised` (clojure.rs:525-550) checks 12 of the 13; `defmacro-` is not exercised.
-  - All of them get `DefVariant::FreeFunction` (clojure.rs:225), so JSON `kind` is `function`. A `def` of a non-function (`(def ^:dynamic *dyn* 1)`, `(def handler-val inner)`) is still a "callable" (p1).
+  - All of them get `DefVariant::FreeFunction`, so JSON `kind` is `function`. `defmacro`/`defmacro-` carry the `macro` attribute, `defmulti` the `multimethod:<qn>` attribute. A `def` of a non-function (`(def ^:dynamic *dyn* 1)`, `(def handler-val inner)`) is still a "callable" (p1).
   - The span covers the whole form (test `definition_spans_cover_the_whole_form`, clojure.rs:645-661).
   - `signature_hint` = `extract_signature(form text)` (plugins.rs:74). For Clojure that is usually the entire form, because no `{` appears at depth 0. Example from p1: `"(defn run [] (u/helper 1) …)"`.
 - **Qualified name** = `<ns>/<name>` when an `ns` form came earlier in the file, otherwise the bare name (`qn`, clojure.rs:57-63). Tests: `the_namespace_qualifies_every_definition`, `without_a_namespace_the_bare_name_is_used`.
-  - `ns` metadata (`(ns ^{:added "1.0"} a.b)`) is stripped through the grammar's `name` field (clojure.rs:128-130; test `namespace_metadata_is_not_part_of_the_name`, clojure.rs:790-799; CHANGELOG.md:233-235).
+  - `ns` metadata (`(ns ^{:added "1.0"} a.b)`) is stripped through the grammar's `name` field (test `namespace_metadata_is_not_part_of_the_name`).
+  - **Name metadata is not part of the name.** `(defn ^:private hidden …)`, `^String typed`, `^{…}`, `#^Tag`, stacked metadata and form-level metadata (`^:x (defn k …)`) are skipped (`sym_text`; test `name_metadata_is_not_part_of_any_definition_name`). 0.13.3 fixture p1: `app.util/hidden`, `app.util/typed`.
   - Only the most recent `ns` form applies, because `self.namespace` is overwritten. Two `ns` forms in one file therefore re-qualify everything after the second one (unverified by fixture; follows from clojure.rs:131).
-- **Owners.** No definition has an owner. Every def is a free function under the namespace, and the namespace acts as the "enclosing owner" (frameworks/mod.rs:1514-1520 comment).
+- **Owners.** `defn`-family definitions have no owner; the namespace acts as the "enclosing owner".
+- **Protocol / interface declarations.** Each `defprotocol`/`definterface` signature is an abstract method `ns/m` (kind `method`, attributes `protocol:<P>` and `abstract`). 0.13.3 fixture p1: `(defprotocol Speaker (speak [this]) (shout [this msg]))` yields `app.core/Speaker`, `app.core/speak`, `app.core/shout`.
+- **Type and extension methods.** A method list in `deftype`/`defrecord`/`extend-type`/`extend-protocol` is a method `ns/Type.m` (simple name `Type.m`, `protocol:<P>` attribute) owning the calls in its body; `reify`/`proxy` methods are `ns/P.m`. p1: `app.core/Dog.speak`, `app.core/Dog.shout`, `app.core/String.speak` (from `extend-protocol Speaker String …`), `a.m/Runnable.run` (from `reify`, p2).
+- **Multimethods.** Each `defmethod` is `ns/m[dispatch]` (dispatch text, max 60 chars) carrying `multimethod:<defmulti qn>` resolved through the file's aliases (test `defmethods_name_their_multimethod`). p1: `app.core/area`, `app.core/area[:circle]`, `app.core/area[:square]`.
+- **`letfn` specs** are callables nested in the enclosing definition: `ns/outer.k`, simple name `k`, attribute `letfn` (`cgg_core::CLOJURE_LETFN_ATTR`; test `letfn_specs_are_local_functions`). p1: `app.core/run.loc`.
+- **Schema-style heads.** `(s/defn f :- T [x :- T] …)`, `(mu/defn- …)`, `(mu/defmethod …)`, `(core/defn …)` are definitions when the head's namespace resolves to one in `frameworks::rules::CLOJURE_DEFN_MACRO_NAMESPACES` (`clojure.core`, `schema.core`, `malli.experimental`) or to a namespace of the tree defining or `import-vars`-re-exporting that macro (`settle_defn_macros`, run in `analyze_in_pool`; test `schema_defn_heads_are_settled_definitions`).
 - **Not supported / partial:**
-  - **Metadata on the defined name is kept as part of the name (bug).** `(defn ^:private hidden …)` → simple name `^:private hidden`, qn `app.util/^:private hidden`. The same happens with `^String typed`, `^:dynamic *dyn*` and `^:export init` (p1, p4). The plugin uses `named_child(1)` text verbatim (clojure.rs:216-217). Calls to `(hidden)` / `(typed)` then miss and fall to `<external>::hidden` (p4).
   - **Multi-arity `defn`** (`(defn multi ([] …) ([x] …))`) is ONE callable. Arities are not split and no arity is recorded (p1 `app.core/multi`, one node).
-  - **`defmulti` + `defmethod`.** Each `defmethod` is a separate callable with the **same qn** as the `defmulti` (`app.core/area` ×3, p1). The dispatch value is not part of the name.
-  - **Protocol and interface members are not callables.** `(defprotocol Speaker (speak [this]) …)` yields only `Speaker`, and `definterface IFoo (bar [])` only `IFoo`. Worse, the member signatures `(speak [this])` are recorded as **call sites** from `Speaker` (p1: `Speaker -> <external>::speak`, `-> shout`).
-  - **`deftype` / `defrecord` inline method bodies are not callables.** The method bodies belong to the type's node: p1 shows `app.core/Dog -> app.util/helper` from `(shout [this msg] (u/helper msg))`, and `(speak [this] …)` is recorded as a call to `speak`.
-  - **Not definitions at all:** `extend-protocol`, `extend-type`, `extend`, `reify`, `proxy`, `gen-class` methods, `letfn` locals, `fn` / `#(…)` lambdas, `deftest`, `defspec`, `defroutes`, `s/fdef`/`s/def` (spec), `declare`, and any user `def*` macro (`defn-traced`, `defsc`, …). Only the 13 hard-coded heads count.
-    - Calls inside `extend-protocol` bodies have **no enclosing callable** (p1: `inner` at L18, `no-enclosing-callable`).
-    - `deftest` is named explicitly as missing in the `clojure-test` rule gap (rules.rs:3363).
-  - **Quoted templates.** A `defn` whose name starts with `~` (an unquote inside a syntax-quote) is skipped (clojure.rs:218-222; test `unquoted_defn_names_are_not_definitions`, clojure.rs:552-563; CHANGELOG.md:1052-1054). Other templates still count: a quoted `` `(defn literal-name …) `` inside a macro body would still be a definition (unverified; no syntax-quote check beyond the `~` prefix).
-  - **Synthetic route handlers.** `handler_at_<line>` is a `NamedClosure` with attribute `synthetic` (clojure.rs:423-475), covered in §10.
+  - **Not definitions at all:** `extend` (the map form), `gen-class` methods, `fn` / `#(…)` lambdas, `deftest`, `defspec`, `defroutes`, `s/fdef`/`s/def` (spec), `declare`, and any user `def*` macro whose namespace is not settled as a `defn` macro (`defn-traced`, `defsc`, …). `deftest` is named explicitly as missing in the `clojure-test` rule gap (rules.rs:3590).
+  - **Quoted templates.** A `defn` whose name is unquoted (`~n`, `~(symbol …)`, an `unquoting_lit`) is skipped (test `unquoted_defn_names_are_not_definitions`). A quoted `` `(defn literal-name …) `` inside a macro body would still be a definition (unverified).
+  - **Synthetic route handlers.** `handler_at_<line>` is a `NamedClosure` with attribute `synthetic`, covered in §10.
 
 ## 03. Call-site forms
 
-- **Bare call** `(inner x)` → `RefRecord{name:"inner"}` (clojure.rs:246-273; test `calls_inside_a_body_are_references`). It binds intra-file at `high` (p1 `run -> inner`).
+- **Bare call** `(inner x)` → `RefRecord{name:"inner"}` (`record_call`, clojure.rs:710; test `calls_inside_a_body_are_references`). It binds intra-file at `high` (p1 `run -> inner`).
+- **Anonymous fn literal** `#(inner %)` is read like a list, so its body's calls are recorded (test `calls_inside_an_anonymous_fn_literal_are_calls`; p1 L23 `run -> inner`).
+- **Hinted call** `^String (f x)` is still a call (test `a_hinted_call_is_still_a_call`).
+- **Discard reader** `#_(gone)` yields nothing (`dis_expr` is skipped; test `a_discarded_form_yields_nothing`; p1 L24: no edge to `gone`).
+- **Value references** (only under `--reference-edges` or `--dead-code`): symbol arguments of calls (threading steps included: `(-> 1 inner)`), `#'f`/`#'ns/f`, `def` values, binding-vector inits, `fn`/`defn` body forms, and map values and vector elements holding one are `RefRecord::value_ref` records. A shadow filter reads the locals table; quoted data, `case` constants and `ns`/`comment`/`declare` arguments are not values (`CLOJURE_NON_VALUE_FORMS`); bare names are kept only when the file defines or `:refer`s them (`keep_reachable_values`, clojure.rs:1090). 0.13.3 p1 with `--reference-edges`: `(map inner [1])` and `(-> 1 inner)` give `run -> inner` `reference` `high`; `(def handler-val inner)` gives `handler-val -> inner`; `(map u/unused-pub [1])` gives `run -> app.util/unused-pub` cross-file `high`.
 - **Namespace-qualified / alias call** `(u/helper 1)` and `(app.util/helper 2)`. The whole symbol is the name with an empty receiver (clojure.rs:251-269), and the cross-file Clojure branch splits it on `/` (§04). p1: both → `app.util/helper` `high` `cross-file:imports`.
 - **Keyword-as-function** `(:k m)` is never recorded (clojure.rs:252; test `keywords_in_call_position_are_not_references`).
 - **Calls inside special forms** are recorded because the walker recurses into every `list_lit`: `->`, `->>`, `when-let`, `let`, `fn` and `letfn` bodies (p1, p4).
   - The special-form heads themselves (`let`, `fn`, `->>`, `when-let`) are recorded as calls and classified as `<stdlib>` (p1 with `--include-stdlib`).
 - **Not supported / partial:**
-  - **Threading-macro bare symbols.** In `(-> x dup)` the symbol `dup` is not a list, so no call is recorded. Only `(dup)` in list form is (p4 L9).
-  - **Anonymous fn literal** `#(inner %)` → no call recorded. The `anon_fn_lit` head is not a `list_lit` (p1 L43: no edge). `((fn [x] (inner x)) 1)` does record `inner` (p1 L44).
-  - **Higher-order / value references.** `(map inner xs)`, `(map u/helper xs)`, `(apply dup [])`, `(partial dup)`, `(comp dup dup)` and `(def handler-val inner)` record nothing for the function passed, even under `--reference-edges` (p1 L41-42, p4 L13). The plugin never sets `RefRecord::value_ref`. Its only value refs are the registrar captures in §10.
+  - **Threading-macro bare symbols** are value references, not calls: `(-> x dup)` gives no `direct` edge in the default graph.
   - **Java interop.** All of these are recorded with the literal symbol as the name and end up `<external>` (p1 L36-39, L48-49; p4 L12): `(.toUpperCase s)` → name `.toUpperCase`; `(Math/abs x)` → `Math/abs`; `(String. "x")` / `(Date.)` → `String.` / `Date.`; `(->Dog …)` → `->Dog`. There is no receiver typing, and the record constructor `->Dog` is not linked to `defrecord Dog`.
   - **ClojureScript interop** `(js/console.log …)` and `(.log js/console …)` → external (p1 front.cljs).
-  - **Discard reader `#_(gone)` still records the call:** p4 `caller -> gone` `high`, a false edge.
-  - **`(comment (inner 1))` records the call:** p1 L53 `run -> inner`, `high`, a false edge. `comment` itself is external because it is not in the stdlib list.
-  - **Non-call lists are recorded as calls:** protocol member signatures (`(speak [this])`), `letfn` binding forms (`(loc [] …)` → external `loc`, p1 L45), and `deftype`/`defrecord` method heads (`(bar [this] …)` → external `bar`, p4).
+  - **`(comment (inner 1))` still records the call:** 0.13.3 p1 L25 `run -> inner`, `high`, a false edge. `comment` itself is external because it is not in the stdlib list.
   - **No arity is recorded** (`arity: None` in every record), so there is no overload narrowing (§06).
   - **No explicit generics or operator overloading.** Not applicable to Clojure.
   - **No paren-less calls.** Not applicable.
 
 ## 04. Imports & module resolution
 
-- **`(ns name (:require …) (:use …) (:import …))`** is read only inside the `ns` form (`extract_namespace`, clojure.rs:125-163). Each entry becomes an `ImportRecord` with kind `require` / `use` / `import` (clojure.rs:165-212; test `use_and_import_keep_their_own_kinds`).
+- **`(ns name (:require …) (:use …) (:import …))`** is read only inside the `ns` form (`extract_namespace`, clojure.rs:238-267), reader-conditional branches included. Each entry becomes an `ImportRecord` with kind `require` / `use` / `import` (`record_require_entry`, clojure.rs:291-391; test `use_and_import_keep_their_own_kinds`).
   - `sym_lit` entry `a.b` → path `a.b`, no alias.
   - `vec_lit` entry `[a.b :as x]` → path is the first symbol, alias is the symbol after `:as` (tests `require_with_an_alias_records_path_and_alias`, `a_bare_require_vector_has_no_alias`).
+  - `:refer [f g]` adds one `refer` record per name; `:refer :all` adds a `refer-all` record; `:use` refers the namespace whole.
+- **`import-vars` re-exports.** `(p/import-vars [a.b f])` in `x` records a re-export (`cgg_core::CLOJURE_REEXPORT_KIND`, `record_reexports`, clojure.rs:477), so `x/f` and `#'x/f` reach `a.b/f`.
 - **How a `require` resolves** (cross_file.rs:1846-1892):
   1. Every definition of a file found by trying the paths `p`, `p.clj` and `p` with `.`→`/` + `.clj` (plus the Ruby/Lua variants) becomes reachable through `collect_include_defs` (budget 4).
   2. The alias, or else the namespace's last dotted segment, is put in `module_aliases`.
   3. The path is pushed to `unqualified_prefixes`.
-- **`alias/f` and `full.ns/f`** (cross_file.rs:5524-5539) map the alias through `module_aliases`, then look up the exact qn `ns/f` in `by_qn`.
-  - When found, it binds with `module_certain = true`, which gives `high` (test `a_clojure_alias_call_binds_in_the_required_namespace`, cross_file.rs:14427-14446; CHANGELOG.md:233-235 reports "+13,436 high alias calls", CHANGELOG.md:257-258).
-  - When not found it returns `None` and the site never binds by name elsewhere. p2: `(u/missing)` and `(nope/z)` → `<external>`, and with no `--include-external` they are silently dropped (no unresolved record).
-- **`:refer`, bare require and `:use`.** The `:refer [w]` list is not read; the required file's definitions become reachable wholesale.
-  - p3: `[a.b]` without `:refer` → bare `(x)` binds `a.b/x` `high`. That is over-permissive: Clojure would reject it.
-  - p3 `a.s`: `[a.d :refer [w]]` plus `[a.c :as-alias ca]` → bare `(y)` fans out `medium` to **both** `a.c/y` and `a.d/y`, though neither is referred.
-  - `(:use a.b)` → `(x)` → `a.b/x` `medium` (p3).
-- **Bare call with no import** finding same-named defs elsewhere → `candidates-in-other-files`, not bound (p3 `a.r/f y`, 3 candidates). By-name fan-out happens only through the import closure.
+- **`alias/f` and `full.ns/f`** map the alias through the file's `require` aliases to the exact qn `ns/f` (following `import-vars` re-exports, indexed into `by_qn`).
+  - When found, it binds `high` (test `a_clojure_alias_call_binds_in_the_required_namespace`). 0.13.3 p1: `(u/helper 1)` and `(app.util/helper 2)` → `app.util/helper` `high` `cross-file:imports`.
+  - When not found the site never binds by name elsewhere and goes `<external>`.
+- **Bare calls are scoped.** A bare name reaches only its own namespace (intra-file), a `:refer`'d var (`refer` records → `direct_imports`, `high`) or a namespace referred whole (`refer-all`/`:use`); never by-name fan-out. `require` registers only the alias. 0.13.3 p1: `(w)` with `:refer [w]` → `app.util/w` `high`; `(hidden)` and `(y)` with no refer → `candidates-in-other-files`, unbound. p2: `[my-lib.core :refer [hy]]` → `(hy)` binds only `my-lib.core/hy` `high`, no longer the unrelated `app.other/hy`.
 - **Not supported / partial:**
   - **Prefix lists** `(:require (a [c :as cc]))` and `[a [c :as cc]]` are not expanded: `cc/z` → external, and bare `(z)` → `candidates-in-other-files` (p3 `a.q`).
-  - **`:as-alias`** is not recognised as an alias (`seen_as` only for `:as`, clojure.rs:190). `ca/z` → external (p3).
-  - **Top-level `(require '[a.c :as k])`** / `(require (quote …))` outside `ns` → not an import. `k/z` and `dd/w` → external (p3 `a.r`). The same applies to `use`, `import`, `refer`, `load` and `alias` calls.
-  - **Hyphen/underscore munging.** The require path tries do not map `my-lib.core` → `my_lib/core.clj`, nor `.cljc`/`.cljs` files. In p5, `[my-lib.core :refer [hy]]` → `(hy)` fans out `medium` to `my-lib.core/hy` **and** the unrelated `app.other/hy`, a wrong edge. The alias path is unaffected because it matches by qn.
-  - **`:refer :all` / `:rename` / `:exclude` / `:only`** are not read.
+  - **`:as-alias`** is not recognised as an alias (`seen_as` only for `:as`). 0.13.3 p2: `ca/z` → external.
+  - **Top-level `(require '[a.c :as k])`** / `(require (quote …))` outside `ns` → not an import. 0.13.3 p2: `k/z` → external. The same applies to `use`, `import`, `refer`, `load` and `alias` calls.
+  - **`:rename` / `:exclude` / `:only`** are not read.
   - **`(:import [java.util Date])`** is recorded (kind `import`, path `java.util`). Nothing consumes it for resolution.
   - **`FileFacts::packages` is not populated.** Clojure has no `packages`, and the namespace lives only in qns.
   - **No manifest reading.** `deps.edn`, `project.clj` and `shadow-cljs.edn` are parsed as Clojure code, not read as manifests (no Clojure branch in `plugins/manifest.rs`).
   - **No `heads.rs` external-module refusal.** Clojure is not in WorkspaceVocab, which covers Python/JS/TS/Go/Java/Kotlin/C#/C++ (CLAUDE.md).
   - **No `modules.rs` `not-in-imported-module`.** `modules.rs:190` lists js/ts/python/go/lua only. The closest equivalent is the alias branch's silent `None`.
-- **Stdlib alias tables are keyed by conventional alias, not by namespace.** `stdlib/clojure.txt` lists `str/join`, `io/file` and `walk/…`. p2 results:
-  - `(str/trim …)` → stdlib, even with no `clojure.string` require;
-  - `(s/join …)` under `[clojure.string :as s]` → external;
-  - `(clojure.string/join …)` → external.
-- **Bug: a resolved alias call also mints an `<external>` exit node.** With `--include-external`, `(u/h)` produces both `a.m/f -> a.u/h high` and `a.m/f -> <external>::u/h low` (p2; also p1 L31-32, L14). The audit reconciliation does not prune the external bucket entry for sites the Clojure branch bound.
+- **Stdlib alias tables are keyed by conventional alias, not by namespace.** `stdlib/clojure.txt` lists `str/join`, `io/file` and `walk/…`. Since 0.11.1 a fully qualified `clojure.string/join` is stdlib through `STDLIB_MODULES` (cgg-core/src/stdlib.rs:158-184). 0.13.3 p2 results:
+  - `(s/join …)` under `[clojure.string :as s]` → still external (the alias is not followed);
+  - `(clojure.string/join …)` → `<stdlib>`.
+- **Bug (still present at 0.13.3): a resolved alias call also mints an `<external>` exit node.** With `--include-external`, p1 `(u/helper 1)` produces both `run -> app.util/helper high` and `run -> <external>::u/helper low` (also `app.util/helper`, `o2/z`). The audit reconciliation does not prune the external bucket entry for sites the Clojure branch bound.
 
 ## 05. Type inference & receiver typing
 
 - Not applicable / none. There is no Clojure code in `type_hints.rs`, `receiver.rs` or `closure_types.rs` (`grep clojure` finds nothing).
-  - Type hints (`^String x`, `^T t`) are not read. Worse, a hint on the def name corrupts the name (§02).
+  - Type hints (`^String x`, `^T t`) are not read (a hint on the def name is stripped from the name since 0.11.1, §02).
   - `(.bar t)` with `^T t` → `<external>::.bar` (p4).
-  - Locals, parameters, `let` bindings, record fields and return types are not recorded. There are no casts, constructions, wrappers, implicit receivers or weak receiver types.
+  - Locals and parameters are recorded only for shadowing (§07), never typed. There are no casts, constructions, wrappers, implicit receivers or weak receiver types.
 
 ## 06. Inheritance, dispatch & overloading
 
-- **Base / implementation records: none.**
-  - `defrecord Dog [name] Speaker …` records no `base_types`, `trait_impl_target`, `ClassDecl` or `classes` (p1).
-  - `extend-protocol` / `extend-type` record nothing.
-  - The dead-code capability table shows `disp no` (p1 dead-code report).
-- **Protocol dispatch: not modelled.** `(speak (->Dog "rex"))` → `<external>::speak` (p1 L48-49), because protocol methods are not callables (§02).
-- **Multimethods.** A call to `(area x)` binds to the `defmulti` **and every `defmethod`** at `medium`, through `cross-file:imports` even though it is in the same file (p1 L50: three `medium` edges, mermaid `?`). The dispatch value is not used. This is the only dispatch-like fan-out, and it happens by accident of shared qns.
-- **Not a member of:** `INHERITANCE_LANGS` (dispatch.rs:110-123), `OVERLOAD_ARITY_LANGS` = java/scala/cpp (type_hints.rs:1583), clause languages = erlang/elixir/haskell (`is_clause_language`, intra_file.rs:858-860), or `member_of_calling_class` / `overrides_below`. `--dynamic-dispatch` adds nothing (p4 run with `--dynamic-dispatch`: no dyn edges).
+- **Base / implementation records.** No `base_types`, `trait_impl_target` or `ClassDecl`; the link is the `protocol:<P>` / `multimethod:<qn>` attribute.
+  - The dead-code capability table still shows `dispatch none` (0.13.3 p1 report).
+- **Protocol dispatch.** A call to the protocol var `(speak x)` binds the abstract declaration `app.core/speak` (`high`, 0.13.3 p1 L31), never an implementation directly. `dispatch::fanout` (`--dynamic-dispatch`, forced on by `--dead-code`) adds `Via::Dynamic` `low` edges from each declaration to its implementations by the `protocol:` attribute: p1 `speak -> Dog.speak`, `speak -> String.speak`, `shout -> Dog.shout`.
+- **Multimethods.** A call to `(area x)` binds the `defmulti` only (`high`, p1 L32); `--dynamic-dispatch` links `area -> area[:circle]` and `area -> area[:square]` (`dispatch:fanout`, `low`). The dispatch value is not used to narrow.
+- **Not a member of:** `INHERITANCE_LANGS`, `OVERLOAD_ARITY_LANGS`, the clause languages (erlang/elixir/haskell), or `member_of_calling_class` / `overrides_below`.
 - **No `super`/base calls, extension methods, mixins or arity narrowing.** Multi-arity `defn` is one node, and the self-call `(multi 1)` binds `multi -> multi` `high` (p1 L27).
 - **Redefinition** (`(defn dup …)` twice) → `ambiguous-in-file`, unresolved. Clojure's last-def-wins rule is not modelled (p4 `use-dup`, `->thread`, `T`, `hof`).
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`: none.** `locals.rs` `spec()` has no Clojure entry (locals.rs:380-394).
-  - `(let [inner (fn [] 0)] (inner))` still binds to the top-level `app.core/inner` at `high`, a wrong edge (p1 L47).
-  - `(let [f inner] (f 2))` → `f` external (p1 L46).
-  - `letfn` locals → external (p1 L45).
-- **Lexical narrowing: no.** Clojure is not in `lexically_scoped` (intra_file.rs:116-134), and nested defs are not extracted anyway.
-- **Positional shadowing: no.** That list is ocaml/fsharp/lua only (intra_file.rs:405). A later `(defn dup …)` does not shadow an earlier one (§06).
+- **`FileFacts::locals` from the plugin's own table.** `plugins::clojure::binding_spans` is built once and recorded as the file's locals; `locals.rs` skips its own collection for Clojure (locals.rs:554). It covers `fn`/`defn`/`defn-`/`defmacro`/`defmethod` parameters over their arity's body (`&`, vector and map destructuring incl. `:keys`/`:strs`/`:syms`/`::keys`/`:ns/keys`/`:as`; never an `:or` default or a schema after `:-`), the `fn` self-name, method parameters and type fields, `letfn` names, `let`/`loop`/`doseq`/`for`/`when-let`/… bindings from the end of their init, other `with-…` vectors and `catch`. `binding`/`with-redefs`/`…-redefs` rebind vars, not locals (`stdlib::CLOJURE_VAR_REBINDING_FORMS`/`_SUFFIXES`).
+  - 0.13.3 p1: `(let [inner (fn [] 0)] (inner))` is `shadowed-by-local` (L29), no longer a wrong `high` edge.
+- **Lexical narrowing: `letfn` only.** A `letfn` function is visible where the form's binding of the name covers the site (`intra_file::clojure_letfn_visible`, intra_file.rs:991). p1: `run -> run.loc` `high`, `run.loc -> inner` `high`.
+- **Positional shadowing: no.** That list is ocaml/fsharp/lua only. A later `(defn dup …)` does not shadow an earlier one (§06; 0.13.3 p2: `(dup)` with two `defn dup` is `ambiguous-in-file`).
 - **`bare_call_is_never_a_method`: not listed** (intra_file.rs:49-54). This has no effect, because Clojure defs carry no owners.
 - **No conditional definitions.** `(when x (defn …))` would still be extracted, and `DefRecord::conditional` is never set (unverified by fixture; the walker extracts any matching list at any depth, clojure.rs:65-79).
 - **Forward references** through `declare` work, because resolution is file-wide: `(declare later)` + `calls-later -> later` `high` (p1). `declare` itself becomes a ref.
 
 ## 08. Macros, preprocessor & codegen
 
-- **`defmacro` / `defmacro-` are ordinary callables.** Calls to them bind like functions (p1 `uses-macro -> my-macro` `high`), and calls inside the macro's syntax-quoted template are attributed to the macro (`my-macro -> inner` `high`).
+- **`defmacro` / `defmacro-` are ordinary callables** carrying the `macro` attribute. Calls to them bind like functions, and calls inside the macro's syntax-quoted template are attributed to the macro. Inside a syntax-quote a macro's locals are in scope only under `~`.
 - **Macro expansion: none.** Code a macro generates is invisible, and nothing is tagged `macro:<name>`. Clojure is not in the `rust_macro`/`c_macro` paths.
-- **Quote / unquote.** `defn ~n` templates are skipped (clojure.rs:218-222; CHANGELOG.md:1052-1054, 1079, 1517 "Clojure 7/7 (re-attributions)").
-- **Reader conditionals** `#?` / `#?@`: both branches are walked (§01). The discard reader `#_` is not honoured (§03).
+- **Quote / unquote.** `defn ~n` and `(defmulti ^:private ~n …)` templates are skipped (§02).
+- **Reader conditionals** `#?` / `#?@`: both branches are walked (§01). The discard reader `#_` is honoured (§03).
 - **`name_mentions`: never populated** by the Clojure plugin.
 - **Preprocessor / `#define` / `#if` / templates:** not applicable.
 
 ## 09. FFI & cross-language links
 
-- **None.** `ffi.rs` has no Clojure handling (`grep clojure` finds nothing in ffi.rs). Java interop calls, `gen-class` exports, ClojureScript `js/` calls and `^:export` all go `<external>` (p1). The `^:export` metadata is not even an attribute; it lands in the name.
+- **None.** `ffi.rs` has no Clojure handling. Java interop calls, `gen-class` exports and ClojureScript `js/` calls all go `<external>`. `^:export` metadata is stripped from the name but is not an attribute or a root.
 - **Descriptor links** (protobuf rpc → host): no Clojure host binding.
 - **Markup code-behind:** not applicable.
 
 ## 10. Frameworks & entry points
 
-Seven rules carry `language: "clojure"` (rules.rs:3254-3367). No multi-language rule names Clojure.
+Six rules carry `language: "clojure"` (rules.rs:3482-3592). No multi-language rule names Clojure.
 
-- **`compojure`**, kind `Network`, `detect: ["compojure"]`, registrars `get post put patch delete head options any context defroutes` (rules.rs:3254-3279). This is the only enumerating rule. `app-metabase-compojure` in benchmark.sh:200 is the verified app.
+- **`compojure`**, kind `Network`, `detect: ["compojure"]`, registrars `get post put patch delete head options any context defroutes` (rules.rs:3482).
+  - Since 0.11.1 a registrar verb that is also a `clojure.core` function (`get`), written without a route string, captures nothing (test `a_core_get_without_a_route_captures_no_handler`). This is the only enumerating rule. `app-metabase-compojure` in benchmark.sh:200 is the verified app.
   - **Registrar capture** (`record_registrar`, clojure.rs:291-410). It is gated on `ctx.is_registrar_verb(last_segment(head))`. The builtin verbs are per language (lib.rs:110-130, 202-235) and also match case-insensitively, so `GET` matches. `compojure.core/GET` reduces to `GET` (test `a_namespaced_operator_reduces_to_its_verb`).
     - A **leading** `str_lit` is the route. A non-leading string never is: `(get m "k")` stays a map lookup (test `a_map_lookup_does_not_mint_a_handler`).
     - With a route present, slot 1 is the request binding and is skipped (test `the_request_binding_slot_is_not_a_handler`).
@@ -177,102 +173,93 @@ Seven rules carry `language: "clojure"` (rules.rs:3254-3367). No multi-language 
 
 ## 11. Test harness entries
 
-- **`clojure-test` is a detect-only gap rule** (rules.rs:3349-3367). `deftest`, `testing` and `defspec` are not definitions, so test bodies have no callable (p1 `core_test.clj`: `a-test` absent, and `(c/inner 1)` inside it produces no edge). Detection works: p1 lists `clojure-test` under "seen, no rules".
+- **`clojure-test` is a detect-only gap rule** (rules.rs:3578-3592). `deftest`, `testing` and `defspec` are not definitions, so test bodies have no callable. 0.13.3 p1 `core_test.clj`: `a-test` absent, and `(c/inner)` inside it has no enclosing callable, so it makes `app.core/inner` a `toplevel:invocation` dead-code root instead of an edge.
 - **Name convention.** `is_test_name` falls to the default arm (`test_` / `Test` prefix, deadcode/roots.rs:975-988). An underscore name like `test_thing` becomes a `builtin:test-name` root (p1 dc.json). Idiomatic kebab names (`test-helper`, `foo-test`) do not match.
 - **No test harness node** (`<framework-entry>::test::…`). Clojure is not in `TEST_CLASS_MEMBERS_ARE_ROOTS`, and there is no `TEST_ATTRS` for it.
-- **Test-file gating** is generic and path-based (`test/` directory → `test_role: directory`/`support`, p1).
+- **Test-file gating**: the `test/` directory rule and the `_test.clj(s/c)` file-name arm (§01).
 - **Missing:** kaocha, midje (`fact`), test.check (`defspec`), expectations, and cljs.test `async`.
 
 ## 12. Dead-code analysis
 
-- **Language class `degraded`.** The capability row reads `vis no, attrs no, refs no, disp no` (p1 dead-code report). `signals_complete()` therefore fails (deadcode/caps.rs:89-96), and every Clojure finding is capped at **medium**. p1: "0 shown (high) · 18 withheld (medium)". Every finding carries `language-lacks-visibility`, `-attributes`, `-value-references` and `-dispatch-model` (dc.json).
-- **Visibility is not extracted.** `defn-` and `^:private` are not recognised, and `visibility` is `""` (clojure.rs:239). `private-one` and `hidden` get the same evidence as public `unused-pub` (dc.json). There is no `PrivateVisibility` corroboration.
+- **Language class `degraded`.** At 0.13.3 the capability row reads `vis no, attrs yes, refs yes, disp no` (p1 dead-code report: `visibility none`, `attributes full`, `value_references full`, `dispatch none`, `max_confidence medium`), so every Clojure finding is still capped at **medium**, with evidence `language-lacks-visibility` and `language-lacks-dispatch-model`.
+- **Visibility is not extracted.** `defn-` and `^:private` are not recognised, and `visibility` is `""`. `private-one` gets the same evidence as public functions. There is no `PrivateVisibility` corroboration.
 - **Roots that fire for Clojure** (dc.json):
   - `builtin:main` for a fn named `main` (UNIVERSAL_ENTRY, roots.rs:19).
   - `builtin:test-name` for `test_*` / `Test*`.
-  - `toplevel:invocation` for any name called outside every callable (roots.rs:560-612). In p1, `inner` became a root by accident through the `extend-protocol` body, and `list-users` through the route capture at top level.
+  - `toplevel:invocation` for any name called outside every callable; a top-level `(alias/f)` or `#'alias/f` roots exactly that var, through aliases and re-exports. 0.13.3 p1: `inner` is a root through the `deftest` body.
   - `framework:entry-node` for Compojure entries.
-- **`-main` is not a root.** Clojure's `:gen-class` entry `-main` is reported as a `medium` finding (dc.json `app.core/-main`). `LANG_ENTRY` (roots.rs:23-32) has no Clojure row, and `LIFECYCLE` has none either.
-- **Not roots:** `^:export` (cljs) functions (`app.front/^:export init` is a finding), protocol implementations, `defmethod`s, `deftest`s (they are not callables), and anything referenced only as a value (`(def handler-val inner)`, `(map f xs)`).
+  - `clojure:external-contract` for a method implementing a protocol or interface the tree does not declare, and a `defmethod` of a multimethod the tree does not declare. 0.13.3 p2: `a.m/Runnable.run` (`reify Runnable`) and `a.m/print-method[String]` are roots.
+- **`-main` is not a root.** Clojure's `:gen-class` entry `-main` is reported as a `medium` finding (0.13.3 p1 `app.core/-main`). `LANG_ENTRY` has no Clojure row, and `LIFECYCLE` has none either.
+- **Not roots:** `^:export` (cljs) functions and `deftest`s (they are not callables). Protocol implementations and `defmethod`s of in-tree contracts are reached through the dispatch fan-out, and values (`(def handler-val inner)`, `(map f xs)`) are reference edges under `--dead-code`.
 - **Exports: none** (`exports: false`), so there is no `ExportedApi` root.
-- **Confidence caps.** `implements-external-contract` is never applied: Clojure has no override or contract records. `macro-generated` never applies (no `macro:` tags). The `reflection` cap never applies (no dynuse, §15).
-- **Unresolved-doubt handling** is generic: every p1 finding shows `no-unresolved-site-with-name`. Value refs from registrars feed `value-ref-*` reasons.
+- **Confidence caps.** `implements-external-contract` is never applied (outside contracts are roots instead, above). `macro-generated` never applies (no `macro:` tags). The `reflection` cap never applies (no dynuse, §15).
+- **Unresolved-doubt handling** is generic: p1 findings whose name matches an unresolved bare call (`hidden`, `y`) carry `name-matches-unresolved-site`.
 
 ## 13. Builtins & stdlib tables
 
 - **`crates/cgg-core/src/stdlib/clojure.txt`, 367 lines**, loaded at stdlib.rs:211 and registered at stdlib.rs:252. It holds clojure.core names, including special forms and macros (`fn`, `let`, `letfn`, `->`, `->>`, `defn`, `deftest`, `reify`, `extend-protocol`, `proxy`, `ns`, `require`, `resolve`, `ns-resolve`, `load-file`).
   - It also holds alias-prefixed entries under conventional aliases only: `str/…` (about 20), `io/…` (9) and `walk/…` (4) (clojure.txt:143-151, 287-309, 352-355).
-  - Missing: `eval`, `requiring-resolve` and `comment` (p1: `requiring-resolve` and `comment` → external).
-- **How a name is classified.** `classify_external` (cgg-core/src/external.rs:144-…) splits on the last `.`/`:` and has no `/` rule. So `str/join` matches only as a literal entry, while `s/join` and `clojure.string/join` are external (p2).
+  - Missing: `eval`, `requiring-resolve` and `comment` (0.13.3 p1: `comment` → external).
+- **How a name is classified.** The classifier splits a call's own qualifier on `::`, `/` and `\` and checks `STDLIB_MODULES`, which lists the `clojure.*` namespaces (stdlib.rs:158-184). So `clojure.string/join` is stdlib, `str/join` matches as a literal entry, and `s/join` (alias) is external (0.13.3 p2).
 - **No CAST_INTRINSICS, CONSTRUCTING_METHODS, implicit-package or rust_types-like tables** for Clojure.
 - **`--include-stdlib`** mints `<stdlib>::<name>` leaf nodes (p1: `->>`, `map`, `filter`, `fn`, `let`, `letfn`, `resolve`, `str/join`). `--include-external` mints `<external>::…` for everything else, including the duplicate exit node for resolved alias calls (§04).
 
 ## 14. Confidence & certainty
 
-- **`high` comes from:**
-  - Intra-file single-candidate bare calls (p1 `run -> inner`, `-main -> run`).
-  - Alias and fully-qualified calls through the Clojure branch (`module_certain = true`, cross_file.rs:5535; p1/p2 `u/helper`, `app.util/helper`).
-  - Bare calls to a uniquely named def in a required namespace (p1 `(query)` → `app.db/query` `high`; p3 `a.p (x)` `high`).
-- **`medium` comes from:**
-  - Multi-candidate fan-out through the import closure (p3 `a.s (y)`; p5 `(hy)` with a wrong `app.other/hy`).
-  - Multimethod `defmulti` + `defmethod` sets (p1 `area`).
-  - `:use` bare calls (p3 `a.t`).
-- **`low`** is used for framework-entry edges and exit nodes.
-- **False `high` edges observed** in the fixtures:
-  - `#_(gone)` (p4);
-  - `(comment (inner 1))` (p1 L53);
-  - `let`-shadowed `inner` (p1 L47);
-  - bare call into a required namespace without `:refer` (p3 `a.p`);
-  - the both-branches `#?` edges (p1 `plat`).
-- **Mermaid** prefixes `?` on arrows with no `high` site (p3: `N9 -->|?| N2`; p1: `run -->|?| area`).
+- **`high` comes from** (0.13.3 p1):
+  - Intra-file single-candidate bare calls (`run -> inner`, `-main -> run`), including a protocol var call to its declaration and a multimethod call to its `defmulti`.
+  - Alias and fully-qualified calls (`u/helper`, `app.util/helper`) and `:refer`'d bare calls (`w`).
+- **`low`** is used for framework-entry edges, dispatch fan-out and exit nodes.
+- **False `high` edges still observed** at 0.13.3:
+  - `(comment (inner 1))` (p1 L25);
+  - the both-branches `#?` edges (from the 0.11.0 audit; not re-run).
+- The 0.11.0 false-`high` shapes for `#_`, `let` shadowing and un-referred bare calls are fixed (§03, §04, §07).
+- **Mermaid** prefixes `?` on arrows with no `high` site.
 - **No `CertainCtx` / `OwnerFacts` paths** apply, because there are no typed receivers.
 
 ## 15. Dynamic use & reflection
 
-- **None.** The plugin never calls `plugins/dynuse.rs` and `dyn_uses` is false. In p1:
-  - `(resolve 'app.util/helper)` → only a stdlib `resolve` edge. The quoted symbol does not mark `helper` live.
-  - `((requiring-resolve 'app.util/unused-pub))` → external `requiring-resolve`, and `unused-pub` stays a finding (dc.json).
+- **None.** The plugin never calls `plugins/dynuse.rs` (no `clojure` match in dynuse.rs at 0.13.3). In p1:
+  - `(resolve 'app.util/unused-pub)` → only a stdlib `resolve` edge. The quoted symbol is not a value (quoted data is skipped) and does not mark the var live.
+  - `requiring-resolve` → external (0.11.0 audit).
 - **`ns-resolve`, `find-var`, `var-get`, `#'var`, `eval`, `load-file`, `load-string` and `(apply (symbol …))`**: no screen and no cap. `DYN_MODULE_LOADERS` is `["require", "importScripts", "import_module"]` (cgg-core/src/facts.rs:165), but it applies only through dynuse, which Clojure does not use.
 
 ## 16. Known gaps & limitations
 
-- **Framework gap strings** (rules.rs): ring (3293), http-kit (3310), pedestal (3327), reitit (3344), clojure-test (3363: "the Clojure plugin does not treat `deftest` as a definition at all").
-- **Fixtures confirmed these gaps and bugs:**
-  1. Name metadata (`^:private`, `^String`, `^:dynamic`, `^:export`) is kept inside the callable name, which breaks every call to such a function (p1, p4).
-  2. `defn-` / `^:private` visibility is not recorded, so the language is `degraded` and every dead-code finding is capped at medium.
-  3. Protocol, interface, `deftype`/`defrecord`/`reify`/`extend-*` members are not callables. Their signatures become fake call sites, and protocol calls go external.
-  4. No value references: `(map f xs)`, `partial`, `comp`, `apply` and `def` aliases, plus `#(…)` lambda bodies and threading-macro bare symbols, are lost.
-  5. No locals table: `let`/`letfn`/`fn` parameter shadowing produces wrong `high` edges.
-  6. `#_` discard and `(comment …)` bodies produce false edges.
-  7. Not understood: prefix lists, `:as-alias`, `:refer` filtering, top-level `(require …)`, and hyphen→underscore file mapping. The result is external drops or by-name fan-out to unrequired namespaces.
-  8. With `--include-external`, a resolved alias call also emits an `<external>` exit edge (p2).
-  9. `deftest`/`defspec` are not callables, and `-main` and `^:export` are not roots.
-  10. `defmethod`s share the `defmulti` qn, and a call fans out to all of them at medium.
-  11. Redefinitions are `ambiguous-in-file`, with no last-def-wins.
-  12. No reflection screening for `resolve` / `requiring-resolve` / `ns-resolve`.
-  13. `.edn` data files are parsed as code. `.bb` files and the `bb` shebang are not detected.
-  14. The Compojure `context` + nested verb on one line mint two `handler_at_<line>` callables with one name (`value-ref-ambiguous`).
+- **Framework gap strings** (rules.rs): ring, http-kit, pedestal, reitit, clojure-test (rules.rs:3590: "the Clojure plugin does not treat `deftest` as a definition at all").
+- **Fixed since the 0.11.0 audit** (re-checked with 0.13.3 fixtures p1/p2): name metadata in callable names; protocol/interface/type/`reify`/`extend-*` members (now methods, with dispatch fan-out); value references; the locals table; `#_` discards; `#(…)` bodies; `letfn` functions; multimethods sharing one qn; `:refer` scoping and the wrong hyphenated-namespace fan-out.
+- **Gaps and bugs still confirmed at 0.13.3:**
+  1. `defn-` / `^:private` visibility is not recorded, and there is no dispatch capability, so the language is `degraded` and every dead-code finding is capped at medium.
+  2. `(comment …)` bodies produce false edges.
+  3. Not understood: prefix lists, `:as-alias`, top-level `(require …)`, and stdlib aliases (`s/join`).
+  4. With `--include-external`, a resolved alias call also emits an `<external>` exit edge.
+  5. `deftest`/`defspec` are not callables, and `-main` and `^:export` are not roots.
+  6. Redefinitions are `ambiguous-in-file`, with no last-def-wins.
+  7. No reflection screening for `resolve` / `requiring-resolve` / `ns-resolve`.
+  8. `.edn` data files are parsed as code. `.bb` files and the `bb` shebang are not detected.
+  9. The Compojure `context` + nested verb on one line mint two `handler_at_<line>` callables with one name (`value-ref-ambiguous`; from the 0.11.0 audit, not re-run).
+  10. Multi-arity `defn` is one callable with no arity.
 - **README** language table row: `| Clojure | (ns :require ...) | — | defn/defmacro/deftype/defprotocol |` (README.md:513). The benchmark repo is `clojure-ring` (`ring-core/src`, benchmark.sh:87): 209 callables, 212 edges, 8% cross-file (README.md:1339).
 - **CHANGELOG follow-ups.** The perf note says Metabase's Clojure `require` graph made path normalisation cost 1.1 s (cross_file.rs:3426-3433). No open Clojure follow-up items were found in CHANGELOG.md beyond the fixed alias and metadata entries (CHANGELOG.md:233-235).
-- **Ignored tests:** none. `grep '#\[ignore' clojure.rs` finds nothing, and none of the 21 inline tests are ignored.
+- **Ignored tests:** none. `grep '#\[ignore' clojure.rs` finds nothing.
 
 ## Summary scorecard
 
 | section | support | note |
 | --- | --- | --- |
 | 01. Detection & parsing | partial | .clj/.cljs/.cljc/.edn by extension; no shebang/`.bb`; `#?` both branches walked; `.edn` data parsed as code |
-| 02. Callables extracted | partial | 13 `def*` heads as free functions `ns/name`; metadata corrupts names; no protocol/type/reify/extend members, lambdas, letfn, deftest |
-| 03. Call-site forms | partial | list-head calls incl. `alias/f`; no value refs, `#()` bodies, threading symbols; `#_`/`comment` and signatures produce fake calls |
-| 04. Imports & module resolution | partial | `ns` `:require/:use/:import` with `:as`; exact `alias/f` binding (high); no prefix lists, `:as-alias`, `:refer` filtering, top-level require, `-`→`_` mapping |
-| 05. Type inference & receiver typing | none | type hints ignored (and corrupt def names); no locals/receivers |
-| 06. Inheritance, dispatch & overloading | none | no protocol/record impl records; multimethods fan out by shared qn; not in any dispatch/arity list |
-| 07. Scoping & shadowing | none | no locals table, no lexical/positional shadowing; let-shadowing yields wrong high edges |
-| 08. Macros, preprocessor & codegen | minimal | defmacro is a callable; `~name` templates skipped; no expansion, no `macro:` tags, no name_mentions |
+| 02. Callables extracted | good | 13 `def*` heads as `ns/name` (metadata stripped); protocol/interface declarations, type/`reify`/`extend-*` methods, `defmethod` `m[dispatch]`, `letfn` specs, schema `defn`s; no lambdas, deftest, multi-arity split |
+| 03. Call-site forms | good | list-head and `#()` calls incl. `alias/f`; `#_` skipped; value refs under `--reference-edges`/`--dead-code`; `comment` bodies still produce fake calls |
+| 04. Imports & module resolution | partial | `ns` `:require/:use/:import` (reader conditionals too) with `:as`, `:refer`, `import-vars`; exact `alias/f` (high); bare calls scoped; no prefix lists, `:as-alias`, top-level require |
+| 05. Type inference & receiver typing | none | type hints ignored; locals recorded only for shadowing |
+| 06. Inheritance, dispatch & overloading | partial | protocol and multimethod dispatch fan-out by attribute (`--dynamic-dispatch`); no arity narrowing |
+| 07. Scoping & shadowing | partial | plugin-built locals table (`binding_spans`); `letfn` lexical visibility; no positional shadowing |
+| 08. Macros, preprocessor & codegen | minimal | defmacro is a callable (`macro` attr); `~name` templates skipped; no expansion, no `macro:` tags, no name_mentions |
 | 09. FFI & cross-language links | none | Java/JS interop all external; no ffi or descriptor links |
 | 10. Frameworks & entry points | partial | compojure enumerates (registrar capture + inline handler synthesis); ring/http-kit/pedestal/reitit are detect-only gaps |
 | 11. Test harness entries | none | clojure-test is a gap rule; deftest not a callable; only `test_`/`Test` name roots |
-| 12. Dead-code analysis | minimal | class degraded, all findings medium; no visibility/exports; `-main`/`^:export` not roots |
+| 12. Dead-code analysis | partial | class degraded (no visibility, no dispatch capability), all findings medium; external-contract and top-level alias roots; `-main`/`^:export` not roots |
 | 13. Builtins & stdlib tables | partial | 367-name clojure.txt incl. special forms; alias entries keyed by conventional alias only (`str/`, `io/`, `walk/`) |
-| 14. Confidence & certainty | partial | high for intra-file unique and exact alias calls; several false-high shapes (`#_`, comment, let-shadow, no-refer) |
+| 14. Confidence & certainty | partial | high for intra-file unique, exact alias and `:refer` calls; `comment` bodies still give false highs |
 | 15. Dynamic use & reflection | none | no dynuse; resolve/requiring-resolve/ns-resolve unscreened |
-| 16. Known gaps & limitations | n/a | 14 confirmed gaps listed; 5 framework gap strings; no ignored tests |
+| 16. Known gaps & limitations | n/a | 10 gaps confirmed at 0.13.3; 5 framework gap strings; no ignored tests |

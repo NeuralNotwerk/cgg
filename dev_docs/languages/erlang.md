@@ -1,6 +1,8 @@
 # erlang
 
-The Erlang plugin (`ErlangPlugin`, `crates/cgg-lang/src/plugins/erlang.rs`, 325 lines including tests) is one small recursive walker over the `tree-sitter-erlang` 0.16 grammar, taken from crates.io (`Cargo.toml:108`, `crates/cgg-lang/Cargo.toml:48`). It is registered at `crates/cgg-lang/src/plugins.rs:150`. It records five things: `-module`, `-import`, `-include`/`-include_lib`, `-behaviour`/`-behavior`, every `function_clause` as a definition, and every `call` node as a reference with its arity. It has no `signals()` override, so all of `PluginSignals` is false (`crates/cgg-lang/src/lib.rs:304`, default). It reads no locals, visibility, exports, attributes, value references or dynamic uses. The `LanguagePlugin` trait has no `resolver_kind` method in this tree. Resolution is driven by language-id checks spread across the resolver:
+> Revised 2026-11-25 against cgg 0.13.3: function values (`fun f/N`, `fun m:f/N`, `{M,F,…}` tuples, MFA arguments of `spawn`/`apply`/…) are now value references (WS26), which also changes the dead-code signals; the other gaps listed were re-run and still hold. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Erlang plugin (`ErlangPlugin`, `crates/cgg-lang/src/plugins/erlang.rs`, 613 lines including tests) is one small recursive walker over the `tree-sitter-erlang` 0.16 grammar, taken from crates.io (`Cargo.toml:108`, `crates/cgg-lang/Cargo.toml:48`). It is registered at `crates/cgg-lang/src/plugins.rs:150`. It records five things: `-module`, `-import`, `-include`/`-include_lib`, `-behaviour`/`-behavior`, every `function_clause` as a definition, and every `call` node as a reference with its arity. It has no `signals()` override, so all of `PluginSignals` is false (`crates/cgg-lang/src/lib.rs:304`, default). It reads no locals, visibility, exports, attributes or dynamic uses. Since WS26 (0.11.1) it records function values as `RefRecord::value_ref` sites when `ExtractCtx::reference_sites` is set (`--reference-edges` or `--dead-code`; §03). The `LanguagePlugin` trait has no `resolver_kind` method in this tree. Resolution is driven by language-id checks spread across the resolver:
 
 - the clause-language rules in `crates/cgg-resolve/src/intra_file.rs:859`
 - the remote-call `m:f` lookup in `crates/cgg-resolve/src/cross_file.rs:5569`
@@ -49,15 +51,20 @@ Verification: the fixtures cited below are under `<scratch>/parity/erlang/` (f1�
   - Fixture f10: `t(Mod) -> Mod:handle(1)` was bound to the file's own `a:handle@3` at **high**, although `Mod` is a runtime value.
   - Fixture f1 L36: `Mod:bfun(X)` was bound through `-import(beta, …)` to `beta:bfun/2` at medium.
 - **Calling a fun variable `F(X)`.** Recorded as a bare call named `F`. With no locals it never binds, and is classified **external** (`<external>::F` with `--include-external`, fixture f1 L31 and f6 `Fact`/`G`/`H`/`Self`). It is not refused as `shadowed-by-local`.
-- **Arity is recorded on every call site** (`erlang.rs:255-257`). It is used for clause narrowing (§06).
+- **Arity is recorded on every call site**. It is used for clause narrowing (§06).
+- **Function values (WS26, since 0.11.1)**, recorded as `value_ref` sites only under `--reference-edges`/`--dead-code` (`erlang.rs:116-150`, `record_mfa_tuple`, `push_value_ref`):
+  - `fun f/N` (`internal_fun`) and `fun m:f/N` (`external_fun`), with the arity;
+  - `{M, F, [..]}` and `{M, F, N}` atom tuples outside patterns, and a bare `{M, F}` only as a call argument, the right of `=`, a record field value or a clause value (never `high`: `weak_receiver_type`, commit 64380248);
+  - the M/F/A arguments of the callees in `cgg_core::stdlib::ERLANG_MFA_CALLS` (`apply/3`, `spawn/3,4`, `spawn_link`, `spawn_monitor`, `spawn_opt`, `proc_lib:spawn`, `timer:apply_after`, …), `erlang:` dropped from a BIF.
+  - `value_refs::prune` keeps an Erlang value only when a clause of its arity exists, in its own file when bare, else an in-tree `m:f`.
+  - Fixture `lang-docs/erlang/a` (0.13.3, `--reference-edges`): `lists:map(fun c7/1, …)`, `spawn(m, c9, [])`, `timer:apply_after(1, m, c10, [])` → `ref` edges at high; `F = fun b:g/1` and `erlang:apply(b, g, [1])` → `ref` to `b:g` at high (`cross-file:imports`); `x({m, c11})` → `ref` to `c11` at medium.
 - **Guard BIFs (`when is_integer(N)`).** Recorded as ordinary calls and screened as stdlib (fixture f6: `<stdlib>::is_integer`).
 - **Calls inside `case`/`receive`/`after`/`try`/`catch`/list comprehensions/records/`begin…end`.** All recorded (fixture f6: `c0` … `c6`, `c10`, `c11` bound `high`).
 - **Nested call as argument `c14(c15(1))`.** Both recorded (fixture f6).
 - **NOT recorded:**
-  - Function references `fun f/1`, `fun m:f/1`, `fun ?MODULE:f/0` (`internal_fun`/`external_fun` nodes are never visited as references). Fixture f6: `c7`, `c8` and `c13` (passed as `c12(fun c13/0)`) got no edge and were reported dead.
   - Macro invocations `?DOUBLE(X)` and `?CALL(1)` (`macro_call_expr` is not `call`). The call inside the *definition* `-define(CALL(X), target(X))` is recorded as a top-level site (§08).
-  - MFA triples `spawn(m, c9, [])`, `apply(M, F, A)`, `erlang:apply(alpha, helper, [X])`, `gen_server:call(?MODULE, …)` → `handle_call`. Only the outer BIF/stdlib call is seen (fixture f1 L32/L33, fixture f6 `c9` dead).
-  - Value refs, callbacks or registrar arguments. There is no registrar capture (no Erlang `registrars` in any rule, so `registrar_verbs_for("erlang")` returns `None`, `rules.rs` around line 11935).
+  - `gen_server:call(?MODULE, …)` → `handle_call` (only the outer call is seen), and MFA arguments that are not literal atoms (`apply(M, F, A)` with variables).
+  - Callbacks or registrar arguments. There is no registrar capture (no Erlang `registrars` in any rule, so `registrar_verbs_for("erlang")` returns `None`, `rules.rs` around line 11935).
   - Constructors, explicit generics, operators and paren-less calls: not applicable to Erlang.
   - Erlang → Elixir calls `'Elixir.Foo':bar(1)`. The module is a quoted atom and the site goes to external (fixture f9).
 
@@ -103,7 +110,7 @@ Verification: the fixtures cited below are under `<scratch>/parity/erlang/` (f1�
 - **Arity mismatch falls back to every arity.** When no candidate has the call's arity, all arities stay ("if that leaves nothing … every function stays", `intra_file.rs:862-865`):
   - Fixture f7: `f(1, 2, 3)` with only f/1 and f/2 bound to **both** at medium. With `--fanout-cap 0` it became `fanout-cap-exceeded {candidates: 2}`.
   - Fixture f2: `a:t(X, X)` with only `t/1` bound to `t/1` at **high**, a false high.
-- **Clause-language arity sets stay capped.** They are not exempt like `one_method` overload sets (CLAUDE.md, cross_file step 3). Erlang is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:1583`: java, scala, cpp only).
+- **Clause-language arity sets stay capped.** They are not exempt like `one_method` overload sets (CLAUDE.md, cross_file step 3). Erlang is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:2357`: java, scala, cpp, csharp, groovy, swift, kotlin, typescript).
 - **Arity narrowing is not applied on the `-import` path** (fixture f3, §04).
 - **Base classes, super/base, `member_of_calling_class`, `overrides_below`, interface/trait impls, extension methods, mixins: not applicable.** Erlang has no classes.
 - **`-behaviour` is not modelled as an interface/implementation pair.** There is no `trait_impl_target`, so `--dynamic-dispatch` adds nothing. Erlang is not in `INHERITANCE_LANGS` (`dispatch.rs:110`). Fixture f7 with `--dynamic-dispatch --reference-edges` produced the same edge set.
@@ -182,7 +189,7 @@ Detection uses the file's import records (`import`, `include_lib`, `behaviour` k
 
 ## 12. Dead-code analysis
 
-- **Capability row** (measured, fixture f6 dead-code JSON): `class: degraded`, visibility/attributes/value_references/dispatch/exports/test_tagging all `none`, **`max_confidence: medium`**. A degraded language with no visibility or attributes cannot produce `high` findings (`signals_complete`, `deadcode/caps.rs:93-102`). Every finding carries `language-lacks-attributes`, `language-lacks-dispatch-model`, `language-lacks-value-references` and `language-lacks-visibility`.
+- **Capability row** (measured, fixture f6 dead-code JSON): `class: degraded`, visibility/attributes/value_references/dispatch/exports/test_tagging all `none`, **`max_confidence: medium`**. A degraded language with no visibility or attributes cannot produce `high` findings (`signals_complete`, `deadcode/caps.rs`). Every finding carries `language-lacks-attributes`, `language-lacks-dispatch-model` and `language-lacks-visibility`; since WS26 value references are observed, and fixture `lang-docs/erlang/a` (0.13.3) findings no longer carry `language-lacks-value-references`.
 - **Roots that apply:**
   - Synthesized framework entry nodes (eunit, common-test).
   - Root marks for `erlang-gen-server`.
@@ -193,7 +200,7 @@ Detection uses the file's import records (`import`, `include_lib`, `behaviour` k
   - User `--roots`.
 - **`-export([...])` is not read, so exported functions are not roots.** `facts.exports` is never filled by the plugin, and the `lang:export` rule (`roots.rs:900-925`) never fires. Fixture f1: exported `alpha:run/1`, `alpha:run/2`, `alpha:apply_it/1` and `gamma:stop/1` were all reported as `unreferenced`. Fixture f6: exported `m:go` was too. This is the largest dead-code false-positive source for library code. `-export_all`/`-compile(export_all)` is also not read.
 - **Non-first clauses are reported dead.** Each clause is a node and calls bind only to the first clause. Fixture f7: `k:f@5` (the `f(N) -> N` clause of an otherwise-called `f/1`) was reported `never-referenced` at medium. The same happens for the `-else` branch of an `-ifdef` (§07). It does not happen when a rule or lifecycle name roots every clause (fixture f1 `handle_call`).
-- **Function references** (`fun f/1`), MFA `spawn/apply` targets, and `-on_load(boot/0)` are invisible, so their targets are reported dead (fixture f6: `m:boot`, `m:c7`, `m:c8`, `m:c9`, `m:c13`).
+- **Function references** (`fun f/1`, `fun m:f/1`), literal MFA `spawn`/`apply` targets and `{M, F}` tuples are value references since WS26 (§03), so their targets are no longer reported dead (fixture `lang-docs/erlang/a --dead-code`: `c7`, `c9`, `c10`, `c11` absent from the findings). A value outside any callable credits only its own file's same-named callables (`FILE_SCOPED_VALUE_REF_LANGS`). `-on_load(boot/0)` is still invisible. CHANGELOG 0.11.1 "WS26 Erlang": 1,257 Erlang findings left the corpus report.
 - **Caps that never apply to Erlang:** `implements-external-contract`, `macro-generated` and `reflection` (no dynuse; §15). `only-used-by-tests` findings are withheld for Erlang ("1 withheld (signal not extracted)", fixture f1 report).
 - **Unresolved-doubt handling.** `no-unresolved-site-with-name` appears in the evidence. A same-named unresolved site would count as doubt by the generic rules; not separately verified for Erlang.
 
@@ -228,9 +235,9 @@ Detection uses the file's import records (`import`, `include_lib`, `behaviour` k
 
 ## 15. Dynamic use & reflection
 
-- **No dynuse coverage.** `crates/cgg-lang/src/plugins/dynuse.rs` `REFLECTIVE` lists no Erlang entry (`dynuse.rs:25-58`, which covers Python, Ruby, JS, Java, C# and PHP), and the plugin sets `dyn_uses: false`.
+- **No dynuse coverage.** `crates/cgg-lang/src/plugins/dynuse.rs` `REFLECTIVE` lists no Erlang entry (it covers Python, Ruby, Java, C#, PHP and Go, plus JS/TS module loads), and the plugin sets `dyn_uses: false`.
 - **Not covered:**
-  - Reflective forms `apply(M, F, A)`, `erlang:apply/3`, `spawn(M, F, A)`, `spawn_link/3`, `rpc:call(N, M, F, A)`, `M:F(A)` with variables, `list_to_atom` + call, `erlang:function_exported/3`. None record a literal-name use, none create an edge, and none cap findings (fixture f1/f6: `helper` via `erlang:apply(alpha, helper, …)` got no edge; `c9` via `spawn(m, c9, [])` was reported dead at medium with no reflection evidence).
+  - Reflective forms with variable arguments (`apply(M, F, A)`, `M:F(A)`, `list_to_atom` + call, `erlang:function_exported/3`, `rpc:call/4` — not in `ERLANG_MFA_CALLS`): no edge, no screen. Literal-atom MFA arguments of the `ERLANG_MFA_CALLS` callees are value references since WS26 (§03), not a dynuse screen.
   - Module loads such as `code:load_file/1` (no `module-load` screen).
 - **Variable-module calls are mis-bound** rather than treated as dynamic (§03, f10).
 
@@ -247,11 +254,11 @@ Detection uses the file's import records (`import`, `include_lib`, `behaviour` k
   2. `-import(M, [f/1])` drops the function list. Any bare call can bind into `M` by name, arity-blind, to the last clause's arity (f2 `h`, f3 `g/3`, f1 `bfun/2`).
   3. `Mod:f(…)` with a variable or macro module is recorded as a bare `f` and can bind the local `f` at high (f10).
   4. When the arity matches nothing, narrowing falls back to every arity. A single wrong-arity candidate becomes `high` (f2 `a:t(X,X)`).
-  5. Function references `fun f/1` / `fun m:f/1` are not recorded, and there is no value-ref support (f6).
+  5. ~~Function references `fun f/1` / `fun m:f/1` are not recorded~~ — fixed in WS26 (0.11.1): value references (§03).
   6. Each clause is a separate callable and only the first clause gets edges, so later clauses read as dead (f7) and `-else` branches are unreachable (f8).
   7. No macro expansion: `?M(...)` calls are dropped, macro-generated functions are missing, and calls in `-define` bodies become top-level roots (f6, f8).
   8. No locals: fun-variable calls show up as `<external>::F` noise (f1, f6).
-  9. No dynuse or reflection for `apply`/`spawn` MFA forms (f6).
+  9. No dynuse or reflection for variable `apply`/`spawn` MFA forms; literal MFA forms are value references since WS26.
   10. No NIF/port FFI linking (`ffi.rs`).
   11. `.app.src`, `rebar.config` and `.escript` (no shebang) are not analyzed (f8).
   12. A syntax error loses the affected clause, with no re-parse fallback (f8 broken.erl).
@@ -274,7 +281,7 @@ Detection uses the file's import records (`import`, `include_lib`, `behaviour` k
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.erl`/`.hrl` + `escript` shebang; no `.escript` ext, no `.app.src`/rebar, no reparse fallback |
 | 02. Callables extracted | partial | one node per function clause as `module:name`; no funs, specs, callbacks or macro-generated fns |
-| 03. Call-site forms | partial | bare + `m:f` with arity; `fun f/1`, `?MACRO()`, MFA apply/spawn not recorded; `Mod:f` mis-recorded as bare |
+| 03. Call-site forms | partial | bare + `m:f` with arity; `fun f/1`, `fun m:f/1`, `{M,F}` and literal MFA as value refs; `?MACRO()` not recorded; `Mod:f` mis-recorded as bare |
 | 04. Imports & module resolution | partial | `m:f` exact module lookup and `-include` work; `-import` function list ignored (arity-blind, over-broad); no heads.rs vocab |
 | 05. Type inference & receiver typing | n/a | deliberately disabled for Erlang (`type_hints.rs:389`) |
 | 06. Inheritance, dispatch & overloading | partial | clause/arity narrowing to first clause; arity-mismatch fallback; behaviours not modelled as dispatch |
@@ -283,8 +290,8 @@ Detection uses the file's import records (`import`, `include_lib`, `behaviour` k
 | 09. FFI & cross-language links | minimal | only Elixir `:mod.f` → Erlang; no NIF/port linking; Erlang → Elixir unresolved |
 | 10. Frameworks & entry points | partial | gen_server root marks; otp-lifecycle, application and cowboy are detect-only gaps |
 | 11. Test harness entries | partial | eunit `*_test`/`*_test_` enumerated; common-test fixed callbacks only, no testcases; stale gap text |
-| 12. Dead-code analysis | minimal | degraded, max medium; `-export` not roots; non-first clauses and fun refs reported dead |
+| 12. Dead-code analysis | minimal | degraded, max medium; `-export` not roots; non-first clauses reported dead; fun refs credited since WS26 |
 | 13. Builtins & stdlib tables | partial | 774-name `erlang.txt`, module-head classification; no `m:f` granularity |
 | 14. Confidence & certainty | partial | high for unique clause/module matches; false highs on `Mod:f` and arity fallback; `-import` always medium |
-| 15. Dynamic use & reflection | none | no dynuse for apply/spawn/MFA |
+| 15. Dynamic use & reflection | none | no dynuse; literal MFA handled as value refs instead |
 | 16. Known gaps & limitations | n/a | 16 gaps listed with fixture evidence |

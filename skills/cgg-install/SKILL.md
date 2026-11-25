@@ -13,14 +13,15 @@ npm, ship *libraries* for embedding cgg in a Python or Node program;
 neither declares a `bin`/`console_scripts` entry, so neither is an
 install path for the CLI. See "Things to NOT do".
 
-Prebuilt tarballs are published for **linux-x86_64, macos-arm64 and
-windows-x64** only. Anything else — linux arm64, musl, Intel macOS —
-compiles.
+Prebuilt tarballs are published for **linux-x86_64, linux-aarch64,
+macos-arm64 and windows-x64** only. Anything else — musl, Intel macOS,
+Windows on ARM — compiles.
 
-Compiling is 132 crates, 44 of them tree-sitter grammars that compile
-C. Wall time is dominated by core count: ~25 s on a 64-core host,
-several minutes on a laptop. Budget up to ~10 minutes and don't let
-the user cancel a build that looks stalled on a `tree-sitter-*` crate.
+Compiling is ~130 crates, with 45 tree-sitter grammars (41 grammar
+crates plus 4 vendored) that compile C. Wall time is dominated by core
+count: ~25 s on a 64-core host, several minutes on a laptop. Budget up
+to ~10 minutes and don't let the user cancel a build that looks stalled
+on a `tree-sitter-*` crate.
 
 ## Prerequisites — check before installing
 
@@ -102,7 +103,7 @@ Notes:
   `--locked` will not fail here.
 - The binary lands in `~/.cargo/bin/cgg`.
 - Re-running this command upgrades to the latest release.
-- First-time build compiles 44 grammar crates. Don't cancel.
+- First-time build compiles 45 C grammars. Don't cancel.
 
 ### 3a-prebuilt. The download install — try this before compiling
 
@@ -110,13 +111,19 @@ No Rust, no C toolchain, no build. Confirm the platform has an asset
 first; if `gh` is unavailable, the same list is on the releases page.
 
 ```bash
-gh release view v0.7.0 --json assets -q '.assets[].name'   # what exists
+V=$(gh release view -R NeuralNotwerk/cgg --json tagName -q .tagName)   # latest, e.g. v0.13.3
+gh release view "$V" -R NeuralNotwerk/cgg --json assets -q '.assets[].name'   # what exists
 
-curl -fsSL -o /tmp/cgg.tar.gz \
-  https://github.com/NeuralNotwerk/cgg/releases/download/v0.7.0/cgg-v0.7.0-linux-x86_64.tar.gz
-tar xzf /tmp/cgg.tar.gz -C /tmp
-install -m755 /tmp/cgg ~/.local/bin/cgg      # or /usr/local/bin with sudo
+mkdir -p /tmp/cgg-dl
+curl -fsSL -o /tmp/cgg-dl/cgg.tar.gz \
+  "https://github.com/NeuralNotwerk/cgg/releases/download/$V/cgg-$V-linux-x86_64.tar.gz"
+tar xzf /tmp/cgg-dl/cgg.tar.gz -C /tmp/cgg-dl
+install -m755 /tmp/cgg-dl/cgg ~/.local/bin/cgg      # or /usr/local/bin with sudo
 ```
+
+Asset names are `cgg-<tag>-<platform>.tar.gz` with platform
+`linux-x86_64`, `linux-aarch64`, `macos-arm64` or `windows-x64` (the
+Windows archive holds `cgg.exe`).
 
 The binary links only `libc`, `libgcc_s` and the loader, so there is
 nothing else to install. The tarball also carries `cgg.h`, `libcgg.so`
@@ -228,7 +235,9 @@ If the user *does* have the source tree, run cgg against itself:
 cgg ./crates --filter 'cgg::analyze_in_pool$' -n 1
 ```
 
-A few dozen lines of mermaid means everything works.
+About 250 lines of mermaid (the 1-hop neighbourhood of the pipeline
+body, a hundred-odd nodes) plus a run summary and framework-coverage
+table on stderr means everything works.
 
 ## Step 6 — Offer to install the skills
 

@@ -14,7 +14,7 @@ Only four channels exist: crates.io, PyPI, npm and GitHub Releases. See
 | --- | --- | --- | --- |
 | crates.io | 6 Rust crates | **published** | nothing |
 | PyPI | `cgg-callgraphgenerator` wheel + sdist | **published** | nothing |
-| GitHub Releases (source) | auto tarballs | shipping (7 releases) | nothing |
+| GitHub Releases (source) | auto tarballs | shipping (31 `v*` tags) | nothing |
 | GitHub Releases (binaries) | CLI + `libcgg` + `cgg.h` | **published** | nothing |
 | npm | `cgg-callgraphgenerator` + 5 platform packages | **published** | nothing |
 
@@ -34,21 +34,23 @@ the job runs. Run it locally if the job is disabled or the token is
 missing.
 
 ```bash
-git tag --list 'v*'                                    # newest: v0.7.0
-gh api repos/NeuralNotwerk/cgg/releases \
-  -q '.[] | "\(.tag_name) assets=\(.assets | length)"' # v0.6.4 onward:
-                                                       # assets=3; older: 0
+git tag --list 'v*'                                    # newest: v0.13.3
+gh api repos/NeuralNotwerk/cgg/releases --paginate \
+  -q '.[] | "\(.tag_name) assets=\(.assets | length)"' # v0.8.2 onward: 4;
+                                                       # v0.6.4-v0.8.1: 3;
+                                                       # older: 0
 ```
 
 The asset split is the history, not a bug: the release matrix landed in
-`dbf2612`, after v0.6.1, so every tag before v0.6.4 predates it.
+`dbf2612`, after v0.6.1, so every tag before v0.6.4 predates it, and the
+linux-aarch64 archive joined at v0.8.2.
 
 ---
 
 ## 0aa. Provisioning a machine: `scripts/setup-release-host.sh`
 
 Releases and full testing run from a dedicated host, because
-`scripts/release.sh` gates on things a laptop does not have: the 164-repo
+`scripts/release.sh` gates on things a laptop does not have: the 282-repo
 benchmark corpus (`$CGG_BENCH_DIR`, default `/storage/cgg-test_repos`)
 behind the corpus A/B and the framework-coverage table, plus `uv` and
 `node` for the `cgg-py` and `cgg-node` suites that `cargo test` does not
@@ -111,9 +113,15 @@ Two things it took a wrong answer to learn, both now baked in:
 scripts/release.sh --purpose "what this release is for"
 ```
 
-Runs every gate this project has, in order — build, test, clippy, fmt,
-docs-check, determinism — then measures perf against the previous release,
-then drafts the CHANGELOG from the measured numbers. **It never commits,
+Runs every gate this project has, in order — outstanding work
+(`scripts/unmerged-inventory.sh`), build, test, clippy, fmt, docs-check,
+detect-prefixes, determinism, Windows parity (`scripts/windows-parity.sh`;
+`--skip-windows` opts out), cargo-deny and ruff when installed,
+markdownlint, the Python and Node modules with their smoke tests, and
+packaging exactly as each registry receives it (`cargo package
+--workspace`, `npm pack`, sdist + `twine check`) — then measures against
+the previous release (`scripts/compare-release.py`, `--jobs 1`), then
+drafts the CHANGELOG from the measured numbers. **It never commits,
 tags or pushes.** It prints the commands and stops.
 
 `--quick` for gates only, `--skip-ai` to measure without generating prose,
@@ -127,7 +135,7 @@ in the CHANGELOG that this script did not produce.
 
 ## 1. crates.io — published
 
-All six publishable crates are live at 0.7.0.
+All six publishable crates are live at 0.13.3.
 
 ```bash
 # crates.io rejects curl's default User-Agent; -A is not optional here.
@@ -209,7 +217,7 @@ Live: <https://pypi.org/project/cgg-callgraphgenerator/>
 pip install cgg-callgraphgenerator
 ```
 
-0.7.0 carries the full set the matrix builds — five abi3 wheels
+0.13.3 carries the full set the matrix builds — five abi3 wheels
 (`manylinux_2_17_x86_64`, `manylinux_2_28_aarch64`, `macosx_10_12_x86_64`,
 `macosx_11_0_arm64`, `win_amd64`) plus an sdist. Earlier releases are
 thinner: 0.6.2 and 0.6.3 went up by hand and carry one Linux wheel and no
@@ -291,28 +299,32 @@ does not exist yet.
 **104 MB**, essentially all of it `cgg/_cgg.abi3.so` at 103.9 MB. PyPI's
 limit applies to the uploaded file, which is the 10.1 MB one, and the
 default cap is 100 MiB — so there is an order of magnitude of headroom, but
-44 vendored grammars is what fills the 104 MB. Add more carefully.
+the grammars (46 languages now) are what fill it. Add more carefully.
 
 ---
 
 ## 2b. Releasing from a tag (CI)
 
 `.github/workflows/release.yml` triggers on `push` of a `v*` tag and on
-`workflow_dispatch`. Five jobs:
+`workflow_dispatch`. Eight jobs:
 
 | Job | Matrix | Produces |
 | --- | --- | --- |
 | `wheels` | linux x86_64/aarch64, macOS x86_64/arm64, windows x64 | 5 abi3 wheels, smoke-tested by importing and analysing |
 | `sdist` | — | source distribution |
 | `node` | linux x64/arm64-gnu, darwin x64/arm64, win32 x64-msvc | 5 `.node` binaries, smoke-tested by `require()` + analyse |
-| `binaries` | linux x86_64, macOS arm64, windows x64 | `cgg` + `libcgg`/`cgg.dll` + `cgg.h` + licences, one tar.gz per platform |
-| `publish` | needs all four | GitHub release assets, PyPI upload, npm publish |
+| `binaries` | linux x86_64/aarch64, macOS arm64, windows x64 | `cgg` + `libcgg`/`cgg.dll` + `cgg.h` + licences, one tar.gz per platform |
+| `preflight` | — | fails unless all three publish secrets exist |
+| `package-verify` | — | `cargo package --workspace` (verified) of every publishable crate |
+| `publish` | needs the six above | GitHub release assets, PyPI upload, npm publish |
+| `crates` | needs `publish` | `scripts/publish-crates.sh --yes`, then reads each crate back from crates.io |
 
-`NPM_TOKEN` and `PYPI_API_TOKEN` exist as repository secrets and the
-`release` environment exists, so a tag publishes without anyone holding a
-token locally. The environment currently has **no protection rules** — add
-an approval gate in repo settings if you want one; the publish job already
-targets it.
+`NPM_TOKEN`, `PYPI_API_TOKEN` and `CARGO_REGISTRY_TOKEN` exist as
+repository secrets and the `release` environment exists, so a tag
+publishes without anyone holding a token locally. The environment
+currently has **no protection rules** — add an approval gate in repo
+settings if you want one; the `publish` and `crates` jobs already target
+it.
 
 ```bash
 gh api repos/NeuralNotwerk/cgg/actions/secrets -q '.secrets[].name'
@@ -343,11 +355,11 @@ gh run list --workflow=release.yml -L 1
 gh run view 31554017653 --json jobs -q '.jobs[] | "\(.name) \(.conclusion)"'
 ```
 
-Two things the tag path does **not** cover:
+Two things to know about the tag path:
 
-* **crates.io.** The `crates` job publishes it after the others succeed;
-  run `scripts/publish-crates.sh`
-  by hand. See §1.
+* **crates.io goes last.** The `crates` job publishes it only after
+  `publish` succeeds; if that job is skipped or fails, run
+  `scripts/publish-crates.sh` by hand. See §1.
 * **Re-running a tag.** PyPI's step sets `skip-existing: true`, so an
   already-uploaded file is skipped rather than failing. npm has no
   equivalent: a version already on the registry makes the npm step fail.
@@ -365,10 +377,10 @@ publisher at
 ## 3. Prebuilt binaries on GitHub Releases — published
 
 The `binaries` job builds the CLI and the C ABI for linux-x86_64,
-macos-arm64 and windows-x64, packs each with `cgg.h`, `README.md` and both
-licences into `cgg-<tag>-<platform>.tar.gz`, and `publish` attaches them
-with `softprops/action-gh-release`. None of the seven existing releases has
-a single asset, because all seven predate that workflow.
+linux-aarch64, macos-arm64 and windows-x64, packs each with `cgg.h`,
+`README.md` and both licences into `cgg-<tag>-<platform>.tar.gz`, and
+`publish` attaches them with `softprops/action-gh-release`. Releases before
+v0.6.4 have no assets, because they predate that workflow.
 
 Note the current archive naming is one tar.gz per platform containing both
 the CLI and `libcgg` — not the separate `cgg-…`/`libcgg-…` archives an
@@ -376,7 +388,7 @@ earlier draft of this document proposed. If you want them split, change the
 `Package` step; nothing downstream depends on the current shape yet.
 
 Attached binaries are also what a Homebrew tap or a Scoop manifest would
-point at, so the first tag unblocks both.
+point at; none is maintained in this repo.
 
 ---
 

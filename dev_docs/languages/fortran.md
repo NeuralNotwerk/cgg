@@ -1,5 +1,7 @@
 # fortran
 
+> Revised 2026-11-25 against cgg 0.13.3: routine bodies inside an `interface` block are tagged `abstract`, and Fortran has a lowercased locals table (dummy arguments, declared variables, statement functions) so an array element or dummy procedure named like a function is `shadowed-by-local`. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Fortran plugin (`FortranPlugin`, `crates/cgg-lang/src/plugins/fortran.rs`, 237 lines including one inline test) parses Fortran with the crates.io grammar `tree-sitter-fortran = "0.6"` (`Cargo.toml:111`, `crates/cgg-lang/Cargo.toml:49`, bound at `fortran.rs:21-23` via `tree_sitter_fortran::LANGUAGE`). Nothing is vendored. One recursive `FortranWalker` (`fortran.rs:44-203`) handles five node kinds and nothing else:
 
 - `module_statement`: sets a module-name prefix.
@@ -7,7 +9,7 @@ The Fortran plugin (`FortranPlugin`, `crates/cgg-lang/src/plugins/fortran.rs`, 2
 - `function` / `subroutine` / `program`: each becomes a `FreeFunction` definition.
 - `call_expression` / `subroutine_call`: each becomes a bare-name reference.
 
-`extract` ignores `ExtractCtx` (`_ctx`, `fortran.rs:27`), and the plugin keeps the default `signals()` (all false, `crates/cgg-lang/src/lib.rs:304-306`). There is no separate resolver kind on the trait. Fortran goes through the generic `intra_file` → `cross_file` pipeline and has no Fortran-specific branch apart from one `use` comment (`cross_file.rs:1941`) and an `include` arm that the plugin never feeds (`cross_file.rs:2130`). It is one of the thinnest plugins in the tree.
+`extract` ignores `ExtractCtx` (`_ctx`, `fortran.rs:27`), and the plugin keeps the default `signals()` (all false, `crates/cgg-lang/src/lib.rs:304-306`). There is no separate resolver kind on the trait. Fortran goes through the generic `intra_file` → `cross_file` pipeline and has no Fortran-specific branch apart from one `use` comment (`cross_file.rs:1941`) and an `include` arm that the plugin never feeds (`cross_file.rs:2130`). It is one of the thinnest plugins in the tree. Its locals are collected outside the plugin, by `locals::collect_fortran` (`crates/cgg-lang/src/locals.rs:3280`; see §07).
 
 ## 01. Detection & parsing
 
@@ -31,7 +33,7 @@ Not supported / partial:
   - The fixed-form `util.f` without comment lines parsed `ok` (fixture `a/util.f`).
 - **No re-parse or fallback.** Unlike C#'s `#if` blanking, a file with parse errors is extracted from the error-recovered tree as-is.
 - **Preprocessed `.F90` / `.fpp`**: `#ifdef`/`#else` lines are passed to the grammar raw (see §08).
-- **Minified-file skip**: not applicable (that rule lives in `locals.rs`, which Fortran does not use).
+- **Minified-file skip**: the shared rule skips locals collection in a file with a line over 2,000 bytes.
 
 ## 02. Callables extracted
 
@@ -50,7 +52,7 @@ Supported:
   - `parent_m::sm_proc` twice: once for the interface body, once for the submodule body;
   - `fmod::c_side` for a `bind(c)` interface (fixture `f`).
 
-  They carry no `abstract` tag, so they compete with real bodies (see §06, §09).
+  Since 0.11.1 (WS22) a routine body inside an `interface` block is tagged `abstract` (test `interface_bodies_are_tagged_abstract` in `fortran.rs`), so duck-typed fan-out drops it when a concrete candidate survives. They are still callables, and still compete with real bodies in the cases shown in §06 and §09.
 
 Not supported / partial:
 
@@ -82,8 +84,8 @@ Supported:
 Not supported / partial:
 
 - **Type-bound and component calls** `s%get_area()` / `call s%helper()`: the callee child is a `derived_type_member_expression`, not an `identifier`, so nothing is recorded. There is no edge, no unresolved entry and no audit record (fixture `a/main.f90:9-10`; absent from `external_calls`).
-- **Array element references look like calls.** `v = arr(i)` is recorded as a call to `arr` → external bucket (fixture `a/main.f90`, `b`). Locals are not modelled, so nothing filters it out.
-- **Dummy procedure calls** `f(x)` with `procedure(cb_t) :: f` → external `f` (fixture `a/shapes.f90:71`).
+- **Array element references look like calls.** `v = arr(i)` is recorded as a call to `arr`. When no callable carries the name it goes to the external bucket (fixture `a/main.f90`, `b`); when one does, the locals table (§07) makes it `shadowed-by-local` instead of an edge (fixture 2026-11-25, `lang-docs/fortran/a`: `logical, allocatable :: finished(:)` then `finished(1)` with a module function `finished`).
+- **Dummy procedure calls** `f(x)` with `procedure(cb_t) :: f` → external `f` when no callable of that name exists (fixture `a/shapes.f90:71`; re-checked `lang-docs/fortran/a`), `shadowed-by-local` when one does.
 - **Procedures passed as actual arguments** `call apply(area_cb, x)`: `area_cb` is not recorded as a value reference, so `area_cb` reads as never-referenced (fixture `a`, dead-code finding `geom::area_cb`).
 - **Generic-name calls** `make(2.0)`: recorded as `make`, but no callable carries that name → external (fixture `a/main.f90:7`).
 - **Operator use** `a + b` against `interface operator(+)`: not a call.
@@ -141,7 +143,7 @@ None:
 - **Not in `INHERITANCE_LANGS` or `OVERLOAD_ARITY_LANGS`** (grep finds no `fortran` in `dispatch.rs` or `type_hints.rs`). `--dynamic-dispatch` and `inheritance_fanout` produce nothing. `trait_impl_target` is not set (`signals().impls = false`).
 - **Deferred bindings / abstract types** (`procedure(iface), deferred :: m`): not modelled.
 - **Generic interfaces as overload sets**: not modelled (§02). `make(2.0)` is not narrowed to `make_real`/`make_int`.
-- **Interface bodies vs implementations**: the interface body and the body of the same name are both plain callables with no `abstract` tag, so the "drop abstract when a concrete candidate survives" narrowing cannot apply. Fixture `f`: `call c_side(x)` binds to the interface prototype `fmod::c_side` (intra-file high), not to the C definition.
+- **Interface bodies vs implementations**: since 0.11.1 the interface body is tagged `abstract`, but both remain callables. Re-checked 2026-11-25: fixture `lang-docs/fortran/f` (same shape as `f`) still binds `call c_side(x)` to the interface prototype `fmod::c_side` (intra-file high), not to the C definition; and in `lang-docs/fortran/f/g.f90` an interface body `gg` plus the module's own `function gg` (same qualified name `mm::gg`) leaves `q = gg(1.0)` `ambiguous-in-file`, no edge — the abstract tag does not break the same-file tie.
 - **Same-name internal procedures in different hosts** (both qualified `ma::helper`) are not told apart. Each host's call binds to both at medium through cross-file (fixture `g/nest.f90`: `host1 -> ma::helper` ×2, `host2 -> ma::helper` ×2), so each host gets one wrong-target edge.
 - Extension methods and mixins: not applicable to the language.
 
@@ -149,10 +151,10 @@ None:
 
 None / minimal:
 
-- **No `FileFacts::locals`**: no `fortran` entry in `crates/cgg-lang/src/locals.rs`. `shadowed-by-local` never fires, and an array or local variable indexed like a call is reported as an external call (§03).
+- **Locals table (WS27, 0.11.1).** `locals::collect_fortran` (`crates/cgg-lang/src/locals.rs:3280`) records, over the whole program, function or subroutine (its `contains` included): dummy arguments, the result variable (`result(r)`, else the function's name), every variable the specification part declares (type declarations, `dimension`/`allocatable`/`pointer`/`target` statements, `common` members, procedure pointers) and any name assigned through an argument list (an array element or a statement function); plus `block` declarations, `associate` names and `do concurrent`/`forall` indices over their construct. A non-pointer `procedure`/`external` declaration (unless a dummy), interface bodies, derived-type components and module variables are not locals. Names are recorded lowercased, and `CASE_INSENSITIVE_LANGS` (`crates/cgg-resolve/src/scope.rs:52`) folds a Fortran call's name when matching them. A call through one is `shadowed-by-local` (fixture `lang-docs/fortran/a`, see §03). Names with no same-named callable still go to the external bucket.
 - **No lexical narrowing of nested definitions.** Fortran is not in the narrowing list in CLAUDE.md, and fixture `g/nest.f90` shows host-contained procedures are not preferred.
 - **No positional shadowing** and no `DefRecord::conditional`.
-- **Intra-file linking is name-exact and case-sensitive**, even though Fortran is case-insensitive.
+- **Intra-file linking is name-exact and case-sensitive**, even though Fortran is case-insensitive (only the locals lookup folds case). Re-checked 2026-11-25 (`lang-docs/fortran/a`): `call WORK()` against `subroutine work` in the same module → external `WORK`.
   - Fixture `h/a.f90`: `subroutine work` + `call WORK()` in the same file → `WORK` external.
   - Fixture `b`: `call WORK()` against `m2::work` → external.
   - Intra-file binds only when one same-file callable carries the exact name (fixtures `a`/`b`: unique names → intra-file high).
@@ -232,6 +234,7 @@ Partial:
 - **Every other unmatched bare name goes to the external bucket**, not "unresolved". That covers array references, dummy procedures, unknown library routines and case mismatches (`external.rs` "Rule 1" ~line 296). `--include-external` mints `<external>::ext_thing` (fixture `c`).
 - **Case-sensitive matching**: `SQRT(2.0)` and `Abs(y)` are classified external, not stdlib (fixture `h`). That misfiles every uppercase intrinsic in fixed-form code.
 - **No MPI / OpenMP / BLAS / LAPACK names** in the table (grep `^mpi`, `^omp` → none). `call mpi_init(ierr)` would be external.
+- **`--externals` (0.12.0)** attributes `use` imports: row `fortran` in `crates/cgg/tests/externals.rs` attributes `use mpi` to `third-party` `mpi`; `execute_command_line`/`system` are process-spawn APIs (`crates/cgg-core/src/stdlib.rs`). It never changes an edge.
 - `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` / implicit packages / `rust_types`-style wrapper tables: no Fortran entries (not applicable; no receivers are recorded).
 
 ## 14. Confidence & certainty
@@ -260,11 +263,11 @@ Not applicable:
   - `public`/`private` is not read;
   - callback actuals are not referenced.
 - **README** language table: `| Fortran | use module | — | Subroutines and functions |` (`README.md:512`). Benchmark: `stdlib | fortran | 335 | 181 | 4%` cross-file (`README.md:1338`).
-- **Case-insensitivity is not modelled anywhere** (intra-file, cross-file, stdlib). Fixtures `b`, `h`.
+- **Case-insensitivity is not modelled** in intra-file, cross-file or stdlib matching (only the locals lookup folds case). Fixtures `b`, `h`; `lang-docs/fortran/a` (`WORK`, `SQRT` external).
 - **No cross-file resolution without a `use`**, which covers all F77-style code. Fixtures `c`, `d`.
 - **The module prefix leaks** past `end module`, so later top-level units are misqualified and bind intra-file to that module's procedures. Fixtures `b`, `f`, `g`.
 - **Type-bound / `%` calls are silently dropped**, with no audit record (fixture `a`). This invisibly loses every OO Fortran edge.
-- **Array references read as external calls**; there is no locals model (fixture `a`).
+- **Array references read as calls**; since 0.11.1 the locals table stops them binding a same-named function, but with no such function they still land in the external bucket (fixture `a`, `lang-docs/fortran/a`).
 - Further gaps, covered in their sections:
   - not extracted: submodules, separate module procedures, `entry`, statement functions, `block data`, generic/operator interfaces (§02);
   - interface bodies duplicate real callables (§02, §06);
@@ -285,8 +288,8 @@ Not applicable:
 | 03 Call-site forms | minimal | bare `call x()` and `f(x)` only; `obj%m()` silently dropped; arrays read as calls; no value refs |
 | 04 Imports & module resolution | partial | `use m` → unqualified prefix (high when unique); no rename/only, no include, no resolution without any `use` |
 | 05 Type inference & receiver typing | none | no type facts emitted |
-| 06 Inheritance, dispatch & overloading | none | no type extension, generic interfaces, or dispatch membership; interface bodies compete with bodies |
-| 07 Scoping & shadowing | none | no locals, no nested narrowing, case-sensitive matching |
+| 06 Inheritance, dispatch & overloading | none | no type extension, generic interfaces, or dispatch membership; interface bodies tagged `abstract` but still compete with bodies |
+| 07 Scoping & shadowing | partial | lowercased locals table (arrays, dummies, statement functions shadow); no nested narrowing; case-sensitive call matching |
 | 08 Macros, preprocessor & codegen | none | #ifdef branches both extracted; no include/define handling |
 | 09 FFI & cross-language links | none | bind(c) unread; C↔Fortran calls bind to prototypes |
 | 10 Frameworks & entry points | minimal | one detect-only rule `fortran-program` (Cli) that discloses a gap, mints no nodes |

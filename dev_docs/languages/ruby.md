@@ -1,5 +1,7 @@
 # ruby
 
+> Revised 2026-11-25 against cgg 0.13.3: `Gemfile`/`Rakefile`/`config.ru` and the `jruby` shebang are detected (WS25), `T.new` calls `initialize` and bare `super` reaches the base method (WS21), a `require` binds the copy in the required file (WS19), and `method(:m)`/`alias_method`/`validate :m` are value references (WS26). `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Ruby plugin (`RubyPlugin`, `crates/cgg-lang/src/plugins/ruby.rs`, 613 lines including tests) is a single hand-written recursive tree walker over the `tree-sitter-ruby` 0.23 grammar (`Cargo.toml:96`, `tree_sitter_ruby::LANGUAGE`, `ruby.rs:31-33`). Nothing is vendored. It is registered in `plugins::register_all` (`crates/cgg-lang/src/plugins.rs:136`) and has no `resolver_kind` override, so it uses the default resolver path: `intra_file` → `cross_file` (with Ruby-specific arms for bare-call scope, `require`, constructor and call-operator names) → frameworks → dispatch. The plugin declares `PluginSignals { dyn_uses, impls, value_refs }` and leaves `visibility`, `attributes`, `exports`, `test_defs` and `unreachable` false (`ruby.rs:22-29`). Because visibility and attributes are both absent, the dead-code pass classes Ruby as **degraded**, which caps every Ruby finding at `medium` (confirmed in a fixture run: `"class": "degraded", "max_confidence": "medium"`).
 
 Fixtures used for this document live under `<scratch>/parity/ruby/` (`p1` to `p8`, `rails`, `rails2`, `fw`, `tl`, `det`), and were run with `target/release/cgg` 0.11.0.
@@ -9,13 +11,13 @@ Fixtures used for this document live under `<scratch>/parity/ruby/` (`p1` to `p8
 Supported:
 
 - **Extensions** `.rb`, `.rake`, `.gemspec` (`ruby.rs:16-18`). Fixture `det`: `t.rake` was analyzed as `extension:.rake` and `x.gemspec` as `extension:.gemspec`.
-- **Shebangs** `ruby` and `irb` (`ruby.rs:19-21`). Fixture `det`: an extensionless `script` starting `#!/usr/bin/env ruby` was detected as `shebang:ruby`, and `irbs` starting `#!/usr/bin/irb` as `shebang:irb`.
+- **Shebangs** `ruby`, `irb` and (since WS25) `jruby` (`ruby.rs:19-21`; fixture `lang-docs/ruby/p1`: `jscript` starting `#!/usr/bin/env jruby` is `shebang:jruby`). The shebang interpreter must match as a whole word or be followed by a version. Fixture `det`: an extensionless `script` starting `#!/usr/bin/env ruby` was detected as `shebang:ruby`, and `irbs` starting `#!/usr/bin/irb` as `shebang:irb`.
 - **Grammar**: one grammar for every file. `ts_language_for` is not overridden and there are no dialects.
 - **Generic skip conditions** apply as for every language. A tree deeper than `MAX_TREE_DEPTH` = 4000 is skipped as `SkipReason::TooDeep` (`crates/cgg/src/lib.rs:155, 451-454`). A tree containing parse errors is still extracted, and the error is recorded only as the `parse_status` (`lib.rs:457`). `max_line_bytes` is not overridden, so Ruby has no long-line skip. The `MINIFIED_LINE_BYTES` gate (`lib.rs:159, 478-484`) only affects `locals::collect`, and Ruby has no locals spec anyway (see section 07).
 
 Not supported or partial:
 
-- **`Gemfile`, `Rakefile`, `config.ru`, `*.erb`, `*.rbw`** are skipped as `unknown-extension` (fixture `det`). The `rake` and `rack` rule `gap` texts call this out for `Rakefile` and `config.ru` (`crates/cgg-core/src/frameworks/rules.rs:2857, 10824`). `Guardfile`, `Capfile`, `.jbuilder` and `.ru` have no entry in `extensions()`, so they are not detected either (that follows from the code but was not run as a fixture).
+- **`Gemfile`, `Rakefile` and `config.ru` are detected by exact file name** since 0.11.1 (WS25, `RubyPlugin::filenames`). fixture `lang-docs/ruby/p1`/`p3`: `filename:Gemfile`, `filename:Rakefile`, `filename:config.ru`. `*.erb` and `*.rbw` are still skipped as `unknown-extension` (fixture `det`, 0.11.0), and `Guardfile`, `Capfile`, `.jbuilder` and other `.ru` files have no entry in `extensions()`/`filenames()`.
 - **ERB templates** are not parsed, so any helper called only from a view has no caller.
 - **No content detection**: nothing in `detect.rs` mentions Ruby (`grep -n ruby crates/cgg-lang/src/detect.rs` finds nothing).
 - **No re-parse or fallback on a parse error**, unlike C#'s `#if` blanking.
@@ -43,7 +45,7 @@ Not supported or partial:
 
 - **`attr_accessor`/`attr_reader`/`attr_writer`** generate no callables (fixture `p1`: `attr_accessor :name` produced nothing).
 - **`define_method(:x) { }`** and **`define_method("#{n}_x")`** produce no callables (fixtures `p1` and `p7`).
-- **`alias_method :run2, :run` and `alias run3 run`** produce no callable and no alias link (fixture `p1`).
+- **`alias_method :run2, :run` and `alias run3 run`** produce no callable for the new name. Since WS26 the old name is a value reference (§03), so the aliased method is no longer reported dead (fixture `lang-docs/ruby/p1`: `Derived::old_name` is `LIVE … [TopLevelInvocation]`).
 - **Blocks, procs and lambdas** (`lambda { |v| }`, `-> {}`, `do … end`) are not callables, except for the registrar inline handlers above. Their bodies belong to the enclosing method, or to no callable at top level.
 - **`Struct.new(:x) do def norm; end end` and `Class.new do def anon_m; end end`** give owner-less qns (`norm`, `anon_m`), and the constant they are assigned to (`Point`, `Anon`) is lost (fixture `p7`).
 - **Compact class name inside a module.** `module Shop; class Shop::Nested` gives qn `Shop::Shop::Nested::n`, doubling the prefix: the scope stack pushes the full text and does not resolve it against the enclosing scope (fixture `p3`). This is a bug.
@@ -73,13 +75,13 @@ Supported (`record_call`, `ruby.rs:347-414`, and `record_bare_identifier`, `ruby
 
 Not supported or partial:
 
-- **Bare `super` and `super()`** produce no reference and no edge (fixture `p3`: `Shop::Derived::step`'s `super` drew nothing). `is_super_receiver` (`cross_file.rs:3656-3664`) handles only a receiver spelled `super`.
-- **Constructor calls**, e.g. `Foo.new(…)`, never reach `Foo::initialize`. `new` is a method name looked up by name, and with `--include-external` it becomes `<external>::Coll::new`, even when `Coll::initialize` exists (fixture `p6`). `constructor_names("ruby") = ["initialize"]` (`cross_file.rs:384-392`) only maps a bare `Widget(3)`-style call, which Ruby does not write. A bare `new("x")` inside `def self.build` goes to `<stdlib>::new` (fixture `p1`).
+- **Bare `super` and `super(…)`** (since 0.11.1, WS21) record a call of the enclosing method's name with receiver `super` (`record_super`), resolved up the class's base chain, never on the class itself. fixture `lang-docs/ruby/p1`: `Derived#initialize`'s `super` → `Base::initialize` and `Derived#step`'s `super()` → `Base::step`, both high. A `super` that is not structurally certain is refused as `candidates-in-other-files`.
+- **Constructor calls** `Foo.new(…)` (since 0.11.1, WS21) record, besides `new` itself, a typed call of `initialize` on `Foo`, looked up on the class and its ancestors (`receiver::constructed_type`; test `new_reaches_initialize_and_super_names_the_enclosing_method`). fixture `lang-docs/ruby/p1`: `Derived.new(1)` → `Derived::initialize` high. A `T.new` that is not structurally certain, or `A::T.new` landing in another namespace, is refused (`candidates-in-other-files`). A bare `new("x")` inside `def self.build` still goes to `<stdlib>::new` (fixture `p1`, 0.11.0).
 - **Setter calls**, e.g. `self.setter = 3`, are recorded as `setter`, not `setter=`, so they never reach `def setter=` (fixture `p4`, `<external>::self::setter`).
 - **Operator calls**, e.g. `a + b`, `a == b` or `obj[i]`, are not recorded as calls to `def +`, `def ==` or `def []` (fixture `p4`).
 - **`x.(2)` call shorthand** is dropped because the method field is empty (`ruby.rs:356-358`, fixture `p1`). **`x.call(1)`** is a method call named `call`. The call-operator mapping to `call` (`cross_file.rs:395-401`) needs `local_types`, which Ruby never records, so `x.call` went to `<external>::x::call` (fixture `p1`).
-- **`&method(:name)` and `&:sym`** draw no edge and no value reference (fixture `p4`). Ruby does not call the ungated `registrar::capture_value_refs`, only the registrar-gated `capture`.
-- **`method(:x)`, `send(:x)` and `public_send("x")`** draw no edge (fixture `p1`). They are captured only as dyn-uses (section 15).
+- **Methods named by symbol are value references** since 0.11.1 (WS26), recorded under `--reference-edges` or `--dead-code`: `method(:m)`, `obj.public_method(:m)`, `Klass.instance_method(:m)` and kin (`cgg_core::stdlib::RUBY_METHOD_NAMING_CALLS`), the old name of `alias_method :new, :old` and `alias new old`, and receiver-less `validate :m` (`frameworks::rules::RUBY_SYMBOL_CALLBACK_VERBS`). fixture `lang-docs/ruby/p1` with `--reference-edges`: `items.each(&method(:each_one))` → `Derived::each_one`, `ref`, high. One written at class level credits only its own file's method of that name (`FILE_SCOPED_VALUE_REF_LANGS`).
+- **`&:sym`**, **`send(:x)`** and **`public_send("x")`** draw no edge. `send`/`public_send` are captured only as dyn-uses (section 15).
 - **`yield`** records nothing, which is correct because a block is not a callable.
 - **`::Calc.new.add(1)`** (leading `::`) is not peeled to a type, and the site is left unresolved as `candidates-in-other-files` (fixture `p4`).
 - **Arity**: `RefRecord::arity` is never set (`ruby.rs:399-406`, `ruby.rs:463`). **Keyword arguments**: `kwargs` is never filled.
@@ -96,7 +98,7 @@ Supported:
 
 Not supported or partial:
 
-- **A `require` does not anchor the binding to the required file.** Fixture `p5` has `top_fn` in both `lib/x/one.rb` and `lib/y/two.rb`, and `main.rb` does `require_relative 'lib/x/one'`. `top_fn` was bound at **high** to `lib/y/two.rb`, the file *not* required. Swapping the file contents gave the same result. One likely cause is that `direct_imports` maps names to qualified names, not to files (`cross_file.rs:3390`, `HashMap<String, Vec<String>>`), but that is **unverified**. Without a require, the same call fans out at medium over both copies (fixture `p5`, `c3`).
+- **Fixed in 0.11.1 (WS19): a `require` did not anchor the binding to the required file.** In 0.11.0 fixture `p5` (`top_fn` in `lib/x/one.rb` and `lib/y/two.rb`, `require_relative 'lib/x/one'`) bound `lib/y/two.rb` at high. Include-style imports now bind the copy in the file the include names; a `require` path several files share expands to each at `medium`. fixture `lang-docs/ruby/p1` (0.13.3): `main -> top_fn@lib/x/one.rb` high. Without a require, the same call fans out at medium over both copies (fixture `p5`, `c3`).
 - **`heads.rs` (`WorkspaceVocab`/`FileHeads`) has no Ruby arm**, so Ruby gets no `external-module` refusal from the import table. `grep -n ruby crates/cgg-resolve/src/heads.rs` finds nothing.
 - **`modules.rs` (`ModuleIndex`) has no Ruby support**, so there is no `not-in-imported-module` refusal. CHANGELOG line 1350 lists "Ruby `require`" as not covered by WS14.
 - **`libscope.rs`** has no Ruby support.
@@ -115,7 +117,7 @@ Supported:
 
 Not supported:
 
-- **Local variable typing.** `d = Dog.new(2); d.speak` is not typed: the site was refused as `fanout-cap-exceeded` with 6 candidates (fixture `p2`). `ruby.rs` never writes `FileFacts::local_types`.
+- **Local variable typing.** `d = Dog.new(2); d.speak` is not typed: the site was refused as `fanout-cap-exceeded` with 6 candidates (fixture `p2`); with two candidates it is `candidates-in-other-files` (fixture `lang-docs/ruby/p1`, 0.13.3). `ruby.rs` never writes `FileFacts::local_types`.
 - **Parameter typing**: not applicable (Ruby has no annotations), and **RBS/Sorbet signatures** are not read.
 - **Return-type typing.** `d2 = Dog.make; d2.speak` and `chain_a.chain_b` are not typed by return type (fixture `p2`, `p4`). `build_return_type_map` finds no Ruby return types because `extract_return_type` has no Ruby form (**unverified**, inferred from the fixture result).
 - **Instance-variable or field typing** (`@repo = Repo.new; @repo.find`): nothing in `ruby.rs` records `class_fields`.
@@ -134,9 +136,9 @@ Supported:
 
 Not supported or partial:
 
-- **`super` (zsuper) and `super(...)`** draw no edge (fixture `p3`, section 03).
-- **Classes with no methods have no bases.** There are no `ClassDecl` records, so in `class Empty < Base; end`, `Shop::Empty.new.validate` stayed unresolved as `candidates-in-other-files` (fixture `p3`).
-- **Intra-file preempts ancestry.** In fixture `p3`, a reopened `class Shop::Base` in `derived.rb` calls `step`. Intra-file found only `Shop::Derived::step` in that file and bound it at **high**. The real target is `Shop::Base::step` in `base.rb`, and `Derived` is a subclass, not an ancestor of `Base`. Intra-file does not apply the ancestry rule that cross-file does. This is a wrong high edge. Also in `p3`, `Shop::Base::process -> step` bound only `Shop::Base::step` at high intra-file. `Derived::step` is reached only by the low `--dynamic-dispatch` edge, not by `overrides_below`.
+- **`super` (zsuper) and `super(...)`** resolve through the base chain since WS21 (section 03).
+- **Classes with no methods have no bases.** There are no `ClassDecl` records, so in `class Empty < Base; end`, `Shop::Empty.new.validate` stayed unresolved as `candidates-in-other-files` (fixture `p3`; still so in 0.13.3, fixture `lang-docs/ruby/p3`).
+- **Intra-file preempts ancestry.** In fixture `p3`, a reopened `class Shop::Base` in `derived.rb` calls `step`. Intra-file found only `Shop::Derived::step` in that file and bound it at **high**. The real target is `Shop::Base::step` in `base.rb`, and `Derived` is a subclass, not an ancestor of `Base`. Intra-file does not apply the ancestry rule that cross-file does. This is a wrong high edge (re-confirmed in 0.13.3, fixture `lang-docs/ruby/p3`: `Shop::Base::again -> Shop::Derived::step` high intra-file). Also in `p3`, `Shop::Base::process -> step` bound only `Shop::Base::step` at high intra-file. `Derived::step` is reached only by the low `--dynamic-dispatch` edge, not by `overrides_below`.
 - **`extend self` / `module_function` singleton semantics** are not modelled. `Tools.mf` still bound because of the name and owner match (fixture `p7`).
 - **`include` inside a method or conditional** is deliberately ignored (`ruby.rs:312-315`).
 - **Refinements (`refine`/`using`)**: no handling in `ruby.rs`.
@@ -164,7 +166,7 @@ Not applicable as macros: Ruby has no macro or preprocessor system.
 
 Metaprogramming codegen, the closest analogue:
 
-- `define_method`, `attr_*`, `alias_method`/`alias`, `class_eval`/`instance_eval` strings, `method_missing`-based dispatch and `Struct.new`/`Class.new` blocks are not expanded (fixtures `p1`, `p7`). Nothing is tagged `macro:<name>`.
+- `define_method`, `attr_*`, `alias_method`/`alias` (beyond the old-name value reference), `class_eval`/`instance_eval` strings, `method_missing`-based dispatch and `Struct.new`/`Class.new` blocks are not expanded (fixtures `p1`, `p7`). Nothing is tagged `macro:<name>`.
 - `FileFacts::name_mentions` is never written by `ruby.rs`.
 - ERB templates are not parsed (section 01).
 
@@ -242,13 +244,13 @@ Supported:
 - **Root kinds that fire for Ruby** (fixture `fw` capabilities: `root_rules_active`): `builtin:main` (a def named `main`), `builtin:lifecycle`, `builtin:test-name`, `framework:entry-node`, `framework:rule` and `framework:test-harness`.
 - **`builtin:lifecycle`** covers `CONVENTIONAL_METHODS` (`initialize`, `to_s`, …) and dunder names, because Ruby is in `DUNDER_LANGS` (`roots.rs:160-170, 868-886`).
 - **Top-level invocation rule** (`NoEnclosingCallable` / `ValueRefNoEnclosing`, `roots.rs:552-575`). Script-level `b()` and `c 1` rooted `b` and `c` (fixture `tl`), and class-body `before_action :x` symbols root `x`.
-- **Signals**: `value_references: full` and `dispatch: full` are reported from the declared signals (section 06 notes that dispatch is declared but never produced). `visibility`, `attributes`, `exports` and `test_tagging` are `none`. The language class is `degraded`, so `max_confidence` is `medium` (`caps.rs:85-95, 160-172`; fixture `fw` capabilities JSON). Every Ruby finding carries the `language-lacks-attributes` and `language-lacks-visibility` risks (fixture `rails`).
+- **Signals**: `value_references: full` and `dispatch: full` are reported from the declared signals (section 06 notes that dispatch is declared but never produced; value references are produced since WS26). `visibility`, `attributes`, `exports` and `test_tagging` are `none`. The language class is `degraded`, so `max_confidence` is `medium` (`caps.rs:85-95, 160-172`; fixture `fw` capabilities JSON). Every Ruby finding carries the `language-lacks-attributes` and `language-lacks-visibility` risks (fixture `rails`).
 - **Reflection screen**: `send`/`public_send`/`method`/`respond_to?`/`instance_variable_get` literals cap same-named findings at medium (`crates/cgg-resolve/src/deadcode/mod.rs:626-634`). For Ruby this changes nothing, because medium is already the ceiling.
 - **`inheritance_fanout`** runs under `--dead-code`, so overrides of in-tree base methods are reachable (`dispatch.rs:110-123, 270`).
 
 Not supported or partial:
 
-- **A top-level paren-less call does not root its target.** Fixture `tl`: `a` (written bare at script level) was reported as an unreferenced method, while `b()` and `c 1` were rooted. The paren-less site leaves no audit record (`crates/cgg/src/lib.rs:1070-1086`), so the top-level-invocation rule never sees it. The same thing caused `rake_helper` called inside a `task` block to be reported dead (fixture `fw`).
+- **A top-level paren-less call does not root its target.** Fixture `tl`: `a` (written bare at script level) was reported as an unreferenced method, while `b()` and `c 1` were rooted. The paren-less site leaves no audit record (`crates/cgg/src/lib.rs:1070-1086`), so the top-level-invocation rule never sees it. The same thing caused `rake_helper` called inside a `task` block to be reported dead (fixture `fw`). Re-confirmed in 0.13.3 (fixture `lang-docs/ruby/p3`: a script-level bare `a` leaves `a` `NOT REACHED`; fixture `lang-docs/ruby/p1`: `helper_r` called in a `task :default do … end` block of a `Rakefile`, now analyzed, is a medium finding).
 - **No `implements-external-contract` cap.** `external_contract` applies only to Rust, partial methods, override markers or Python (`deadcode/mod.rs:470-531`), so a Ruby method on a class with an outside base (`< ActiveRecord::Base`) gets no doubt evidence from that.
 - **No visibility.** `private` helpers and public API are indistinguishable. There are no exported or public roots for gems: `exports: none`, and nothing roots a gem's public methods.
 - **Not rooted**: `method_missing`, `respond_to_missing?`, `inherited`, `included`, `self.extended`, `<=>`, `each` (Enumerable contract), `to_str` and `coerce`. They are not in `LIFECYCLE` or `CONVENTIONAL_METHODS` (`roots.rs:96-170`), so they rely on there being a call. This follows from the code and was not run as a fixture (**unverified** in output).
@@ -290,7 +292,7 @@ Everything over `--fanout-cap` (5) is refused (fixture `p2`: 6 `speak` candidate
 Wrong `high` edges observed:
 
 - the reopened class binding to a subclass's method intra-file (fixture `p3`, section 06)
-- a `require_relative` call binding to the non-required copy (fixture `p5`, section 04)
+- a `require_relative` call binding to the non-required copy (fixture `p5`, section 04; fixed in 0.11.1 WS19)
 
 Mermaid marks arrows with no high site with `?` (fixture `p2`: `N10 -->|?2x| N5`). CHANGELOG lines 1418 and 1462 record corpus figures of Ruby high 0 / 4,482 and medium 486 / 3,150, then medium 0 / 564 removed in fix passes.
 
@@ -303,32 +305,33 @@ Supported:
 Not supported:
 
 - **Module-load screen**: `DYN_MODULE_LOADERS = ["require", "importScripts", "import_module"]` (`crates/cgg-core/src/facts.rs:165`), but `require` is not in Ruby's REFLECTIVE list, so no Ruby `module-load` dyn-use is produced.
-- **Not captured**: `__send__`, `instance_variable_set`, `const_get`, `define_method`, `instance_method`, `public_method`, `try` (Rails), `Object.const_get("X")`, `constantize`, `eval`, `instance_eval`, `class_eval` and `method_missing` dispatch.
+- **Reflective enumeration** (since 0.11.1): `T.instance_methods` and its visibility variants (`cgg_core::stdlib::MEMBER_ENUMERATION_APIS`) put every method `T` declares under the `reflection` screen.
+- **Not captured**: `__send__`, `instance_variable_set`, `const_get`, `define_method`, `try` (Rails), `Object.const_get("X")`, `constantize`, `eval`, `instance_eval`, `class_eval` and `method_missing` dispatch.
 - **No `BLIND_SPOTS` entry for Ruby** in `caps.rs:43-67`, so the report names no Ruby-specific blind spot.
 
 ## 16. Known gaps & limitations
 
 Bugs and gaps found while cataloguing (fixtures in the scratch directory):
 
-1. **`Foo.new` never reaches `initialize`** (`p1`, `p6`). The README row "initialize → Constructor" (`README.md:497`) describes only the node kind.
-2. **`super` / `super()` draw no edge** (`p3`).
+1. ~~**`Foo.new` never reaches `initialize`**~~: fixed in 0.11.1 (WS21, section 03).
+2. ~~**`super` / `super()` draw no edge**~~: fixed in 0.11.1 (WS21, section 03).
 3. **No local-variable typing** (`x = Foo.new; x.m` is refused or fanned out) and no return-type typing (`p2`).
-4. **`require` does not anchor to the required file.** A wrong-file high edge was observed (`p5`).
+4. ~~**`require` does not anchor to the required file**~~: fixed in 0.11.1 (WS19, section 04).
 5. **Intra-file binding ignores ancestry** in a reopened base class. A wrong high edge to a subclass method was observed (`p3`).
 6. **Doubled qn prefix**: `module Shop; class Shop::Nested` gives `Shop::Shop::Nested::n` (`p3`).
 7. **A class with no methods records no bases**, because there are no `ClassDecl` records (`p3`).
 8. **Setter (`x.y = 1`) and operator (`a + b`, `a[i]`) calls** don't reach their defs (`p4`).
-9. **`define_method`, `attr_*` and `alias_method`** produce no callables. `Struct.new`/`Class.new` bodies are owner-less (`p1`, `p7`).
+9. **`define_method`, `attr_*` and `alias_method`** produce no callables (the aliased method is a value reference since WS26). `Struct.new`/`Class.new` bodies are owner-less (`p1`, `p7`).
 10. **No visibility**, so Ruby is always `degraded` with medium-capped dead-code (section 12).
 11. **A top-level paren-less call does not root its target** (`tl`).
 12. **Redefinitions and conditional defs bind to every copy** (`p8`).
-13. **`&method(:x)` / `&:sym` / `method(:x)` are not value references** (`p4`).
+13. **`&:sym` is not a value reference** (`p4`); `method(:x)` and `&method(:x)` are since WS26.
 14. **Framework issues**: detection is per project, so Sinatra and Grape cross-claim each other's handlers (`fw`); `on: :create` mis-roots `create` (`rails`); `resources` is not expanded; ActionCable is missed without a require; RSpec, Rake, Hanami, Roda, Padrino, Puma, Rack and the Sidekiq lifecycle have gap text only.
-15. **Not detected**: `Gemfile`, `Rakefile`, `config.ru`, `.erb` and `.rbw` files (`det`).
+15. **Not detected**: `.erb` and `.rbw` files (`det`). `Gemfile`, `Rakefile` and `config.ru` are detected since WS25.
 
 Documented elsewhere:
 
-- **CHANGELOG** line 1350 ("Not covered (WS14): … Ruby `require`").
+- **CHANGELOG** 0.11.0 ("Not covered (WS14): … Ruby `require`"); `require` copies are handled since 0.11.1 WS19.
 - **Rule `gap` strings** for `hanami`, `roda`, `padrino`, `rake`, `rspec`, `rack`, `puma` and `sidekiq-lifecycle` (`rules.rs` lines listed in section 10).
 - **No `#[ignore]` tests** for Ruby: `grep -rn "ignore" crates/cgg-lang/src/plugins/ruby.rs` finds none.
 - **Thin test coverage.** The plugin has 4 unit tests. Elsewhere there are 1 receiver test, 1 dynuse test, 1 intra-file test, 1 `resolve.rs` integration test and 3 framework integration tests, and there are no `.rb` fixture files under `crates/`.
@@ -337,12 +340,12 @@ Documented elsewhere:
 
 | section | support | one-line note |
 |---|---|---|
-| 01 Detection & parsing | partial | `.rb`/`.rake`/`.gemspec` plus `ruby`/`irb` shebangs; Gemfile, Rakefile, config.ru and ERB are skipped |
+| 01 Detection & parsing | partial | `.rb`/`.rake`/`.gemspec`, `Gemfile`/`Rakefile`/`config.ru`, `ruby`/`irb`/`jruby` shebangs; ERB skipped |
 | 02 Callables extracted | partial | defs, singleton defs, initialize and operators work; no attr_*/define_method/alias/visibility; doubled qn for `Shop::X` inside `module Shop` |
-| 03 Call-site forms | partial | calls with and without parens and `Foo.new.m` are typed; `super`, setters, operators, `.()`, `&method` and `new→initialize` are missing |
-| 04 Imports & module resolution | minimal | literal `require`/`require_relative` only; does not anchor to the file (wrong-file high edge); no heads/modules/packages |
+| 03 Call-site forms | partial | calls with and without parens, `Foo.new.m` typed, `new`→`initialize`, `super`, `method(:m)` value refs; setters, operators, `.()` and `&:sym` missing |
+| 04 Imports & module resolution | partial | literal `require`/`require_relative`, anchored to the required file's copy (WS19); no heads/modules/packages |
 | 05 Type inference | minimal | only `Foo.new` construction receivers; no local, ivar or return typing |
-| 06 Inheritance & dispatch | partial | superclass and include bases, WS8 bare-call scope, inheritance fan-out; no super, no ClassDecl, intra-file ignores ancestry |
+| 06 Inheritance & dispatch | partial | superclass and include bases, WS8 bare-call scope, `super` through the base chain, inheritance fan-out; no ClassDecl, intra-file ignores ancestry |
 | 07 Scoping & shadowing | partial | plugin-side local tracking per Ruby's rule; no `FileFacts::locals` or lexical narrowing |
 | 08 Macros & codegen | none | metaprogramming (define_method, attr_*, Struct.new) not modelled |
 | 09 FFI & cross-language | none | no C-ext/ffi-gem/magnus links |
@@ -350,6 +353,6 @@ Documented elsewhere:
 | 11 Test harness | partial | minitest by base type plus `test_` names and class-member roots; RSpec and the `test "x" do` DSL are not enumerated |
 | 12 Dead-code | minimal | degraded class (medium max), no visibility or exports; top-level paren-less calls don't root |
 | 13 Builtins & stdlib | full | 792-name `ruby.txt` plus `CONSTRUCTING_METHODS` `new` |
-| 14 Confidence | partial | high paths exist, but two wrong-high patterns were observed (require copies, reopened class) |
+| 14 Confidence | partial | high paths exist; the reopened-class wrong high remains (the require-copy one was fixed in WS19) |
 | 15 Dynamic use | partial | send/public_send/method/respond_to?/ivar_get captured; no const_get/eval/module-load |
 | 16 Known gaps | n/a | 15 itemised gaps above |

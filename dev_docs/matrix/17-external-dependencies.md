@@ -1,5 +1,13 @@
 # 17. External dependencies (`--externals`)
 
+> Re-checked against 0.13.3 (2026-11-25): the rung table against
+> `ExternalEvidence::confidence`, the Process / Native / System columns
+> against `PROCESS_SPAWN_APIS`, `LIBRARY_LOAD_APIS` and
+> `OS_BINDING_MODULES`, and the row set against
+> `crates/cgg/tests/externals.rs` (45 rows plus `graphql` in
+> `EXTERNALS_NA`). The Imports column was not re-verified beyond what
+> those tests assert. R, PowerShell and asm were re-run on fixtures.
+
 This category covers what `--externals` can attribute in each language:
 which import forms classify a library as internal, stdlib, system or
 external; how a call leaving the tree is tied to one; and which process,
@@ -8,7 +16,9 @@ native and system forms are recognised. Resolution itself is out of scope
 `stdlib_calls` / `external_calls` buckets.
 
 Sources: `crates/cgg-resolve/src/externals.rs` (attribution),
-`crates/cgg-lang/src/externals.rs` (side-channel extraction),
+`crates/cgg-core/src/externals.rs` (kinds, evidence rungs and their
+confidence), `crates/cgg/src/externals_report.rs` (the `cgg.externals.v1`
+report), `crates/cgg-lang/src/externals.rs` (side-channel extraction),
 `crates/cgg-core/src/stdlib.rs` (`STDLIB_ROOTS`, `PROCESS_SPAWN_APIS`,
 `LIBRARY_LOAD_APIS`, `OS_BINDING_MODULES`, `SYSTEM_HEADERS`,
 `SYSTEM_APIS`, `SYSCALL_MNEMONICS`, `SHELL_BUILTINS`) and the per-language
@@ -28,13 +38,26 @@ Strongest evidence first; the first rung that applies wins.
 | 6 | `chain-head`: a chain headed by an imported module or type | medium |
 | 7 | `name-prefix`, `undefined-instance`, `stdlib-screen` | medium |
 | 8 | `sole-wildcard`: the only external wildcard / open import | low |
-| 9 | none → `unattributed` | — |
+| 9 | none → `unattributed` | low |
+
+## Kinds and the report
+
+`ExternalKind` (`crates/cgg-core/src/externals.rs`) has six kinds:
+`third-party`, `stdlib`, `system`, `native`, `process` and
+`unattributed`. Bare `--externals` shows
+`third-party,system,native,process`; `stdlib` and `unattributed` are
+counted as withheld, never dropped (`cgg --help`). Evidence confidence is
+`ExternalEvidence::confidence`: rungs 1–4 high, 5–7 medium, 8–9 low, and a
+`typed-receiver` attribution drops to low when the receiver type was a
+propagation guess (`weak_receiver_type`). The JSON report's top-level keys
+are `schema`, `cgg_version`, `disclaimer`, `kinds`, `totals`, `coverage`,
+`libraries` and `unattributed` (0.13.3 fixture run).
 
 ## The matrix
 
 | # | Language | Imports read | Process | Native / FFI | System | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | rust | `use`, path-written crates | `Command::new` | `#[link]` extern blocks, `libloading` | `libc`, `nix`, `windows-sys`, `rustix` | An unimported capitalized head is a type of the module, never a crate |
+| 1 | rust | `use`, path-written crates | `Command::new` | `#[link]` extern blocks, `libloading` | `libc`, `nix`, `windows_sys`, `windows`, `winapi`, `rustix`, `syscalls` | An unimported capitalized head is a type of the module, never a crate |
 | 2 | python | `import`, `from … import` (heads.rs judges) | `subprocess.*`, `os.system`, `os.exec*` | `ctypes`, `cffi` | `posix`, `fcntl`, `mmap`, … | |
 | 3 | kivy | `#:import`, `#:include` (side channel) | as python | as python | as python | |
 | 4 | javascript | `import`, `require` (heads.rs judges) | `child_process.*`, `execa`, `Bun.spawn`, `Deno.Command` | `ffi-napi`, `koffi`, `process.dlopen` | `node:os` | Library = npm package root |
@@ -55,7 +78,7 @@ Strongest evidence first; the first rung that applies wins.
 | 19 | hcl | `module` `source`, `provider`, `required_providers` (side channel) | — | — | — | Providers and remote modules are third-party |
 | 20 | zig | `@import` | `std.process.Child` | `extern "lib" fn`, `@cInclude` | `std.os`, `std.posix` | |
 | 21 | objc | `#import`, `#include` | `NSTask`, `system` | `dlopen` | as c | |
-| 22 | r | `library`, `require`, `pkg::f` | `system`, `system2` | `dyn.load`, `.Call` | — | |
+| 22 | r | `library`, `require`, `pkg::f` | `system`, `system2`, `shell`, `processx::run` | `dyn.load`, `library.dynam`, `useDynLib` | — | `.Call("sym", …)` / `.C(…)` are not attributed (0.13.3 fixture: `unattributed`) |
 | 23 | groovy | `import` | as java, `"cmd".execute()` | as java | — | |
 | 24 | julia | `using`, `import` | `run` | `ccall`, `dlopen` | `Base.Libc` | |
 | 25 | perl | `use`, `require` | `system`, `exec`, `qx`, backticks | `XSLoader`, `DynaLoader` | `POSIX` | |
@@ -65,7 +88,7 @@ Strongest evidence first; the first rung that applies wins.
 | 29 | clojure | `:require`, `:import` | `clojure.java.shell/sh` | `System/loadLibrary` | — | |
 | 30 | haskell | `import` (+ qualified aliases) | `System.Process` | `foreign import` | `System.Posix`, `System.Win32` | `base` modules listed one by one |
 | 31 | ocaml | `open`, `M.f` | `Unix.system`, `Sys.command` | `external` | `Unix` | |
-| 32 | powershell | `Import-Module`, dot-source | native commands | `DllImport`, `Add-Type` | — | Verb-Noun cmdlets are stdlib |
+| 32 | powershell | `Import-Module`, dot-source | native commands | `Add-Type`, `[…NativeLibrary]::Load` | — | Verb-Noun cmdlets are stdlib. `Start-Process "x"` is listed in `PROCESS_SPAWN_APIS` but a 0.13.3 fixture attributes it `stdlib` (`Microsoft.PowerShell`, `stdlib-screen`), not `process` |
 | 33 | solidity | `import` (`@scope/pkg`) | — | — | — | Calls through an imported interface |
 | 34 | fsharp | `open` (wildcard) | `Process.Start` | `DllImport` | — | |
 | 35 | starlark | `load("@repo//…")` | `genrule`, `ctx.actions.run` | — | — | `//…` labels are internal |
@@ -79,7 +102,7 @@ Strongest evidence first; the first rung that applies wins.
 | 43 | graphql | — | — | — | — | `EXTERNALS_NA`: SDL has no import mechanism |
 | 44 | openapi | external `$ref` (side channel) | — | — | — | |
 | 45 | asyncapi | external `$ref` (side channel) | — | — | — | |
-| 46 | lean | `import` | `IO.Process` | `@[extern]` | — | `Init`/`Lean`/`Std` are stdlib |
+| 46 | lean | `import` | `IO.Process` | `@[extern]`, `Lean.loadDynlib` | — | `Init`/`Lean`/`Std` are stdlib |
 
 ## Known gaps
 

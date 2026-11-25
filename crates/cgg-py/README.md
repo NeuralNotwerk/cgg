@@ -38,7 +38,7 @@ pillow` gives you `import PIL`.
 The extension is built against the stable ABI (`abi3-py39`), so a single
 wheel per platform covers every CPython ≥ 3.9 — no per-version builds.
 
-**Five prebuilt wheels, ~10 MB each**, so `pip install` needs no compiler
+**Five prebuilt wheels, ~13 MB each**, so `pip install` needs no compiler
 on any of them:
 
 | Wheel | Covers |
@@ -69,9 +69,10 @@ g = cgg.analyze("./src", filter=[r"handle_request$"], hops=2)
 g = cgg.analyze(["./api", "./worker"], lang=["python", "go"])
 
 g.to_mermaid()        # str — what agents read; byte-identical to `cgg -t mermaid`
+g.to_mermaid(node_ids="hash", locations=True)   # `--node-ids hash --locations`
 g.to_json()           # str — `cgg -t json`, bar the per-run timings it embeds
-g.to_dot()            # str — Graphviz
-g.to_graphml()        # str — Gephi / yEd / networkx
+g.to_dot()            # str — Graphviz; to_dot(locations=True) too
+g.to_graphml()        # str — Gephi / yEd / networkx; locations=True too
 g.to_dict()           # dict — the escape hatch
 
 len(g)                # callable count
@@ -81,6 +82,8 @@ g.files               # tuple[File, ...]
 g.metrics             # run counters
 g.notices             # what the CLI would print to stderr
 g.jobs                # worker threads the run actually used
+g.externals           # dict | None — the `cgg.externals.v1` document (externals=…)
+g.externals_text()    # str | None — the ranked text report
 
 g.callable("mypkg.mod.func")     # Callable | None
 g.callers_of("mypkg.mod.func")   # list[Callable]
@@ -115,8 +118,9 @@ solid = [e for e in g.edges if e.confidence == "high" and e.via == "direct"]
 **Renderers never build Python objects.** `to_mermaid()` and friends
 render straight from the Rust graph; `g.callables` constructs one Python
 object per callable, once, then caches. Measured on cgg's own `crates/`
-(2,019 callables): `to_mermaid()` produces 180 KB in 1.5 ms, the first
-`.callables` access costs 0.84 ms, and every access after it costs 0.2 µs.
+(5,090 callables, 0.13.3): `to_mermaid()` produces 540 KiB in 9 ms, the
+first `.callables` access costs 2.1 ms, and every access after it costs
+0.1 µs.
 Both are small here and both scale with the graph, so on a repository an
 order of magnitude larger the attribute path is what you would notice.
 Reach for the renderer when a string is what you want.
@@ -124,17 +128,17 @@ Reach for the renderer when a string is what you want.
 **Concurrent `analyze()` calls actually run concurrently.** The GIL is
 released (`py.detach`) and there is no internal lock, so a thread pool
 scales. N analyses of `crates/cgg-lang/src/plugins` from a
-`ThreadPoolExecutor(N)`, against one analysis alone (56 ms) — medians of
-four repetitions, 32-core host, `jobs` at its default of 8:
+`ThreadPoolExecutor(N)`, against one analysis alone (187 ms) — medians of
+four repetitions, 32-core host, `jobs` at its default of 16 there:
 
 | threads | wall | vs. one analysis |
 | --- | --- | --- |
-| 1 | 55 ms | 0.97x |
-| 2 | 65 ms | 1.15x |
-| 4 | 76 ms | 1.34x |
-| 8 | 88 ms | 1.57x |
+| 1 | 167 ms | 0.90x |
+| 2 | 220 ms | 1.18x |
+| 4 | 271 ms | 1.45x |
+| 8 | 426 ms | 2.28x |
 
-Four analyses for 1.34x the wall clock of one; eight for 1.57x. Absolute
+Four analyses for 1.45x the wall clock of one; eight for 2.28x. Absolute
 numbers are machine-specific and each analysis is already internally
 parallel — regenerate them rather than trusting them.
 
@@ -147,9 +151,11 @@ works and is simpler if you only have one tree to analyze.
 
 ## Not in this release
 
-`--why-live` proofs, the `--write-roots` baseline and the audit event
-stream are reachable from the Rust API but have no keyword and no `Graph`
-attribute here. Use the CLI for those.
+`--why-live` proofs, the `--write-roots` baseline, the ranked dead-code
+report (each callable's `unreferenced` band is here; the report with its
+evidence is not) and the audit event stream are reachable from the Rust
+API but have no keyword and no `Graph` attribute here. Use the CLI for
+those.
 
 The framework-coverage table is *not* missing — it arrives rendered, as
 one of the strings in `g.notices`, naming both what cgg recognised and

@@ -128,7 +128,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | ---- | ------- | ----------- |
 | `-t` | mermaid | Output format: `mermaid`, `json`, `dot`, `graphml` |
 | `-o` | stdout | Output file (use `-` for stdout) |
-| `--node-ids` | `short` for mermaid, `hash` elsewhere | How nodes are named: `short` numbers them `N0`, `N1`, … in graph order; `hash` uses the content-derived base36 id (`Cu7kwiat260`). A mermaid id repeats on every edge that touches its node, so numbering cuts **20.5% of the bytes** across the 164-repo benchmark corpus, and more of the tokens — on this repo's own tree, 275,772 -> 209,237 bytes but 127,536 -> 80,360 tokens, **-37.0%** measured with `o200k_base`. Use `hash` to diff two revisions' diagrams or line one up against `-t json`. Does not apply to `-t json`, whose ids are the identity `--from-graph` reads back; asking for it there warns rather than silently doing nothing |
+| `--node-ids` | `short` for mermaid, `hash` elsewhere | How nodes are named: `short` numbers them `N0`, `N1`, … in graph order; `hash` uses the content-derived base36 id (`Cu7kwiat260`). A mermaid id repeats on every edge that touches its node, so numbering cuts bytes and cuts tokens further — on this repo's own `crates/`, 727,087 -> 552,545 bytes (**-24.0%**) and 342,491 -> 220,285 tokens (**-35.7%**, measured with `o200k_base`). Use `hash` to diff two revisions' diagrams or line one up against `-t json`. Does not apply to `-t json`, whose ids are the identity `--from-graph` reads back; asking for it there warns rather than silently doing nothing |
 | `--locations` | off | Annotate each call with the file and line where it occurs. Mermaid and DOT keep one arrow per caller/callee pair and list every site on it (`-->\|"src/lib.rs:42,88"\|`, `label="src/lib.rs:42,88"`). A `via` tag stays in front (`std src/lib.rs:42`). A rolled-up arrow has no single site and keeps its `Nx` count, as does an edge from a synthetic caller. Does not apply to `-t json`, which already records `site_line` on every edge and the caller's file on the source callable; asking for it there warns rather than changing the document. `--rollup` measures its budget against this rendering |
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
@@ -146,7 +146,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--exclude-glob` | (none) | Exclude nodes matching glob |
 | `--exclude-regex` | (none) | Exclude nodes matching regex |
 | `--stack-graphs` | auto | No effect — accepted for compatibility (see Limitations) |
-| `--dead-code` | off | Report callables nothing appears to call. **Best effort — every finding is a hypothesis** |
+| `--dead-code` | off | Report callables nothing appears to call. **Best effort — every finding is a hypothesis**. Turns on `--reference-edges` and `--dynamic-dispatch`, so the graph carries `ref` and `dyn` edges, and turns off `--include-external` / `--include-stdlib` |
 | `--dead-code-format` | text | `text` (ranked, agent-readable) or `json` (`cgg.deadcode.v1`). Sets the sidecar extension: `.deadcode.txt` / `.deadcode.json` |
 | `--dead-code-report` | sidecar | Force the report to a specific file. Without `-o`, `text` goes to stderr and `json` needs this flag |
 | `--dead-code-confidence` | high | Lowest confidence band to show; withheld counts always printed |
@@ -154,16 +154,16 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--write-roots` | off | Emit a baseline accepting every current finding, in place of the graph. Implies `--dead-code` |
 | `--ignore-names` | — | Suppress findings by qualified-name pattern. Repeatable |
 | `--ignore-attributes` | — | Suppress findings by attribute/decorator pattern. Repeatable |
-| `--why-live` | — | Print the shortest path from a root proving a callable is live, to the primary output in place of the graph |
+| `--why-live` | — | Print the shortest path from a root proving a callable is live, to the primary output in place of the graph. Repeatable; implies `--dead-code` |
 | `--fail-on-dead` | off | Exit 3 when the report is non-empty |
-| `--jobs` | 0 (auto = half the physical cores, capped at 8) | Worker thread count. The default is deliberately conservative so cgg is a good guest on a shared host; raising it pays on a large tree (pandoc, 21k callables: 0.58s at the default, 0.41s at `--jobs 32` on a 64-thread host). Parsing, extraction, type propagation, intra-file linking, cross-file resolution, framework matching and audit serialisation all run in parallel. The graph is identical at any thread count — `mermaid`, `dot` and `graphml` output is byte-identical; `-t json` and the audit sidecar embed per-file parse timings, so those two differ byte-wise between *any* two runs, same thread count or not |
+| `--jobs` | 0 (auto = half the physical cores, capped at 8, or at 32 once the host has 32 physical cores, and bounded by any cgroup quota) | Worker thread count. The default is deliberately conservative so cgg is a good guest on a shared host; raising it pays on a large tree (pandoc, 17k callables, on a 32-core host: 0.72s at `--jobs 8`, 0.58s at that host's default of 16, 0.53s at `--jobs 32`). Parsing, extraction, type propagation, intra-file linking, cross-file resolution, framework matching and audit serialisation all run in parallel. The graph is identical at any thread count — `mermaid`, `dot` and `graphml` output is byte-identical; `-t json` and the audit sidecar embed per-file parse timings, so those two differ byte-wise between *any* two runs, same thread count or not |
 | `--lang` | (all) | Comma-separated language filter |
 | `--include-external` | off | Surface third-party calls as deduplicated leaf "exit nodes" (edges tagged `ext`) |
 | `--include-stdlib` | off | Surface standard-library calls as deduplicated leaf "exit nodes" (edges tagged `std`) |
 | `--externals` | off | Inventory every library the tree reaches outside itself, and turn the graph into the branches that end in calls to it — one leaf per library symbol. `KINDS` is `all` or a comma list of `third-party`, `stdlib`, `system`, `native`, `process`, `unattributed`; bare `--externals` shows `third-party,system,native,process` and counts the rest as withheld. Attribution comes only from evidence in the tree (the import a call goes through, a receiver type, an FFI declaration, a literal program or library name); manifests are not read. See [External dependencies](#external-dependencies---externals) |
 | `--externals-format` | text | `text` (ranked, agent-readable) or `json` (`cgg.externals.v1`). Sets the sidecar extension: `.externals.txt` / `.externals.json` |
 | `--externals-report` | sidecar | Force the externals report to a specific file. Without `-o`, `text` goes to stderr and `json` needs this flag or `--no-graph` |
-| `--dynamic-dispatch` | off | Emit interface/trait declaration → implementation fan-out edges (tagged `dyn`, low confidence) |
+| `--dynamic-dispatch` | off | Emit interface/trait declaration → implementation fan-out edges, and base-member → override edges for class inheritance (tagged `dyn`, low confidence). `--dead-code` turns it on |
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--guess-unique-names` | off | Rust: bind a call nothing else placed when exactly one callable carries its name — `low` confidence, resolver `cross-file:name-unique`. Never for std names, typed or `self` receivers, external paths, or test helpers from production code |
 | `--module-scope-calls` | off | Bind calls written outside every definition (script bodies, `if __name__ == "__main__"` blocks) to a synthetic per-file `<module>` callable, so they become edges instead of `no-enclosing-callable` sites. Every language; the synthetic caller is never a dead-code candidate or framework target |
@@ -177,6 +177,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 | `--no-update-check` | off | No effect — accepted for compatibility; cgg makes no network calls |
+| `-v` / `-q` | — | `-v`, `-vv` raise log verbosity; `-q` silences everything except errors (a rollup notice still prints) |
 
 ## Library
 
@@ -199,7 +200,9 @@ println!("{} callables", outcome.graph.callables.len());
 ```
 
 `analyze` performs **no I/O beyond reading the source tree** — no writes,
-no stdout, no stderr, no `process::exit`. Everything a run would write
+no stdout, no stderr, no `process::exit`. (`RunOptions::since` is the one
+exception: resolving a revspec shells out to `git diff`.) Everything a run
+would write
 comes back on `RunOutcome`: the graph, the audit event stream, the
 metrics, the dead-code report, and a `transcript` of every diagnostic and
 artifact in the order the CLI emits them. `cgg::emit::all` is the CLI's
@@ -207,8 +210,9 @@ own front end over that value, and it is the only place in the crate that
 touches a file descriptor.
 
 Safe to call concurrently — no run state is shared between calls (the
-only process-globals left are immutable lookup tables), and each call gets
-its own rayon pool sized by `RunOptions::jobs`.
+only process-globals left are immutable lookup tables and the opt-in
+`RunOptions::profile` timers), and each call gets its own rayon pool sized
+by `RunOptions::jobs`.
 
 > The library API is new in 0.6.0 and **pre-1.0**: `RunOptions` gains a
 > field whenever a graph-affecting flag is added. Pin an exact minor.
@@ -248,17 +252,18 @@ len(g), g.callables, g.edges, g.files, g.metrics, g.notices
 g.callable("pkg.mod.fn"), g.callers_of(...), g.callees_of(...)
 ```
 
-Every CLI flag that changes the graph is a keyword argument, with two
-renames: `entry_nodes=True` rather than `--no-entry-nodes`, and
-`test_entries=True` rather than `--no-test-entries`. Same defaults; a
-Python keyword has no reason to be a double negative.
+Every CLI flag that changes the graph is a keyword argument, with three
+renames: `entry_nodes=True` rather than `--no-entry-nodes`,
+`test_entries=True` rather than `--no-test-entries`, and `allow_dirs=[…]`
+for the repeatable `--allow-dir`. Same defaults; a Python keyword has no
+reason to be a double negative.
 
 The GIL is released for the analysis and there is no internal lock, so a
-thread pool scales: on `./crates`, four concurrent analyses cost 1.3–1.5×
+thread pool scales: on `./crates`, four concurrent analyses cost 1.4–1.5×
 the wall clock of one — 4× the work for well under 2× the time (three
-rounds, best of nine each, on a 64-thread host). The module also beats the
+rounds, best of five each, on a 32-core host). The module also beats the
 CLI on the same input, since it skips process start and writing output:
-56% on `cgg-walk`, and 9–29% run-to-run on all of `./crates`, where
+28–31% on `cgg-walk`, and 4–6% run-to-run on all of `./crates`, where
 process start is a much smaller share of a bigger number. Re-measure
 rather than trusting either figure — they are machine- and load-specific.
 
@@ -267,9 +272,11 @@ toolchain and downloads a CPython on first run. It is a developer script
 only — `cargo build` and `cargo test --workspace` never need a Python
 interpreter, and the `cgg` binary links no libpython.
 
-`--why-live` proofs, the `--write-roots` baseline, the audit event stream
-and the framework-coverage table are reachable from the Rust API but are
-not exposed to Python yet. Use the CLI for those.
+`--why-live` proofs, the `--write-roots` baseline, the dead-code report
+(Python gets the per-callable `unreferenced` tag, not the ranked report),
+the audit event stream and a structured framework-coverage table are
+reachable from the Rust API but are not exposed to Python yet. Use the CLI
+for those.
 
 ### C — and everything that can call C
 
@@ -294,8 +301,10 @@ which is what lets **one** shared library serve C, .NET, Java, Go, Ruby
 and anything else with an FFI — adding a cgg flag adds a JSON key, not an
 entry point, so the ABI does not change when cgg gains a feature. Analysis
 returns an opaque handle, so mermaid *and* JSON *and* the metrics cost one
-analysis rather than three. Output is byte-identical to the CLI's, and a
-test asserts it across all four formats.
+analysis rather than three. `cgg_graph_render` also takes `externals-json`
+and `externals-text` for a run with `"externals"` set. Mermaid, DOT and
+GraphML are byte-identical to the CLI's; JSON differs only in the per-run
+timings it embeds.
 
 Link `libcgg.a` instead and your program stays a single binary depending
 on nothing but libc — the same promise the CLI makes.
@@ -377,7 +386,7 @@ by leaving the `v2` feature off), and the `override` feature is **off**,
 so mimalloc serves only Rust's `Global` and the 45 tree-sitter C parsers
 that handle untrusted input keep glibc's hardened allocator.
 
-The full dependency tree is **211 packages** (`cargo metadata` over the
+The full dependency tree is **210 packages** (`cargo metadata` over the
 whole workspace — CLI plus the Python, C and Node bindings); the `cgg`
 binary itself links 137 of them. Every one is permissively licensed —
 see [License](#license).
@@ -490,54 +499,61 @@ are left untouched.
 Plus Jupyter notebooks (`.ipynb`) — code cells are extracted and routed
 through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
-| Language | Cross-file resolution | Type inference | Notes |
-| -------- | --------------------- | -------------- | ----- |
-| Rust | pub-use chains, Cargo.toml crate names | params, `Foo::new()` | Module paths from src/ |
-| Python | from-import, import-as | params, `Foo()`, `self.x = Foo()`, `x: Foo` | `__init__.py` package walk; `.ipynb` supported |
-| JavaScript | ESM import, CJS require() | params | exports.fn, defineGetter |
-| TypeScript | ESM import | params | Delegates to JS walker |
-| Go | package imports | params, `var T`, `New*()` | Interface methods, func literals |
-| Java | import, import static | params, `Type var`, `new Foo()` | Local variable types |
-| Kotlin | import, as alias | params, `val x: T`, `Foo()` | Class-as-constructor |
-| Lean 4 | import, open | — | def/theorem/abbrev/instance, structures/inductives, tactic lemma refs; macro/typeclass edges need the kernel |
-| C | `#include` transitive (depth 8) | — | Macros as callables |
-| C++ | `#include` transitive | params, locals, fields (one hop), `new T()`, object-like macro receivers | Templates, operators; prototypes unify with out-of-line bodies; virtual and member-pointer-table fan-out with `--dynamic-dispatch`; a `.h` without a same-stem `.cpp` sibling is parsed as C |
-| C# | using, using static, alias | params, `Type var`, `new Foo()` | Accessors |
-| Bash | `source ./file.sh` | — | Builtin filter |
-| Ruby | require/require_relative | — | initialize → Constructor |
-| PHP | require_once/include | — | — |
-| Objective-C | #import | — | Message expressions |
-| R | library(), source() | — | `<-` and `=` assignment |
-| Swift | import Module | — | init → Constructor |
-| Lua | require('mod') | — | Colon method syntax |
-| Dart | import 'file.dart' | — | — |
-| Scala | import pkg.Class | — | Object declarations |
-| HCL | — | — | Block labels as definitions |
-| Zig | @import("std") | — | — |
-| Groovy | import | — | Closures, methods |
-| Julia | using, import | — | Multiple dispatch |
-| Perl | use, require | — | Subs and packages |
-| Elixir | alias, import, require | — | def/defp/defmacro |
-| Erlang | -include, -import | — | OTP modules |
-| Fortran | use module | — | Subroutines and functions |
-| Clojure | (ns :require ...) | — | defn/defmacro/deftype/defprotocol |
-| Haskell | import | — | Top-level bindings |
-| OCaml | open, include | — | let/let rec, modules |
-| PowerShell | Import-Module, dot-source, using | — | Cmdlets, classes, filters |
-| Solidity | import "./X.sol" | — | Contracts, libraries, modifiers |
-| F# | open | — | let bindings, members, type defs |
-| Starlark | load("//path:f.bzl", …) | — | def/call/attribute; Bazel/Buck/Pants |
-| CMake | include(), add_subdirectory() | — | function()/macro()/normal commands |
-| Nix | import &lt;path&gt; | — | function-valued bindings, apply expressions |
-| Verilog / SV | — | — | Modules, tasks, functions; module instantiation as edges. Task/function *calls* are not captured, so `` `include `` yields no edges |
-| VHDL | library, use clauses | — | Entities, architectures, procedures/functions |
-| Assembly | — | — | x86 / ARM / RISC-V / MIPS: labels + `call`/`jmp`/`bl`/`jal` |
-| Kivy KV | KV → Python methods | — | `.kv` event bindings (`on_release: root.foo()`, indented suites, `app.root`) resolve into Python; indent-sensitive, vendored grammar |
-| Smithy | namespace shapes (global) | — | API models: `service`→`operation`→`structure`→shape-member edges; traits & prelude primitives skipped |
-| Protobuf | message/enum by name | — | message field types + gRPC `service` rpc → request/response message edges |
-| GraphQL | type names (global) | — | SDL: `type`→field-type, `implements`, and `union` member edges; built-in scalars skipped |
-| OpenAPI / Swagger | `$ref` by name (global) | — | YAML or JSON; operation→schema and schema→schema edges from `$ref`; content-detected by root `openapi:`/`swagger:` key |
-| AsyncAPI | `$ref` by name (global) | — | YAML or JSON; channel→message, operation→channel/message, message→schema edges from `$ref`; content-detected by root `asyncapi:` key |
+A file's language comes from, in order: its shebang interpreter (`python3`,
+`node`, `bash`, `Rscript`, …, matched as a whole word, version suffix
+allowed), its exact file name (the names in the **Files** column), the
+OpenAPI/AsyncAPI root key for `.yaml`/`.yml`/`.json`, then its extension.
+`--lang` takes the ids `cgg` prints in its audit (`rust`, `python`,
+`cpp`, `csharp`, `fsharp`, `objc`, `kivy`, …).
+
+| Language | Cross-file resolution | Type inference | Notes | Files |
+| -------- | --------------------- | -------------- | ----- | ----- |
+| Rust | pub-use chains, Cargo.toml crate names | params, `Foo::new()` | Module paths from src/ | `.rs` |
+| Python | from-import, import-as | params, `Foo()`, `self.x = Foo()`, `x: Foo` | `__init__.py` package walk; `.ipynb` supported | `.py` `.pyi` `.ipynb` |
+| JavaScript | ESM import, CJS require() | `new Foo()` | exports.fn, defineGetter | `.js` `.mjs` `.cjs` `.jsx` |
+| TypeScript | ESM import | params, `new Foo()` | Delegates to JS walker | `.ts` `.tsx` `.mts` `.cts` |
+| Go | package imports | params, `var T`, `New*()` | Interface methods, func literals | `.go` |
+| Java | import, import static | params, `Type var`, `new Foo()` | Local variable types | `.java` |
+| Kotlin | import, as alias | params, `val x: T`, `Foo()` | Class-as-constructor | `.kt` `.kts` |
+| Lean 4 | import, open | — | def/theorem/abbrev/instance, structures/inductives, tactic lemma refs; macro/typeclass edges need the kernel | `.lean` |
+| C | `#include` transitive (depth 8) | — | Macros as callables | `.c` `.h` |
+| C++ | `#include` transitive | params, locals, fields (one hop), `new T()`, object-like macro receivers | Templates, operators; prototypes unify with out-of-line bodies; virtual and member-pointer-table fan-out with `--dynamic-dispatch`; a `.h` is parsed as C++ when its first 8 KB has C++-only syntax (`namespace`, `template<`, `::`, `virtual`, a C++ standard header…) or a same-stem C++ file sits beside it, otherwise as C | `.cc` `.cpp` `.cxx` `.C` `.hpp` `.hh` `.hxx`, C++ `.h` |
+| C# | using, using static, alias | params, `Type var`, `new Foo()` | Accessors | `.cs` `.csx` |
+| Bash | `source ./file.sh` | — | Builtin filter | `.sh` `.bash` |
+| Ruby | require/require_relative | — | initialize → Constructor | `.rb` `.rake` `.gemspec`, `Gemfile`, `Rakefile`, `config.ru` |
+| PHP | require_once/include | params | — | `.php` `.phtml` |
+| Objective-C | #import | — | Message expressions | `.m` `.mm` |
+| R | library(), source() | — | `<-` and `=` assignment | `.r` `.R` `.Rmd` |
+| Swift | import Module | params | init → Constructor | `.swift` |
+| Lua | require('mod') | — | Colon method syntax | `.lua` |
+| Dart | import 'file.dart' | params | — | `.dart` |
+| Scala | import pkg.Class | params | Object declarations | `.scala` `.sc` |
+| HCL | — | — | Block labels as definitions | `.tf` `.hcl` `.tfvars` |
+| Zig | @import("std") | params, `x: T` locals | — | `.zig` |
+| Groovy | import | params | Closures, methods | `.groovy` `.gradle` |
+| Julia | using, import | — | Multiple dispatch | `.jl` |
+| Perl | use, require | — | Subs and packages | `.pl` `.pm` `.t` |
+| Elixir | alias, import, require | — | def/defp/defmacro | `.ex` `.exs` |
+| Erlang | -include, -import | — | OTP modules | `.erl` `.hrl` |
+| Fortran | use module | — | Subroutines and functions | `.f90` `.f95` `.f03` `.f08` `.f` `.for` `.fpp` |
+| Clojure | (ns :require ...) | — | defn/defmacro/deftype/defprotocol | `.clj` `.cljs` `.cljc` `.edn` |
+| Haskell | import | — | Top-level bindings | `.hs` `.lhs` |
+| OCaml | open, include | — | let/let rec, modules | `.ml` `.mli` |
+| PowerShell | Import-Module, dot-source, using | — | Cmdlets, classes, filters | `.ps1` `.psm1` `.psd1` |
+| Solidity | import "./X.sol" | — | Contracts, libraries, modifiers | `.sol` |
+| F# | open | — | let bindings, members, type defs | `.fs` `.fsi` `.fsx` |
+| Starlark | load("//path:f.bzl", …) | — | def/call/attribute; Bazel/Buck/Pants | `.bzl` `.star` `.bazel`, `BUILD`, `BUILD.bazel`, `WORKSPACE`, `BUCK` |
+| CMake | include(), add_subdirectory() | — | function()/macro()/normal commands | `.cmake`, `CMakeLists.txt` |
+| Nix | import &lt;path&gt; | — | function-valued bindings, apply expressions | `.nix` |
+| Verilog / SV | — | — | Modules, tasks, functions; module instantiation as edges. Task/function *calls* are not captured, so `` `include `` yields no edges | `.v` `.vh` `.sv` `.svh` |
+| VHDL | library, use clauses | — | Entities, architectures, procedures/functions | `.vhd` `.vhdl` |
+| Assembly | — | — | x86 / ARM / RISC-V / MIPS: labels + `call`/`jmp`/`bl`/`jal` | `.s` `.S` `.asm` |
+| Kivy KV | KV → Python methods | — | `.kv` event bindings (`on_release: root.foo()`, indented suites, `app.root`) resolve into Python; indent-sensitive, vendored grammar | `.kv` |
+| Smithy | namespace shapes (global) | — | API models: `service`→`operation`→`structure`→shape-member edges; traits & prelude primitives skipped | `.smithy` |
+| Protobuf | message/enum by name | — | message field types + gRPC `service` rpc → request/response message edges | `.proto` |
+| GraphQL | type names (global) | — | SDL: `type`→field-type, `implements`, and `union` member edges; built-in scalars skipped | `.graphql` `.gql` `.graphqls` |
+| OpenAPI / Swagger | `$ref` by name (global) | — | YAML or JSON; operation→schema and schema→schema edges from `$ref`; content-detected by root `openapi:`/`swagger:` key | `.yaml` `.yml` `.json` (by content) |
+| AsyncAPI | `$ref` by name (global) | — | YAML or JSON; channel→message, operation→channel/message, message→schema edges from `$ref`; content-detected by root `asyncapi:` key | `.yaml` `.yml` `.json` (by content) |
 
 ## Self-analysis
 
@@ -831,8 +847,8 @@ flowchart LR
 ### Edge labels
 
 A mermaid arrow's label carries, in order and only when present: `?`
-(confidence), a `via` tag (`dyn`/`ref`/`ext`/`std`/`desc`/`entry`), and
-a call count (`18x`) — `N0 --> N1`, `N0 -->|3x| N1`, `N0 -->|?| N1`,
+(confidence), a `via` tag (`dyn`/`ref`/`prop`/`ext`/`std`/`ffi`/`desc`/`entry`),
+and a call count (`18x`) — `N0 --> N1`, `N0 -->|3x| N1`, `N0 -->|?| N1`,
 `N0 -->|?ref 2x| N1`.
 
 **An unmarked arrow is `high` confidence**: at least one of its call
@@ -859,15 +875,15 @@ everything after it. Quote the labels, not the ids. `--node-ids hash`
 gives back the content-derived form described below, which is what you
 want to diff two revisions' diagrams or line one up against `-t json`.
 
-The qualified name is deliberately *not* the id, tempting as it looks.
-Qualified names are not unique — 41 of this repo's own 2,232 callables
-share one with another callable, and 17.7% of callables corpus-wide
-share `(language, file, owner, qualified name)` because C++, C#, Java
-and Erlang have overloads in quantity — so naming the nodes would merge
-distinct functions and silently reroute their edges. It is also *larger*:
-the same graph rendered that way is 379,524 bytes against 275,772 for
-the hashed form it would replace, because a name repeated on every edge
-costs more than a short handle plus one label line.
+The qualified name is deliberately *not* the id, tempting as it looks. Qualified
+names are not unique — 188 of this repo's own 5,090 callables share one with
+another callable, and 17.7% of callables corpus-wide share `(language, file,
+owner, qualified name)` because C++, C#, Java and Erlang have overloads in
+quantity — so naming the nodes would merge distinct functions and silently
+reroute their edges. It is also *larger*: this repo's own graph with each edge's
+ids replaced by the two names is 1,337,124 bytes against 727,087 for the hashed
+form it would replace, because a name repeated on every edge costs more than a
+short handle plus one label line.
 
 Everything below describes the **hashed** form: what `-t json`, `-t dot`
 and `-t graphml` use by default, and what `--node-ids hash` restores for
@@ -908,12 +924,12 @@ quietly doing nothing.
 
 ## Rolling up
 
-The default graph of a real tree does not fit in a context window. This
-repo's own `crates/` is ~2,200 callables and ~5,300 edges — **80,360
-tokens** of mermaid, measured with a real tokenizer (`o200k_base`); it
-was 127,536 before 0.8.2 numbered the node ids. `--rollup` folds it
-to one node per group until the rendered output fits a budget you name,
-and `--rollup-by` cuts it at a granularity you name outright.
+The default graph of a real tree does not fit in a context window. This repo's
+own `crates/` is ~5,100 callables and ~16,800 edges — **220,285 tokens** of
+mermaid, measured with a real tokenizer (`o200k_base`); it would be 342,491 with
+the hashed node ids mermaid used before 0.8.2. `--rollup` folds it to one node
+per group until the rendered output fits a budget you name, and `--rollup-by`
+cuts it at a granularity you name outright.
 
 ```bash
 # Fold only if the graph would blow a 40k-token budget.
@@ -930,13 +946,13 @@ Measured on `cgg ./crates`:
 
 | `--rollup-by` | Nodes | Edges | Est. tokens |
 | ------------- | ----- | ----- | ----------- |
-| (none) | 2199 | 5223 | 148,787 |
-| `type` | 350 | 728 | 25,813 |
-| `module` | 226 | 636 | 19,557 |
-| `file` | 125 | 515 | 14,203 |
-| `dir:2` | 17 | 37 | 1,490 |
-| `package` | 10 | 27 | 1,099 |
-| `language` | 5 | 4 | 478 |
+| (none) | 5090 | 16756 | 306,969 |
+| `type` | 532 | 1341 | 31,332 |
+| `module` | 368 | 1032 | 22,653 |
+| `file` | 169 | 773 | 14,188 |
+| `dir:2` | 22 | 40 | 1,321 |
+| `package` | 13 | 31 | 991 |
+| `language` | 8 | 6 | 598 |
 
 A budget escalates through those rungs in that order and stops at the
 first that fits. `package` is the nearest ancestor directory holding a
@@ -965,9 +981,10 @@ would collapse every entry in the tree into a single node and destroy
 what an entry node exists to say. Folding on the framework keeps that,
 states the count (`⟨412 framework entries — INFERRED⟩`), and folds only
 the per-route multiplicity. A framework with a single entry passes
-through whole. This matters for the budget: Spring Batch folds 10,639
-callables to two language groups, but has 412 entry nodes, and exempting
-them put ~50,000 tokens under any budget as an unreachable floor.
+through whole. This matters for the budget: Spring Batch folds 10,677
+callables to two language groups, but its `spring-batch` rule alone mints
+445 entry nodes, and exempting them would put an unreachable floor under
+any budget.
 
 **The budget is an estimate.** No tokenizer ships in the binary — cgg is
 offline, deterministic and single-binary, and a BPE vocabulary is none of
@@ -978,17 +995,17 @@ The divisor is measured rather than a rule of thumb. Mermaid is far
 denser than prose because of its `::`-dense qualified names; tokenizing
 cgg's **hashed** output — what `-t json`, `-t dot`, `-t graphml` and
 `--node-ids hash` produce — for three trees at four granularities gives
-**1.78–2.25 bytes per token**:
+**1.76–2.14 bytes per token** (mermaid, 0.13.3):
 
 | target | bytes/token | | target | bytes/token |
 | ------ | ----------- | - | ------ | ----------- |
-| `cgg/crates` full | 2.17 | | `ripgrep` full | 2.19 |
-| `cgg/crates` type | 1.86 | | `ripgrep` type | 1.85 |
-| `cgg/crates` file | 1.87 | | `redis` full | 1.91 |
-| `cgg/crates` package | 2.25 | | `redis` file | 1.78 |
+| `cgg/crates` full | 2.12 | | `ripgrep` full | 2.14 |
+| `cgg/crates` type | 1.85 | | `ripgrep` type | 1.92 |
+| `cgg/crates` file | 1.86 | | `redis` full | 1.86 |
+| `cgg/crates` package | 2.10 | | `redis` file | 1.76 |
 
 Numbering the nodes, mermaid's default since 0.8.2, raises that ratio:
-the same four granularities on `cgg/crates` give **2.09–2.60** bytes per
+the same four granularities on `cgg/crates` give **2.08–2.51** bytes per
 token, because a base36 hash tokenizes at roughly one token per two
 characters while `N7` is one token outright. The divisor is unchanged, so
 default mermaid output now carries *more* slack than the figure below
@@ -998,13 +1015,14 @@ per-scheme is deferred: one divisor serves every renderer, and lowering
 it to suit numbering would push the hashed formats toward under-counting,
 which is the failure that matters.
 
-1.8 sits at the bottom of the hashed range on purpose: the estimate
-should be a **bound with 10–25% slack**, not a midpoint. Erring high costs one extra
-rung of folding; erring low hands back an artifact over the budget, which
-is the failure the flag exists to prevent. The calibration is against one
-BPE family (`o200k_base`) and is a proxy, not the tokenizer any given
-model charges — treat the budget as a bound with slack, not an exact
-count.
+1.8 was set at the bottom of the hashed range on purpose: the estimate should be
+a **bound with slack**, not a midpoint. The range has since drifted under it at
+one point — `redis` at file level now measures 1.76, so a hashed rendering of
+that shape can come out ~2% over its budget. Erring high costs one extra rung of
+folding; erring low hands back an artifact over the budget, which is the failure
+the flag exists to prevent. The calibration is against one BPE family
+(`o200k_base`) and is a proxy, not the tokenizer any given model charges — treat
+the budget as a bound with slack, not an exact count.
 
 A rollup is never silent: it is announced on stderr (**not** suppressed by
 `-q`), in a comment header inside the graph itself so it survives
@@ -1032,9 +1050,12 @@ Two limits, both stated by the tool rather than left to be discovered:
   Replaying a filtered document can only narrow it further; cgg detects
   that case (its metrics outnumber its contents) and warns.
 - Options needing analysis-time facts the document does not carry —
-  `--dead-code`, `--include-external`, `--dynamic-dispatch`, `--since`,
-  `--lang`, `--skip-minified` — are **refused with a reason**, not
-  silently ignored.
+  `--dead-code` / `--why-live` / `--write-roots`, `--report-unreferenced`,
+  `--since`, `--lang`, `--include-external` / `--include-stdlib`,
+  `--externals`, the opt-in edge flags (`--dynamic-dispatch`,
+  `--reference-edges`, `--guess-unique-names`), `--skip-minified`,
+  `--no-entry-nodes`, `--no-test-entries` — are **refused with a reason**,
+  not silently ignored.
 
 The document carries `"schema": "cgg.graph.v2"` and the writing version.
 `--from-graph` also reads `cgg.graph.v1`, written by 0.8.3 and earlier.
@@ -1086,9 +1107,10 @@ with in-degree zero is not an incomplete graph but a false claim. See
   Edges tagged `ext` / `std`.
 - `--dynamic-dispatch` — for interface/trait dispatch, add fan-out edges
   from each method *declaration* to every concrete *implementation*
-  (one low-confidence edge per impl). The exact call-site → declaration
-  edge is always emitted; this adds the over-approximated dispatch.
-  Edges tagged `dyn`.
+  (one low-confidence edge per impl), and from a base-class member to its
+  same-named overrides. The exact call-site → declaration edge is always
+  emitted; this adds the over-approximated dispatch. Edges tagged `dyn`.
+  `--dead-code` turns it on, as it does `--reference-edges`.
 - `--reference-edges` — when a function is passed *by name* as a value
   (`register(handler)`), emit a reference edge distinct from a call
   edge, so it no longer reads as dead code. Edges tagged `ref`.
@@ -1099,6 +1121,13 @@ with in-degree zero is not an incomplete graph but a false claim. See
   standard-library names, `self`/typed receivers (a typed miss never
   degrades to name matching), paths into external crates, and test-module
   helpers called from production code.
+- `--property-edges` — an edge for a member read that runs a getter
+  (`x.shape` reaching a Python `@property`, a JS/TS `get`, a C# getter, …)
+  when the receiver's type comes from a declaration. Edges tagged `prop`.
+- `--module-scope-calls` — calls written outside every definition (script
+  bodies, `if __name__ == "__main__":`) get a synthetic per-file
+  `<module>` caller instead of staying unresolved `no-enclosing-callable`
+  sites.
 
 ## External dependencies (`--externals`)
 
@@ -1392,11 +1421,11 @@ therefore exercise nothing:
 
 | app | framework | entries found |
 | --- | --- | --- |
-| [NetBox](https://github.com/netbox-community/netbox) | Django | 338 `network` · 22 `cli` |
+| [NetBox](https://github.com/netbox-community/netbox) | Django | 339 `network` · 22 `cli` |
 | [Netflix Dispatch](https://github.com/Netflix/dispatch) | FastAPI | 318 `network` · 38 `cli` |
-| [Mastodon](https://github.com/mastodon/mastodon) | Rails + Sidekiq | 191 `network` · 109 `queue` |
-| [mall](https://github.com/macrozheng/mall) | Spring Boot | 250 `network` · 1 `schedule` |
-| [PhotoPrism](https://github.com/photoprism/photoprism) | Gin + Chi | 43 `network` |
+| [Mastodon](https://github.com/mastodon/mastodon) | Rails + Sidekiq | 559 `network` · 109 `queue` |
+| [mall](https://github.com/macrozheng/mall) | Spring Boot | 250 `network` · 1 `schedule` · 1 `queue` |
+| [PhotoPrism](https://github.com/photoprism/photoprism) | Gin + Chi | 175 `network` from each rule |
 | [crates.io](https://github.com/rust-lang/crates.io) | Axum | 70 `network` |
 | [Ultralytics](https://github.com/ultralytics/ultralytics) | PyTorch | 159 `lifecycle` (root-marked, no nodes) |
 
@@ -1443,7 +1472,9 @@ project's rules wherever you launched it from.
 
 ## Audit / metrics
 
-Every run produces a structured audit trail:
+A run that writes its graph to a file also writes a structured audit
+trail beside it (a run whose graph goes to stdout writes none unless
+`--metrics FILE` asks for one):
 
 - Files discovered, analyzed, and skipped (with reasons)
 - Every callable extracted
@@ -1463,15 +1494,15 @@ Every run produces a structured audit trail:
   `-n 0` stopped at `--max-paths`, and `since_resolved.unmatched_files`
   for changed files that produced no `--since` seed
 
-Written as a sidecar (`<output>.audit.json`) or forced to a path with
-`--metrics FILE`. Use `--audit-format jsonl` for streaming/SIEM
+Written as a sidecar (`<output>.audit.json` beside `-o`) or forced to a
+path with `--metrics FILE`. Use `--audit-format jsonl` for streaming/SIEM
 integration.
 
 The audit document is a **JSON array of events**, each tagged with an
 `event` field — so a query names the event it wants:
 
 ```bash
-# Unresolved call sites in files whose path matches something
+# Every unresolved call site, with the stage that rejected it
 jq '.[] | select(.event=="file_analyzed") | .unresolved_calls[]?' out.mmd.audit.json
 ```
 
@@ -1700,12 +1731,12 @@ flight.
   false-positive class in `--dead-code` on Rust.
 - **Dynamic-dispatch fan-out across remaining languages.** The declaration →
   implementation fan-out (`--dynamic-dispatch`) is wired for Rust traits,
-  C++ virtual methods and member-pointer tables, and Python class
-  inheritance; the resolver and output machinery are language-agnostic,
-  but the per-plugin capture still needs porting to the other
-  interface-bearing plugins. (Function-as-value capture now covers python,
-  javascript, typescript, go, java, csharp, php, ruby, rust, elixir and
-  perl.)
+  C++ virtual methods and member-pointer tables, class inheritance in
+  Python, Java, C#, Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP and
+  Ruby, Go interfaces, and Clojure protocols and multimethods; other
+  interface-bearing plugins (Objective-C protocols, Solidity interfaces)
+  still need the per-plugin capture. (Function-as-value capture covers 26
+  plugins.)
 - **File-system-routed frameworks.** Next.js and Blazor put the route in
   the file layout or in markup cgg does not parse, so both are detected
   and reported as gaps rather than enumerated. Closing this means
@@ -1736,7 +1767,7 @@ One crate, `r-efi` (a UEFI-target transitive dependency), offers
 `MIT OR Apache-2.0 OR LGPL-2.1-or-later` — a disjunction, so the
 operative license is MIT or Apache-2.0 and never the LGPL option. That
 string is the only copyleft identifier anywhere in the dependency tree
-(`cargo metadata` over all 211 packages); `Cargo.lock` itself records no
+(`cargo metadata` over all 210 packages); `Cargo.lock` itself records no
 license fields at all, so the lockfile is not where this is checked.
 Separately, `tree-sitter-graphql` declares no `license` field and ships a
 plain MIT `LICENSE` file instead, so it reads as unlicensed to a tool that

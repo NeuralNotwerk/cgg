@@ -1,6 +1,8 @@
 # kotlin
 
-The Kotlin plugin is `KotlinPlugin` in `crates/cgg-lang/src/plugins/kotlin.rs` (1,084 lines including inline tests). It parses `.kt` and `.kts` files with the crates.io grammar `tree-sitter-kotlin-sg` 0.4 (`Cargo.toml:94`, `crates/cgg-lang/Cargo.toml:32`; `tree_sitter_kotlin_sg::LANGUAGE`, kotlin.rs:26-28). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:131`.
+> Revised 2026-11-25 against cgg 0.13.3: Kotlin now records call arity (overload narrowing), callable references as value references, `override` and `abstract` markers, declared return types for call results and class-scoped property types, and has 53 framework rules; the sections below are corrected accordingly. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Kotlin plugin is `KotlinPlugin` in `crates/cgg-lang/src/plugins/kotlin.rs` (1,377 lines including inline tests). It parses `.kt` and `.kts` files with the crates.io grammar `tree-sitter-kotlin-sg` 0.4 (`Cargo.toml:94`, `crates/cgg-lang/Cargo.toml:32`; `tree_sitter_kotlin_sg::LANGUAGE`, kotlin.rs:26-28). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:131`.
 
 A single recursive `KtWalker` (kotlin.rs:51-579) keeps four stacks:
 
@@ -17,7 +19,7 @@ The walker records:
 - `property_declaration` local/field types;
 - every `call_expression`, with a receiver rebuilt from the tree.
 
-The plugin declares only the `attributes` and `visibility` signals (kotlin.rs:18-24). It does **not** declare `test_defs`, `value_refs`, `dyn_uses`, `exports`, `unreachable` or `impls`. It ignores its `ExtractCtx` (`_ctx`, kotlin.rs:32), so it never records registrar arguments and never records value references.
+The plugin declares the `attributes`, `visibility` and (since WS26) `value_refs` signals. It does **not** declare `test_defs`, `dyn_uses`, `exports`, `unreachable` or `impls`. It reads `ExtractCtx::reference_sites` (kotlin.rs:41) to record callable references (§03), but still records no registrar arguments.
 
 No `resolver_kind` override exists, so resolution runs the generic pipeline. Kotlin-specific branches exist in:
 
@@ -69,7 +71,7 @@ Supported shapes:
 - **Class member** `class Service { fun run() {} }` → `InherentMethod` `com.example.Service.run`. Test `class_methods_with_package` (kotlin.rs:769).
 - **Class as constructor**: every named `class_declaration` (`class`, `data class`, `enum class`, `value class`, `interface`, `fun interface`, `sealed interface`) emits a `Constructor` def. Its span is the whole class and it carries the class's annotations (kotlin.rs:168-207).
   - Fixture f1: `com.acme.Shape constructor`, `com.acme.Ev constructor`, `com.acme.Pt constructor`.
-  - **Partial**: interfaces get a constructor node too, although they cannot be constructed (f1 `com.acme.Shape`, `com.acme.Ev`).
+  - **Partial**: interfaces get a constructor node too, although they cannot be constructed (f1 `com.acme.Shape`, `com.acme.Ev`; still so in 0.13.3 fixture `lang-docs/kotlin/f1`, `p.Svc` kind `constructor`).
 - **Secondary constructor and `init {}` blocks**: no node of their own. Their calls are attributed to the class's `Constructor` node, because its span covers them. Fixture f8: edges `u.Op -> u.Op.compute` from `init { compute() }` (L11) and from `constructor(x: Int) : this() { compute() }` (L12).
 - **Nested and inner classes** `class Op { class Nested { fun n() {} } }` → `u.Op.Nested` (constructor) and `u.Op.Nested.n`. Fixture f8.
 - **Named object** `object Registry { fun lookup() }` → `com.acme.Registry.lookup`. A `ClassDecl` is recorded, but no constructor node is emitted (kotlin.rs:209-231). Fixture f1.
@@ -78,18 +80,18 @@ Supported shapes:
   - Extensions are recognised later from the signature text (`is_kotlin_extension`, cross_file.rs:3586-3605; test `kotlin_extension_signatures_are_recognised`, cross_file.rs:8368).
 - **Generic, `suspend`, `operator`, `infix`, `@JvmStatic` functions** are all ordinary `function_declaration`s. Fixture f1: `com.acme.generic`, `com.acme.later`, `com.acme.Square.plus`. Fixture f8: `u.shl2`, `u.Op.invoke`, `u.Op.get`, `u.Op.component1`, `u.Op.create` with `@JvmStatic`.
 - **Overloads**: two same-QN defs are kept. Fixture f1: `com.acme.overloaded` ×2. Fixture f2: `p.Over.f` ×2.
-- **Abstract and interface members** `interface Shape { fun area(): Double }`, `abstract fun draw()` → `InherentMethod`. They are **not** tagged `abstract`, so the duck-typing narrowing that drops abstract declarations does not apply. Fixture f2: `extra -> p.Svc.go`, `SvcA.go`, `SvcB.go`, all medium.
-- **Local (nested) functions** `fun outer() { fun helper2() {} }` → a node **without the outer function in its QN** (`p.helper2`). It can collide with a same-named top-level function. Fixture f2: two `p.helper2` nodes, from a.kt line 19 and b.kt line 2. The intra-file call binds to the nested one (high).
+- **Abstract and interface members** `interface Shape { fun area(): Double }`, `abstract fun draw()` → `InherentMethod`. Since WS22 a bodiless one is tagged `abstract` (an `external` or `expect` one is not; test `bodiless_interface_and_abstract_members_are_tagged_abstract`, kotlin.rs:1297), so duck-typed fan-out drops it when a concrete candidate survives. 0.13.3 fixture `lang-docs/kotlin/f1`: `p.Svc.go` carries `abstract`.
+- **Local (nested) functions** `fun outer() { fun helper2() {} }` → a node **without the outer function in its QN** (`p.helper2`; still so in 0.13.3, fixture `lang-docs/kotlin/f1` `p.inner`, kind `method`). It can collide with a same-named top-level function. Fixture f2: two `p.helper2` nodes, from a.kt line 19 and b.kt line 2. The intra-file call binds to the nested one (high).
 - **Object-expression members** `object : Svc { override fun go() {} }` → a node QN'd at the **enclosing scope** (`p.go`), with no anonymous owner. Fixture f2.
 - **Visibility** (`vis`) is read from the grammar `visibility_modifier`, defaulting to `Public` (kotlin_vis, kotlin.rs:658-677). Tests `an_annotation_argument_does_not_hide_the_visibility_modifier` (kotlin.rs:1013) and `visibility_defaults_to_public_and_ignores_parameter_names` (kotlin.rs:1031).
   - Constructor defs set no `vis` (kotlin.rs:193). JSON shows `vis=None` (f1).
 - **Attributes**: annotations via the shared `attrs::collect`, stored verbatim (`@GetMapping("/x")`, `@Composable`, `@JvmStatic`) (kotlin.rs:194, 353; attrs.rs:32-41). Fixture f5.
-  - Modifiers (`override`, `open`, `abstract`, `external`, `suspend`, `operator`) are **not** attributes: `member_modifier` and `function_modifier` are not in `ATTR_KINDS` (attrs.rs:32-41). Fixture f5: `w.Nat.nativeCall attrs=` (empty) for `external fun`.
+  - Since WS20 the `override` modifier is recorded as the `override` attribute (`attrs::with_override_marker`; 0.13.3 fixture `lang-docs/kotlin/f1`: `p.SvcA.go[override]`). Other modifiers (`open`, `external`, `suspend`, `operator`) are not attributes. Fixture f5: `w.Nat.nativeCall attrs=` (empty) for `external fun`.
 - **Base types on members**: each method's `DefRecord::base_types` is the enclosing class's or object's supertypes (kotlin.rs:340-342). Test `a_superclass_written_as_a_constructor_call_is_a_base` (kotlin.rs:966).
 
 Not supported or partial:
 
-- **Property accessors** `val p: Int get() = …`: no node. Calls inside them go to the class's constructor node (f8 L9 `u.Op -> u.Op.compute`), or have **no source** at top level.
+- **Property accessors** `val p: Int get() = …`: no node by default. Under `--property-edges`, `cgg_lang::property_reads` (property_reads.rs:136) makes a getter a `Property` callable and a typed read an edge (0.13.3 fixture `lang-docs/kotlin/f3`: `val size: Int get() = compute()` gives `q.Box.size -> q.Box.compute` and `use -> q.Box.size [high property]`). **Partial**: a `get()` written on the line after the property, the usual layout, is not recognised (same fixture, no `q.Box.size` node). Calls inside them go to the class's constructor node (f8 L9 `u.Op -> u.Op.compute`), or have **no source** at top level.
 - **Extension properties** `val String.ext: Int get() = length`: no node (f8).
 - **Top-level `val lam = { … }` lambdas, `val local = fun() {}` anonymous functions, and all lambdas**: no node.
   - Inside a function, their calls are attributed to the enclosing function (f1 L57 `main -> topHelper` from `val local = fun() { topHelper() }`).
@@ -129,15 +131,15 @@ Supported shapes:
   - The receiver set is `KOTLIN_RECEIVER_SCOPE_EXTENSIONS` = `run`, `apply` and `KOTLIN_RECEIVER_SCOPE_FUNCTIONS` = `with` (stdlib.rs:25, 29; kotlin.rs:110-142, 250-276).
   - Test `scope_function_lambdas_give_bare_calls_their_receiver` (kotlin.rs:1047). Fixture f1: `with(q) { draw() }` → `Square.draw` (high) and `q.apply { area() }` → `Square.area` (high).
 - **Unrecoverable receiver**: `dot_call = true` keeps the call from being read as bare (kotlin.rs:508-510).
+- **Arity** (WS28): every call records `RefRecord::arity` (`call_arity`, kotlin.rs:853); a trailing lambda counts as one argument and a spread leaves the count unknown. See §06.
+- **Callable references** (WS26): under `--reference-edges` or `--dead-code`, every `callable_reference` and every navigation through `::` (`::f`, `T::m`, `x::m`, `this::m`, `a.b::m`) is a `value_ref` site (`record_callable_reference`, kotlin.rs:606), resolved as the call through that receiver would be. A class literal (`Foo::class`) is not one; a property reference is dropped when no callable carries the name; `x::m` through an untyped variable binds only through its type. 0.13.3 fixture `lang-docs/kotlin/f1`: `val g = ::top` gives `refs -> p.top [high reference]`.
 
 Not supported:
 
-- **Arity**: `RefRecord::arity` is never set (kotlin.rs:516-525), so there is no overload narrowing (§06).
-- **Method and function references** `::topHelper`, `a::byRef`, `list.forEach(::println)`: no value-ref record, so no edge, even under `--reference-edges`. Fixture f1: no edge for `::topHelper`. Fixture f3: `MyAct.byRef` is reported dead. The `kotlinx-coroutines` gap text says the same (rules.rs:7529).
-- **Operator calls by syntax**: `a + b` (`plus`), `o()` (`invoke`), `o[1]` (`get`), destructuring `val (a) = o` (`component1`), `in` (`contains`), `by` delegates (`getValue`). None is a call site. Fixture f8: no edges to `Op.invoke`, `Op.get`, `Op.component1` or `Op.plus`. Fixture f1: `q + q` has no edge to `Square.plus`.
+- **Operator calls by syntax**: `a + b` (`plus`), `o()` (`invoke`), `o[1]` (`get`), destructuring `val (a) = o` (`component1`), `in` (`contains`), `by` delegates (`getValue`). None is a call site. Fixture f8: no edges to `Op.invoke`, `Op.get`, `Op.component1` or `Op.plus`. Fixture f1: `q + q` has no edge to `Square.plus`. Still so in 0.13.3 (fixture `lang-docs/kotlin/f1`: `a + a; a()` give no edges).
 - **Infix function calls** `1 shl2 2` (an `infix_expression`, not a `call_expression`): not recorded. Fixture f8: no edge to `u.shl2`.
 - **Property reads through getters** (`o.p`) and extension properties (`"s".ext`): not calls (f8).
-- **Callbacks passed as values** (`register(::handler)`, a lambda passed to a framework): there is no registrar capture, because the plugin ignores `ExtractCtx` (kotlin.rs:32), and there are no Kotlin rules with `registrars` (§10).
+- **Registrar arguments**: there is no registrar capture (no Kotlin rule sets `registrars`, §10). A `::handler` argument is a value reference (above); a lambda passed to a framework is not a node.
 - **Calling a local lambda variable** `val target = { 1 }; target()`: refused as `shadowed-by-local` (f6 L12). That is correct, but the call yields no edge to the lambda body (no node).
 
 ## 04. Imports & module resolution
@@ -172,12 +174,13 @@ Not supported or partial:
 
 - **`not-in-imported-module`**: not applicable. `modules.rs` (`ModuleIndex`) has no Kotlin branch (grep finds no `kotlin` there).
 - **Import alias of an object member** `import u.Q.qf as aliased; aliased()`: **no edge**. Fixture f8: `aliased` is in the `(unattributed)` bucket.
-- **Import alias of an object** `import com.acme.util.Fmt as F; F.fmt()`: unresolved, `candidates-in-other-files` (fixture f1 L41).
+- **Import alias of an object** `import com.acme.util.Fmt as F; F.fmt()`: unresolved, `candidates-in-other-files` (fixture f1 L41). Both alias gaps remain in 0.13.3 (fixture `lang-docs/kotlin/f2`).
 - **No manifest reading**: `build.gradle(.kts)`, `settings.gradle` and Android `AndroidManifest.xml` are not read. There is no `manifest.rs` use in kotlin.rs.
 - **No JVM cross-language linking**: `language_family` leaves the JVM family commented out (cgg-core/src/lang_family.rs:32). Kotlin → Java and Java → Kotlin calls in one tree produce **no edges**. Fixture f9:
   - `J.sj()`, `x.m()` and `J()` from Kotlin are `no-candidate-in-file` and unattributed;
   - `K.Companion.kf()` and `KUtilKt.top()` from Java are external.
   - CHANGELOG.md:263-264 notes Java findings whose only callers are "in Kotlin (not linked)".
+  - Still so in 0.13.3: the JVM row of `language_family` is still commented out, and in fixture `lang-docs/kotlin/f2` a Kotlin `J.sj()` call to a Java class in the same package is `no-candidate-in-file`.
 
 ## 05. Type inference & receiver typing
 
@@ -195,17 +198,13 @@ Supported shapes:
 - **Lambdas and object expressions see the enclosing function's parameter types** (type_hints.rs:700-717, "Kotlin (WS14b)"). The type's trailing `?` is trimmed. Primary-constructor spans (`Constructor` defs) are excluded on purpose.
 - **Casts and constructions** (§03): `as`, `as?` and `Foo(…)` give `typed_receiver`.
 - **Implicit receivers**: `settle_implicit_receivers` (type_hints.rs:1373-1406) keeps `x`'s receiver for a bare call in a `run`/`apply`/`with` lambda only when `x`'s type declares that member. Otherwise the call reverts to bare. Test `implicit_receivers_settle_by_the_receivers_members` (type_hints.rs, around line 4160).
-- **Return types**: `extract_return_type` reads `fun f(): Foo` (type_hints.rs:2652-2660). Test `extract_return_type("kotlin", "fun f(): Foo? = null")` (type_hints.rs:3498).
-  - **But see below**: return types do not type a Kotlin chained receiver or a local.
+- **Return types** (WS35): the `signature_hint` now runs to the body, so the declared return type after the parameter list (`fun make(): Tool`) is read through the call-result path (`CALL_RESULT_LANGS`). A bare call types its receiver (`make().work()`) or a `val` local: from the calling class's own member when it is the run's one member, extension or local function of that name (`ReturnTypeIndex::kotlin_scoped`), else from the top-level functions, the calling file's own first, when all agree. Never for an imported name, a name some member, extension or local function also carries, a call in an extension body or scope-function lambda, a type parameter, a container or function type, or `Any`/`Unit`/`Nothing`. 0.13.3 fixture `lang-docs/kotlin/f1`: `make().work()` and `val t = make(); t.work()` both bind `p.Tool.work` at high, beside an unrelated `p.Other.work`.
+- **Class-body and primary-constructor properties** (0.11.1): a property's declared type, or a constructor `val`/`var` parameter's, is a declaration scoped to the class that declares it (`kotlin_property_at`). 0.13.3 fixture `lang-docs/kotlin/f1`: `class H1(private val a: SvcA) { fun f() { a.go() } }` binds `p.SvcA.go` at high.
 
 Not supported or partial:
 
-- **Primary-constructor properties as receiver types**: `class H1(private val a: Svc) { fun f() { a.go() } }` fans out by name. This is an explicit gap (CHANGELOG.md:709 "Not covered (WS14b) … Kotlin primary-constructor properties as receiver types"). Fixture f7 H1/H2/H3: `Svc.go` + `Other.go`, both medium.
-  - It only appears to work when a single candidate exists (f6 `Holder.a -> Svc.go`, high through the single intra-file candidate).
-- **Locals from a function result** `val r = ret(); r.go()`: untyped, fanned out (fixture f7 L11, fixture f10).
-- **Chained calls through return types** `ret().go()`: untyped, fanned out (fixture f10 L6). `Registry.lookup("k").area()` is unresolved (`candidates-in-other-files`, fixture f1 L44).
-- **Lambda parameters** `f { s -> s.go() }`, `it.go()`: untyped. `closure_types.rs` covers only Dart/C#/Scala, and `CALLBACK_TYPE_CONSTRUCTORS` has no Kotlin row (stdlib.rs:143-147). Fixture f10 L12.
-- **Smart casts** `if (x is Svc) x.go()`: the receiver keeps the declared `Any` type and is unresolved (`candidates-in-other-files`, fixture f7 L13).
+- **Lambda parameters** `f { s -> s.go() }`, `it.go()`: untyped. `closure_types.rs` covers only Dart/C#/Scala, and `CALLBACK_TYPE_CONSTRUCTORS` has no Kotlin row. Fixture f10 L12; still so in 0.13.3 (fixture `lang-docs/kotlin/f1`: `lam { s -> s.go() }` with `f: (Svc) -> Unit` fans out to `SvcA.go`, `SvcB.go` at medium).
+- **Smart casts** `if (x is Svc) x.go()`: the receiver keeps the declared `Any` type and is unresolved (`candidates-in-other-files`, fixture f7 L13; same in 0.13.3 fixture `lang-docs/kotlin/f1`).
 - **`Any` is not a top type for Kotlin**: `TOP_TYPES` lists Scala, C# and Dart only (stdlib.rs:151-155).
 - **Delegated properties** `val g by lazy { Svc() }`: untyped (fixture f7 H6, medium fan-out).
 - **Generic containers** `List<Svc>`, `vararg s: Svc` → the container. `s.first().go()` fans out (fixture f10 L9, L10).
@@ -235,18 +234,16 @@ Supported:
   - `expr.ext()` binds to an extension declared in the calling file or imported by name, unless the receiver's known type declares a same-named member (members win, `kotlin_extension_in_scope`, cross_file.rs:3611-3645).
   - Duck-typed fan-out drops out-of-scope extensions and non-extension top-level functions (`receiver_call_target`, cross_file.rs:3544-3580, 6992-7008).
   - Tests `kotlin_extension_calls_resolve_through_their_scope`, `kotlin_duck_typing_offers_only_extensions_in_scope` (resolve.rs:2974, 3017).
-- **Overload sets**: `kotlin` is in `binds_same_name_set` (intra_file.rs:828-850), so same-file same-QN overloads are one callee. They bind every overload at medium and are not cap-refused (cross_file.rs:4779-4790).
+- **Overload sets**: `kotlin` is in `binds_same_name_set`, so same-file same-QN overloads are one callee, never cap-refused.
+- **Arity narrowing** (WS28): Kotlin is in `OVERLOAD_ARITY_LANGS`; `accepts_arity` keeps the overloads whose parameter list accepts the call's count (defaults and `vararg` read; never empties a set), and a single survivor is `high` when the lookup is otherwise certain. A typed lookup reads the whole overload set even when the count is unknown. 0.13.3 fixture `lang-docs/kotlin/f1`: `overloaded(1)` binds only the one-parameter overload and `overloaded(1, 2)` only the two-parameter one, both high.
 
 Not supported or partial:
 
-- **No arity narrowing**: `OVERLOAD_ARITY_LANGS = ["java", "scala", "cpp"]` (type_hints.rs:1583). The plugin never sets `arity`.
-  - Fixture f1: `overloaded(1)` and `overloaded(1, 2)` each bind both overloads at medium (4 edges).
-  - Fixture f2: `o.f(1)` and `o.f(1, "a")` likewise.
-- **Same-file member of another class is ambiguous**: a bare `hook()` in `Base.start` with `Base.hook` and `Leaf.hook` both in the file is refused as `ambiguous-in-file`. Intra-file does not prefer the enclosing class's member for Kotlin, as it does for Dart/C++. Fixture f2: two `ambiguous-in-file` records (L3, L8).
+- **Same-file member of another class is ambiguous**: a bare `hook()` in `Base.start` with `Base.hook` and `Leaf.hook` both in the file is refused as `ambiguous-in-file`. Intra-file does not prefer the enclosing class's member for Kotlin, as it does for Dart/C++. Fixture f2: two `ambiguous-in-file` records (L3, L8). Still so in 0.13.3 (fixture `lang-docs/kotlin/f4`, with `Leaf` unrelated to `Base`). When the classes are written on one line each (fixture `lang-docs/kotlin/f1`), the call instead binds both `Base.hook` and the unrelated `Leaf.hook` at medium.
 - **`CLASS_RECORDS_ARE_EXACT`** excludes Kotlin (`["java", "csharp"]`, dispatch.rs:130). Member `base_types` are merged into the owner's bases.
 - **Bare-call scope is not restricted** for Kotlin: `bare_call_reaches` documents Kotlin as "unchanged where the bare-name scope depends on types cgg does not have" (cross_file.rs:4083-4085).
 - **Object-expression methods** have no anonymous owner (they are QN'd at the enclosing scope, f2 `p.go`). Calls through the object variable fan out (f2 L3: `o.go()` → `Svc.go`, `SvcA.go`, `SvcB.go`, medium).
-- **Interface members are not tagged `abstract`** (§02), so they are never dropped in favour of a concrete candidate.
+- **Interface members are tagged `abstract`** since WS22 (§02), and are dropped in favour of a concrete candidate.
 - **`impls` signal not declared**: the dead-code table reports `dispatch: none` for Kotlin (fixture f4 capabilities). Every finding carries `language-lacks-dispatch-model`.
 - **Class delegation** `: Svc by d`: no forwarding edges.
 
@@ -289,7 +286,9 @@ Not applicable. Kotlin has no macros or preprocessor.
 
 ## 10. Frameworks & entry points
 
-Rules are keyed `(id, language)` and matched against `rule.language == "kotlin"` only (cgg-resolve/src/frameworks/mod.rs:82-111, 596). `cgg-core/src/frameworks/rules.rs` has **30 Kotlin rules**:
+Rules are keyed `(id, language)` and matched against `rule.language == "kotlin"` only (cgg-resolve/src/frameworks/mod.rs:82-111, 596).
+
+**0.13.3 update.** `cgg-core/src/frameworks/rules.rs` now has **53 Kotlin rules** (counted by `language: "kotlin"`). WS24 added Kotlin copies of 23 Java rules: `spring-jobs`, `spring-messaging`, `jakarta-rs`, `micronaut`, `akka`, `java-concurrent`, `servlet`, `java-closeable`, `jsr250-lifecycle`, `spring-context`, `jsr330-inject`, `gradle-services`, `gradle-model-rules`, `jackson`, `moshi`, `junit-sources`, `testng`, `caliper`, `jpa-mapping`, `hibernate-listeners`, `storm`, `javafx` and `swing`. The Android `activity`, `fragment`, `service`, `contentprovider` and `application` rules now carry `base_types` and match by supertype (e.g. `android-activity` at rules.rs:4049); their stale "does not record class supertypes" gap text is gone (an `rg` for it finds nothing). Spring gained `@MessageMapping`, `@ExceptionHandler`, `@InitBinder` and `@ModelAttribute`; `junit` gained the JUnit 3 `TestCase` base. In Java and Kotlin an annotation now belongs to a rule only in a file importing from the rule's packages, or written qualified (`IMPORT_SCOPED_ATTRIBUTES`; `.kts` scripts exempt). The table below is the 0.11.0 list of 30, with 0.11.0 line numbers; its "gap only" marks for the Android lifecycle rules are superseded:
 
 | id | line | kind | node | trigger |
 | --- | --- | --- | --- | --- |
@@ -334,13 +333,12 @@ Helper tables (rules.rs, after line 11660): Kotlin has **no** rows in any of the
 - `detect_calls_for`;
 - `self_module_markers_for`.
 
-There are **no registrar verbs**: no Kotlin rule sets `registrars`, so `registrar_verbs_for("kotlin")` is `None`, and the plugin ignores `ExtractCtx` anyway.
+There are **no registrar verbs**: no Kotlin rule sets `registrars`, so `registrar_verbs_for("kotlin")` is `None` (re-checked for the 53 rules in 0.13.3).
 
 Missing compared with Java:
 
-- There is no Kotlin `junit-sources` (`@MethodSource`) and no `java-serialization` row.
-- There are no Kotlin rows for Micronaut, Quarkus, Vert.x, Javalin, Exposed, Room, Retrofit, Koin, Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`) or kotlinx.serialization. Grep shows none with `language: "kotlin"`.
-- The **gap texts of the five Android lifecycle rules and `kotlin-runtime` are stale**. They say "cgg's Kotlin plugin does not record class supertypes" (rules.rs:3822-3913, 7546), but supertypes have been recorded since 0.6.8 (kotlin.rs:56-61, `kotlin_bases`). The Activity, Fragment, Service and Application rules could now match by `base_types`, as `aws-lambda`/`gcp-functions` already do for Kotlin.
+- There is no Kotlin `java-serialization` row (`junit-sources` and Micronaut now exist).
+- There are no Kotlin rows for Quarkus, Vert.x, Javalin, Exposed, Room, Retrofit, Koin, Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`) or kotlinx.serialization (none in the 53-rule list above).
 
 ## 11. Test harness entries
 
@@ -348,7 +346,7 @@ Missing compared with Java:
   - detect `org.junit`, `kotlin.test`, `junit.framework`;
   - attributes `Test`, `BeforeTest`, `AfterTest`, `BeforeClass`, `AfterClass`, `ParameterizedTest`, `RepeatedTest`, `TestFactory`, `TestTemplate`, `BeforeEach`, `AfterEach`, `BeforeAll`, `AfterAll`, `Before`, `After`, `Ignore`.
   - It mints one harness node `<framework-entry>::test::junit` with `entry` edges to each case. Fixture f5: `junit -> w.CtlTest.setUp`, `junit -> w.CtlTest.works`. Dead-code roots: `framework:test-harness`, kind `test-entry`.
-- **`jmh`** (rules.rs:9445) and **`cucumber`** (rules.rs:9521) are also kind `test` (annotation based).
+- **`jmh`** (rules.rs:9445) and **`cucumber`** (rules.rs:9521) are also kind `test` (annotation based); since WS24 so are Kotlin `testng` and `caliper`, and `junit` also matches the JUnit 3 `TestCase` base with `test*`/`setUp`/`tearDown`.
 - **Annotation vs naming**: all Kotlin test rules are annotation based. The built-in name rule `is_test_name` falls to the default `test_` / `Test` prefix for Kotlin (deadcode/roots.rs:975-988). Kotlin backtick names (`` fun `does a thing`() ``) without `@Test` are not tests (fixture f5: `` w.CtlTest.`backtick name` `` reported).
 - **Built-in `TEST_ATTRS`** includes `Test` (roots.rs:211-225), so `@Test` is also a `builtin:test-attr` root without the junit import.
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: Python/PHP/Ruby only (rules.rs `TEST_CLASS_MEMBERS_ARE_ROOTS`). Kotlin test-class helpers stay reportable (fixture f5: `w.CtlTest.helperT`).
@@ -357,7 +355,7 @@ Missing compared with Java:
 
 ## 12. Dead-code analysis
 
-Capabilities (fixture f4/f5, `--dead-code-format json`): `class: analyzable`, `visibility: full`, `attributes: full`, `value_references: none`, `dispatch: none`, `exports: none`, `test_tagging: none`, `max_confidence: high`. These follow from the declared signals (deadcode/caps.rs:150-200).
+Capabilities (fixture f4/f5, `--dead-code-format json`): `class: analyzable`, `visibility: full`, `attributes: full`, `value_references: none`, `dispatch: none`, `exports: none`, `test_tagging: none`, `max_confidence: high`. In 0.13.3 (fixture `lang-docs/kotlin/f1`) `value_references` is `full`; the rest is unchanged. These follow from the declared signals (deadcode/caps.rs:150-200).
 
 Root kinds that fire for Kotlin:
 
@@ -374,8 +372,8 @@ Visibility:
 
 Confidence caps:
 
-- **Every Kotlin finding is capped at medium** in practice, because the language lacks value references and a dispatch model (`language-lacks-value-references`, `language-lacks-dispatch-model`, deadcode/mod.rs:918-924). Fixture f3: all 10 findings are medium. Fixture f4: `e.C.priv` is medium despite being private.
-- **`implements-external-contract` never fires for Kotlin**. The `override` modifier is not captured as an attribute, so `OVERRIDE_MARKERS` (`@Override`, `override`, `@override`, deadcode/mod.rs:409) never matches. Kotlin is not Python (the only unmarked case, mod.rs:497-502). Fixture f4: `class C : Consumer<String> { override fun accept(…) }` → `e.C.accept` has no `implements-external-contract` evidence.
+- **Every Kotlin finding is capped at medium** in practice, because the language lacks a dispatch model (`language-lacks-dispatch-model`). Since WS26 `language-lacks-value-references` no longer applies. Fixture f3: all 10 findings are medium; in 0.13.3 fixture `lang-docs/kotlin/f1` every finding is still medium or low.
+- **`implements-external-contract`** fires since WS20, because `override` is recorded. 0.13.3 fixture `lang-docs/kotlin/f1`: `class C : Consumer<String> { override fun accept(…) }` → `p.C.accept` carries `implements-external-contract`.
 - `implicitly-invokable-kind` applies to class constructor nodes (fixture f3 `d.Impl`).
 - `macro-generated`: not applicable.
 - `reflection`: there is no Kotlin `dynuse` (§15).
@@ -385,7 +383,7 @@ Unresolved-doubt handling is generic: `no-unresolved-site-with-name` appears on 
 Not supported:
 
 - Operator functions (`plus`, `invoke`, `get`, `componentN`) are reported dead even when used by syntax (fixture f3: `d.MyAct.plus` reported while `a + a` is written in `main`).
-- `::ref` targets are reported dead (fixture f3 `byRef`).
+- `::ref` targets were reported dead in 0.11.0 (fixture f3 `byRef`); since WS26 a callable reference credits its target (§03).
 - `exports`: Kotlin has no export records. Public API is reflected only through visibility.
 
 ## 13. Builtins & stdlib tables
@@ -414,8 +412,8 @@ Paths that yield `high` for Kotlin:
 Forced to medium or low:
 
 - `super` calls are never certain for Kotlin (`super_owner_may_be_anonymous`, cross_file.rs:4694-4699; CHANGELOG.md:57).
-- Overload sets bind every overload at medium (no arity narrowing).
-- Duck-typed by-name fan-out is medium: untyped constructor properties, lambda parameters, function results.
+- Overload sets bind every surviving overload at medium when more than one survives arity narrowing.
+- Duck-typed by-name fan-out is medium: lambda parameters, smart casts, untyped call results.
 - Inheritance fan-out (`--dynamic-dispatch`) is low.
 - Framework entries, descriptor links and exit nodes are low.
 
@@ -433,33 +431,31 @@ None. Kotlin is not in `dynuse.rs`'s `REFLECTIVE` table, which covers Python, Ru
 
 From code comments, rule gaps and the CHANGELOG:
 
-- Primary-constructor properties are not receiver types (CHANGELOG.md:709; fixture f7).
+- Primary-constructor properties were not receiver types in 0.11.0 (CHANGELOG.md:709; fixture f7); fixed in 0.11.1 (§05).
 - Kotlin is not linked to Java in mixed trees (CHANGELOG.md:263-264; lang_family.rs:32; fixture f9).
-- Coroutine bodies, `::` references and lambdas have no nodes and no value refs (rules.rs:7529 `kotlinx-coroutines` gap).
+- Coroutine bodies and lambdas have no nodes (`kotlinx-coroutines` gap); `::` references are value refs since WS26.
 - `init {}`, companion initialisers, property accessors, `operator fun`, `by` delegates and `toString`/`equals`/`hashCode` are invoked by syntax (rules.rs:7546 `kotlin-runtime` gap).
-- Ktor routes, the Ktor client, Compose `setContent {}`, Spring Integration and the Android Activity/Fragment/Service/ContentProvider/Application lifecycles are gaps (rules.rs:2346, 11299, 10322, 10017, 3822-3913).
-- **Stale gap prose**: six Kotlin rule gaps (rules.rs:3822, 3845, 3866, 3891, 3913, 7546) still claim "the Kotlin plugin does not record class supertypes", which has been false since 0.6.8 (kotlin.rs:56-61). The framework-coverage output repeats the stale claim (fixture f3).
+- Ktor routes, the Ktor client, Compose `setContent {}` and Spring Integration are gaps. The Android lifecycle rules match by supertype since WS24, and the stale "does not record class supertypes" prose is gone (§10).
 - `bare_call_reaches` deliberately leaves Kotlin's bare-call scope unrestricted (cross_file.rs:4083-4085).
 
 Found while cataloguing (fixtures):
 
-- No arity on call sites, so overloads always bind all members at medium (f1, f2).
+- Fixed (WS28): call sites carry arity, and overloads narrow by it (§06).
 - A same-file bare member call is refused as `ambiguous-in-file` when another class in the file declares the same name (f2).
 - Import aliases of objects or object members do not resolve: `import …Fmt as F; F.fmt()`, `import u.Q.qf as aliased` (f1, f8).
 - `Op.Factory.create()` through a **named** companion is unresolved, although `Op.create()` resolves (f8).
-- Function return types do not type locals or chains in Kotlin (f7, f10).
+- Fixed (WS35): declared return types type locals and chains (§05).
 - Lambda parameters, smart casts and `by lazy` properties are untyped (f7, f10).
 - Operators, infix calls, `invoke`, indexing and destructuring produce no edges (f1, f8).
-- `override` and `external` modifiers are not recorded, so:
-  - there is no `implements-external-contract` evidence (f4);
-  - there is no JNI FFI classification (f5).
-- Interfaces get a constructor node, and interface members are not `abstract` (f1, f2).
+- `external` is not recorded, so there is no JNI FFI classification (f5). `override` is recorded since WS20 (§12).
+- Interfaces get a constructor node (f1, f2; still so in 0.13.3). Interface members are `abstract` since WS22.
 - Nested local functions and object-expression members are QN'd at the enclosing scope, which allows QN collisions (f2).
 - In a packaged file, top-level functions are `InherentMethod` (kind `method`), not `FreeFunction` (f1; cross_file.rs:3536-3539).
 - `.kts` script top-level statements are `no-enclosing-callable` (f8).
 - No Kotest/Spek rules; no `*IT.kt`/`androidTest` test-path recognition (testfile.rs:103).
 - No reflection or `dynuse` screens (dynuse.rs:26-55).
-- Grammar: a one-line nested class body marks the file `parse_status: error` (bisect fixture). A newline before `(` can merge two statements into one call (f1 L59/60).
+- Grammar: a one-line nested class body marks the file `parse_status: error` (bisect fixture). A newline before `(` can merge two statements into one call (f1 L59/60). In 0.13.3 fixture `lang-docs/kotlin/f2`, a one-line `class Op { companion object Factory { fun create() {} } }` lost the class: its member became `u.create` and no `u.Op` node was made; written over several lines it is `u.Op.create`.
+- `--property-edges` misses a Kotlin `get()` written on its own line (§02).
 
 Ignored tests: `grep -rn '#\[ignore' crates --include=*.rs` finds no `#[ignore]` test anywhere in the workspace, so none is Kotlin-specific.
 
@@ -469,17 +465,17 @@ Ignored tests: `grep -rn '#\[ignore' crates --include=*.rs` finds no `#[ignore]`
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.kt`/`.kts` only; no shebang or content detection; the one-line top-level object misparse is repaired, but other grammar quirks remain |
 | 02. Callables extracted | partial | functions, members, class-as-constructor, extensions; no accessors, lambdas, init blocks or script bodies; local and anonymous-object functions lose their owner |
-| 03. Call-site forms | partial | bare, chained, cast and constructed receivers, generics and scope-function receivers; no arity, `::` refs, operators, infix calls or registrar args |
+| 03. Call-site forms | partial | bare, chained, cast and constructed receivers, generics, scope-function receivers, arity and `::` value refs; no operators, infix calls or registrar args |
 | 04. Imports & module resolution | partial | JVM imports, star imports, external-head refusal, extension imports; aliases of objects fail; no Java↔Kotlin linking |
-| 05. Type inference & receiver typing | partial | params, declared and constructed locals, casts, enclosing params in lambdas; no constructor properties, return types, lambda params or smart casts |
-| 06. Inheritance, dispatch & overloading | partial | bases recorded, super, inherited members, extensions, inheritance fan-out; no arity narrowing; same-file member ambiguity |
+| 05. Type inference & receiver typing | partial | params, declared and constructed locals, class-scoped and constructor properties, call results by declared return type, casts, enclosing params in lambdas; no lambda params or smart casts |
+| 06. Inheritance, dispatch & overloading | partial | bases recorded, super, inherited members, extensions, inheritance fan-out, arity narrowing; same-file member ambiguity |
 | 07. Scoping & shadowing | full | locals table, shadowed-by-local, lexical narrowing; positional and conditional shadowing n/a |
 | 08. Macros, preprocessor & codegen | n/a | no macros; kapt/KSP codegen not modelled |
 | 09. FFI & cross-language links | minimal | descriptor links only; `external fun` (JNI) not classified; no Java interop |
-| 10. Frameworks & entry points | partial | 30 rules (Spring, Android workers and services, Lambda, Azure, GCP, Compose and Dagger roots); 12 gap-only; stale "no supertypes" prose |
-| 11. Test harness entries | partial | JUnit, kotlin.test, JMH and Cucumber annotations; no Kotest/Spek; no TestRole tagging |
-| 12. Dead-code analysis | partial | visibility and attributes full; all findings capped medium (no value refs or dispatch); no external-contract evidence for `override` |
+| 10. Frameworks & entry points | partial | 53 rules (Spring family, Android incl. lifecycles by supertype, Lambda, Azure, GCP, Micronaut, JAX-RS, Compose and Dagger roots); Ktor, coroutines and Compose `setContent` gap-only |
+| 11. Test harness entries | partial | JUnit (incl. JUnit 3 base), kotlin.test, TestNG, JMH, Caliper and Cucumber; no Kotest/Spek; no TestRole tagging |
+| 12. Dead-code analysis | partial | visibility, attributes and value refs full; findings capped medium (no dispatch model); `override` gives external-contract evidence |
 | 13. Builtins & stdlib tables | partial | 304-name stdlib list; run/apply/with tables; no implicit packages or wrapper tables |
-| 14. Confidence & certainty | partial | high via imports, typed receivers and single candidates; `super` never high; overloads always medium |
+| 14. Confidence & certainty | partial | high via imports, typed receivers, return types, single candidates and arity-narrowed overloads; `super` never high |
 | 15. Dynamic use & reflection | none | Kotlin absent from `dynuse` |
 | 16. Known gaps & limitations | n/a | catalogued above |

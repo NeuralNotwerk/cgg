@@ -1,5 +1,7 @@
 # typescript
 
+> Revised 2026-11-25 against cgg 0.13.3: calls now carry arity (overload narrowing), annotated and constructed locals type receivers, class fields holding functions are methods, `super(…)` and value references (including `bind` and JSX attributes) are recorded, `override` is an attribute, test callbacks enter through the JS/TS harness rules, unreachable regions are consumed, `ts-node` scripts are TypeScript, and the lowercase-name guess is medium. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The TypeScript plugin (`TypeScriptPlugin`, `crates/cgg-lang/src/plugins/typescript.rs`, 332 lines including tests) is a thin wrapper. It owns detection, grammar choice and the `signals()` manifest, and hands extraction to the JavaScript plugin's `JsWalker` (`plugins/javascript.rs`, 1,621 lines; typescript.rs:85-86). The walker ignores type annotations, so TypeScript extracts exactly what JavaScript extracts. A few node kinds exist only in TypeScript and the walker handles them: `interface_declaration`, `abstract_class_declaration`, `method_signature`/`abstract_method_signature`, `import_require_clause`, `export =` and `accessibility_modifier`.
 
 Grammar and resolver:
@@ -18,7 +20,7 @@ Fixtures: every `fN` cited below lives under `<scratch>/parity/typescript/fN/`. 
 - **Extensions `.ts`, `.tsx`, `.mts`, `.cts`** (typescript.rs:22-24).
   - Fixture f6: `a.mts` is detected via `extension:.mts` and `b.cts` via `extension:.cts`.
   - detect.rs:683-684 test table has `("e.ts","typescript")` and `("f.tsx","typescript")`.
-- **Shebangs `ts-node`, `tsx`, `deno`, `bun`** (typescript.rs:25-27).
+- **Shebangs `ts-node`, `tsx`, `deno`, `bun`** (typescript.rs:25-27). Since WS25 the interpreter is the program's basename (or the first operand after `env`) and must equal a keyword, so `ts-node` is no longer claimed by JavaScript's `node`. Fixture (0.13.3) f3: `#!/usr/bin/env ts-node` → `typescript`, `shebang:ts-node`.
   - Fixture f6: `#!/usr/bin/env -S deno run` is detected as `shebang:deno`, and `#!/usr/bin/env bun` as `shebang:bun`.
 - **Per-file grammar** via `ts_language_for` (typescript.rs:54-62). `.ts`/`.mts`/`.cts` use the TypeScript grammar, so `<Foo>x` is a type assertion and `<T>(x) => x` is a generic arrow. `.tsx` and any other extension use TSX.
   - Test: `ts_files_use_the_typescript_grammar` (typescript.rs:117).
@@ -34,7 +36,6 @@ Fixtures: every `fN` cited below lives under `<scratch>/parity/typescript/fN/`. 
 
 **Not supported / partial**
 
-- **The `ts-node` shebang is classified as JavaScript.** Detection takes the first plugin whose shebang keyword is a *substring* of the interpreter word (detect.rs:64-73). `javascript` is registered before `typescript` (plugins.rs:127-128), and `"ts-node".contains("node")`. Fixture f6: `#!/usr/bin/env ts-node` gives `javascript shebang:node`.
 - **No content detection.** Nothing sniffs TypeScript inside `.js` or extensionless files.
 - **No re-parse fallback.** There is nothing like C#'s `#if` blanking. A `.tsx` file that uses `<T>x` assertions or `<T>(x)=>` generics (illegal in TSX) is parsed as an error.
 - **`.d.ts` files are walked**, but their `declare` items produce no callables (see §02).
@@ -57,6 +58,8 @@ All shapes below were confirmed by fixture f1 (`shapes.ts`) unless another fixtu
   - `static make()` → `StaticMethod`.
   - Others → `InherentMethod`. This covers `async *iter()`, `#secret()` (qn `Box.#secret`), computed `[Symbol.iterator]()` (qn `Box.[Symbol.iterator]`) and string-named `"quoted name"()` (qn `Box."quoted name"`).
   - Test: `class_with_types` (typescript.rs:212).
+- **Class fields holding functions** (`handler = () => {…}`, `static make = function(){}`, `private save = (x) => {…}`) are methods of the class (WS22). Fixture (0.13.3) f1: `K.handler` is a `method` and `K.handler -> K.hook` is high.
+- **Test callbacks** of `describe`/`it`/`test`/hooks in test files are `handler_at_<line>` closures (§11).
 - **Class expressions.** `const C2 = class Inner { m2(){} }` gives `Inner.m2`. The scope is the class's own name, not the variable (fixture f1).
 - **`abstract class`** (`abstract_class_declaration`, javascript.rs:168) owns its members. `abstract draw(): void;` → `TraitMethod` with attribute `abstract` (`record_signature`, javascript.rs:359).
 - **Interface methods.** `interface Shape { area(): number; }` → `Shape.area`, `TraitMethod`, attributes `["abstract"]`, `vis = Public` (javascript.rs:193-221). Interface properties (`size: number`, `cb: () => void`) are not callables.
@@ -84,7 +87,6 @@ All shapes below were confirmed by fixture f1 (`shapes.ts`) unless another fixtu
 
 **Not supported / partial** (all from fixture f1 unless noted)
 
-- **Class fields holding functions.** Neither `handler = () => { … }` (the common React/Angular handler pattern) nor `static sfield = function sf(){}` is a callable. Calls inside them have no enclosing callable: f1's `this.helper()` at line 17 is `no-enclosing-callable`.
 - **Object-literal arrow properties** (`{ q: () => 1 }`) are not extracted.
 - **`namespace NS { export function inNs(){} }` and `module M {}`.** The members are extracted, but the namespace is not a scope, so the qn is `inNs`, not `NS.inNs`. Consequence in fixture f8: `NS.inNs()` is unresolved with `candidates-in-other-files` even though the definition is in the same file.
 - **Ambient declarations** (`declare function ambient(...)`, all of `.d.ts`), overload signatures and class method overload signatures (`method(): void;` in a class body) are not extracted (javascript.rs:212-221 accepts `method_signature` only inside `interface_body`).
@@ -119,19 +121,17 @@ Calls are recorded by `record_call` (javascript.rs:1191-1260) for `call_expressi
   - The verbs are: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `all`, `use`, `route`, `on`, `once`, `addListener`, `prependListener`, `prependOnceListener`, `Worker`, `Piscina`, `process`, the Electron `ipcMain.*`/`app.on` set, `addEventListener`, `serve`, `middy`, `Function`/`NodejsFunction`/…, the Azure/GCP/Firebase trigger verbs, `notFound`, `onError`, `registerComponent`, …, the restify `del`/`opts`/`pre`.
   - Identifier arguments become value refs (`VALUE_REF_HINT`). String arguments become string refs, with the first string being the route.
   - Fixture f7 with `--reference-edges`: `app.get('/a', h1)`, `em.on('evt', h2)` and `process.on('exit', h3)` give `reg -> h1/h2/h3` as `Via::Reference`, `medium`.
-- **Arity.** `RefRecord::arity` is never set by the JS walker (`record_call` builds `..Default::default()`). TypeScript is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583, `["java","scala","cpp"]`).
+- **Arity** (WS28). Every TypeScript call and `new` records `RefRecord::arity`; a spread leaves it unknown. TypeScript is in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357), and `accepts_arity` reads optional `x?:`, rest parameters and `this:` (which takes no argument). Fixture (0.13.3) f2: `interface I { m(a: string): void; m(a: string, b: number): void }`, then `x.m("a")` and `x.m("a", 1)` through `x: I` each bind their one overload at high; `x.m(...[])` binds both at medium.
+- **`super(…)`** in a constructor (WS21) resolves through the base chain to the base constructor. Fixture (0.13.3) f1: `K.constructor -> P.constructor` high.
+- **Value references** (WS26), recorded under `--reference-edges` or `--dead-code` exactly as in JavaScript (the walker is shared; see `javascript.md` §03): arguments, array elements, object values and shorthand, assignment/declarator/field values, `export default`, `return`, arrow bodies, JSX attributes, and bound functions (`f.bind(x)`, `this.m.bind(this)`). Fixture (0.13.3) f1: `const al = helper` gives `ts -> helper` (reference, high).
+- **Member-read aliases** (`const f = obj.load; f()`) are rewritten to `obj.load()` and typed like any receiver (`cgg_lang::member_aliases`).
 
 **Not supported / partial**
 
-- **Value references outside registrar verbs** are not recorded at all. The walker never calls `capture_value_refs` or `capture_value_position`; only python.rs does.
-  - Fixture f7 with `--reference-edges` has no edge for `[1].forEach(cb)` or `return cb`.
-  - Fixture f5: `mappedFn` (`[1].map(mappedFn)`), `timerFn` (`setTimeout(timerFn)`) and `tableFn` (`{a: tableFn}`) are reported as dead.
-- **`RefRecord::value_ref`** (the site-level flag used for Java method refs and Python `return f`) is never set. `ExtractCtx::reference_sites` is not consulted by the JS walker.
-- **`super(...)` constructor calls** are not recorded (the callee kind is `super`). Fixture f14 has no edge `K.constructor -> P.constructor`.
 - **Element access calls** (`obj['run']()`), call-on-call (`fnReturningFn()()`'s outer call), `new (getCls())()` and dynamic `import('./m')` are not recorded as calls because the callee is not an identifier or member expression (fixtures f2 and f17). In fixture f8, `import('./lazy').then(m => m.lazyFn())` only gave `lazyFn` at `medium`, by name.
-- **`helper.call(null, 1)` / `.apply` / `.bind`** are recorded as a call to `call` on receiver `helper`. They never reach `helper` (fixture f2: external `call`).
-- **A local alias of a function** (`const f = helper; f(1)`) is not followed (fixture f2: `f` is external).
-- **JSX elements** (`<Inner />`, `onClick={this.clicked}`) are neither calls nor value refs. Fixture f5: `Card`, `Inner` and `Old.clicked` are reported as dead. The `react-hooks` rule gap says the same (rules.rs:11478).
+- **`helper.call(null, 1)` / `.apply`** are recorded as a call to `call` on receiver `helper`. They never reach `helper` (fixture f2: external `call`). `.bind` in a value position is a reference (above).
+- **A local alias of a function** (`const al = helper; al(1)`) gives only a reference edge to `helper`, never a call edge (fixture f1, 0.13.3).
+- **JSX elements** (`<Inner />`) are not calls, so components read as dead. The `react-hooks` rule gap says the same (rules.rs:11478). JSX attribute values (`onClick={this.clicked}`) are references since WS26.
 - **Paren-less calls**, call operators (`call_operator_names` has no JS/TS entry; cross_file.rs:394) and kwargs: not applicable or none.
 
 ## 04. Imports & module resolution
@@ -185,12 +185,13 @@ Calls are recorded by `record_call` (javascript.rs:1191-1260) for `call_expressi
 
 ## 05. Type inference & receiver typing
 
-TypeScript gets no plugin-recorded local types: no plugin in the JS family sets `local_types`, `scoped_types`, `class_fields` or `classes` (`grep -rln local_types crates/cgg-lang/src` lists only java, cpp, csharp, zig, python, c_macro, go, kotlin and rust). Typing therefore comes only from:
+The JS walker records no `scoped_types`, `class_fields` or `classes`. Typing comes from:
 
 1. parameter annotations parsed from `signature_hint`;
 2. receiver peeling (casts and `new`);
-3. the generic "variable named like a type the file declares" heuristic;
-4. return types for the return-type map.
+3. constructed (`new T()`) and annotated (`const t: T = …`) locals, where `FileFacts::locals` says that declaration is the binding in scope (WS23); a constructed `let`/`var` reassigned in its scope (`REASSIGNED_LOCAL`) types nothing;
+4. the generic "variable named like a type the file declares" heuristic (weak);
+5. return types for the return-type map.
 
 **Supported**
 
@@ -201,16 +202,15 @@ TypeScript gets no plugin-recorded local types: no plugin in the JS family sets 
   - Fixture f2: `o?: Other` and `n: Service | null = null` → `high`.
 - **Return types.** `extract_return_type("typescript", "function f(): Foo | undefined")` gives `Foo`, and `Foo | Bar` gives none (type_hints.rs:3502-3512). They feed `build_return_type_map`.
 - **Casts and constructions** (§03): `as`, `<T>x` and `new T()` set `typed_receiver`.
-- **Lowercase-name heuristic** (`find_constructor_assignments`, type_hints.rs:2404-2461): a receiver spelled as a lower-cased type name that the **same file** declares is typed as that type. Fixture f16: `lower(service: any) { service.run() }` → `Service.run` at **`high`**, even though the parameter is `any`. This is a guess promoted to `high`.
+- **Lowercase-name heuristic** (`find_constructor_assignments`, type_hints.rs:2404-2461): a receiver spelled as a lower-cased type name that the **same file** declares is typed as that type. Fixture f16: `lower(service: any) { service.run() }` → `Service.run` even though the parameter is `any`. The guess is weak and binds at **medium** since WS19 (fixture f4, 0.13.3; it was `high` in 0.11.0).
 
 **Not supported / partial**
 
-- **Annotated locals.** `const s2: Service = makeService(); s2.run()` fans out to `Service.run` + `Other.run` at `medium` (fixtures f2 and f9).
-- **`new`-initialised locals.** `const svc = new Service(); svc.run()` fans out (fixture f9 `ctorLocal`).
-- **Return-type-initialised locals** (`const s3 = makeService()`) and chained calls (`makeService().run()`, `retChain().run()`) fan out (fixtures f2 and f9).
+- **Annotated and `new`-initialised locals are typed** (supported since WS23). Fixture (0.13.3) f1: `const s: Service = makeService(); s.run()` and `const s2 = new Service(); s2.run()` both bind `Service.run` at high.
+- **Return-type-initialised locals** (`const s3 = makeService()`) and chained calls (`makeService().run()`) still fan out (fixture f1, 0.13.3: `Service.run` + `Other.run` at medium). TypeScript is not in `CALL_RESULT_LANGS`.
 - **Class fields and parameter properties.**
-  - `private field: Service; this.field.run()` fans out (fixture f9).
-  - `constructor(private injected: Service)` followed by `this.injected.run()` fans out (fixture f9).
+  - `private field: Service; this.field.run()` fans out (fixtures f9; f4 in 0.13.3).
+  - `constructor(private injected: Service)` followed by `this.injected.run()` fans out (fixtures f9; f4 in 0.13.3).
 - **Typed closure parameters** inside calls (`[x].forEach((x: Other) => x.run())`) fan out, because the inline arrow is not a callable and TypeScript has no `scoped_types` / `closure_types.rs` support (fixture f16).
 - **Generic bounds.** `function g<T extends Service>(t: T) { t.run() }` gives receiver `T` and is left unresolved (`candidates-in-other-files`, fixture f16).
 - **Top types.** `any`, `unknown` and `object` are not in `TOP_TYPES` (stdlib.rs:151-156 lists only Scala, C# and Dart). Fixture f16 behaved as untyped (`a.run()` fans out), apart from the name heuristic above.
@@ -218,8 +218,7 @@ TypeScript gets no plugin-recorded local types: no plugin in the JS family sets 
   - No `CALLBACK_TYPE_CONSTRUCTORS` entry, so `settle_closure_args` does not apply.
   - No `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` entries (stdlib.rs:35-58).
   - No implicit receivers.
-  - No `weak_receiver_type` (Python only).
-  - No per-site scoping of locals: whatever propagation exists is file-wide.
+  - Local types are matched to the binding in scope (WS23), not file-wide.
 - **Type information is not module-aware.** CHANGELOG.md:45-49: "Python and JS/TS record types without the module they came through, so there the type must be declared in the calling file or imported by name…".
 
 ## 06. Inheritance, dispatch & overloading
@@ -239,8 +238,8 @@ TypeScript gets no plugin-recorded local types: no plugin in the JS family sets 
 
 **Not supported / partial**
 
-- **No arity narrowing** (not in `OVERLOAD_ARITY_LANGS`; arity is never recorded).
-- **The TypeScript `override` modifier is not recorded as an attribute.** Fixture f11: `override hook()` has attributes `None`.
+- **Arity narrowing** now applies (§03): an overload set narrowed to one by argument count is `high` when the lookup is otherwise certain.
+- **The `override` modifier is recorded as an attribute** (`attrs::with_override_marker`). Fixture (0.13.3) f1: `K.hook` attributes `['override']`.
 - **Mixins** (`class X extends Mixin(Base)`), declaration merging, interface `extends` chains for dispatch beyond `base_types` and `implements` of an out-of-tree interface: unverified, or not modelled beyond the base-type strings.
 - **`member_of_calling_class` / bare calls to inherited members.** A bare `helper()` never reaches a method: `bare_call_is_never_a_method` includes TypeScript (intra_file.rs:49-54). This is correct language semantics.
 - **No extension methods and no traits.** Not applicable to the language.
@@ -259,8 +258,8 @@ TypeScript gets no plugin-recorded local types: no plugin in the JS family sets 
 **Not supported / partial**
 
 - **A parameter does not shadow an imported name.**
-  - Fixture f10: `import { helper } from './a'; function p(helper: () => void) { helper(); }` produced `p -> helper` (the imported function) at **`high`**. This is a wrong edge that the shadowed-by-local rule should have prevented. Unverified why. CLAUDE.md states that locals and parameters shadow import names.
-- **Out-of-scope nested definitions.** Fixture f10: `function outer3() { inner(); }`, with `inner` defined only inside `outer1` and `outer2`, bound **both** at `medium` instead of refusing.
+  - Fixture f10: `import { helper } from './a'; function p(helper: () => void) { helper(); }` produced `p -> helper` (the imported function) at **`high`**. This is a wrong edge that the shadowed-by-local rule should have prevented. Unverified why. CLAUDE.md states that locals and parameters shadow import names. Still reproduces in 0.13.3 (fixture f3: `p(other: () => void) { other(); }` → imported `other`, high).
+- **Out-of-scope nested definitions.** Within one file, a lone nested function called from a function that does not enclose it is kept at `medium` (fixture f1, 0.13.3: `outer3 -> inner` medium). From another file it is never a bare-name candidate (`cross_file::nested_function_ids`, WS33). Lambda and arrow parameters are `LocalBinding::param` and shadow.
 - **No positional shadowing.** It is limited to OCaml, F# and Lua per CLAUDE.md.
 - **Block scoping inside one function is not modelled.** `blocks` covers statement blocks for locals only. Unverified for `let` redeclaration in sibling blocks.
 
@@ -337,16 +336,14 @@ There are 44 built-in rules with `language: "typescript"`. Rule language is matc
 
 ## 11. Test harness entries
 
-- **No TypeScript test harness enumerates.** `vitest` (rules.rs:8732), `jest` (8773) and `playwright` (8797) are `TrustKind::Test` rules with empty matchers and a `gap`. Their block verbs (`describe`, `it`, `test`, …) are deliberately not registrar verbs, because the verb set is global per language. So no `<framework-entry>::test::…` node is minted for TypeScript, and `--no-test-entries` has nothing to change.
-- **Test cases are anonymous closures** passed to `it(…)` / `test(…)`, so they are not callables. Calls inside them have no enclosing callable.
-  - Fixture f5 (`--include-tests`): `testHelper()` inside `it(...)` became a `toplevel:invocation` root.
-  - In the same fixture, `exportedButUnused()` (imported by the test) stayed a dead-code finding, because the site had no enclosing callable and was left `no-candidate-in-file`.
+- **Harness rules** (WS24): `vitest`, `jest`, `mocha`, `node-test`, `playwright` and `js-test-globals` have TypeScript copies (rules.rs:9592 onward). Their block verbs gate only files `classify_test_file` marks as test code, called bare or chained off another block verb; each callback becomes a `handler_at_<line>` closure with the description as its route, and each harness mints one `<framework-entry>::test::<id>` node. Harness choice per file is as in JavaScript (`javascript.md` §11). Fixture (0.13.3) f4: `test/a.test.ts` importing `vitest` gives `<framework-entry>::test::vitest -> handler_at_3` and `handler_at_3 -> prod` (high).
+  - **Quirk**: two callbacks on one line (`describe('s', () => { it('x', () => {…}); });`) are both named `handler_at_3`; the audit then shows `value-ref-ambiguous` records named `handler_at_3` (fixture f4).
 - **Name-based test roots.** `is_test_name` falls back to the generic `test_` / `Test` prefix for TypeScript (roots.rs:975-990). Fixture f5: `test_named` → `builtin:test-name` test-entry root. There is no `it`/`describe` convention.
 - **Test-file classification** (`testfile.rs:84-96`):
   - Names `.test.{js,jsx,ts,tsx,mjs,cjs}` and `.spec.{js,jsx,ts,tsx}`.
   - The generic directories `test`, `tests`, `__tests__`, `spec`, `specs`, `testdata`, `e2e`, `Tests`, `Test` (testfile.rs:35-45).
   - Tests: `src/a.test.ts` and `src/a.spec.tsx` are test files, and `src/attest.ts` is not (testfile.rs:197-204).
-  - **Gap:** `.test.mts`, `.test.cts`, `.spec.mts`, `.spec.cts`, `.spec.mjs` and `.spec.cjs` are not in the list.
+  - Since 0.11.1 the list also has `.test.mts`/`.test.cts` and `.spec.mjs`/`.cjs`/`.mts`/`.cts` (testfile.rs:89-100).
 - **No `TEST_CLASS_MEMBERS_ARE_ROOTS`** (rules.rs ~11806: only python, php and ruby).
 - **No `test_defs` signal.** The capability table shows `test_tagging: none` (fixture f5).
 
@@ -369,11 +366,12 @@ dispatch: full, exports: none, test_tagging: none, max_confidence: medium
   - **No TypeScript entry in `LIFECYCLE` or `LANG_ENTRY`.**
 - `builtin:test-name` (§11) and `UNIVERSAL_ENTRY` `main` (roots.rs:20).
 - `dispatch:inheritance` under `--dead-code` (TypeScript is in `INHERITANCE_LANGS`, deadcode/mod.rs:342).
+- `framework:test-harness` for the JS/TS harness nodes (§11).
 
 **Signals extracted**
 
 - Attributes and decorators.
-- Value refs (registrar-argument only, §03).
+- Value refs (WS26 value positions plus registrar arguments, §03).
 - `dyn_uses` (`require` literal, §15).
 - `unreachable` regions (`cfg::unreachable_after_terminator` with the `JS` spec, cfg.rs:135, 181; typescript.rs:89-90).
 - Impls (via `base_types`).
@@ -388,14 +386,11 @@ dispatch: full, exports: none, test_tagging: none, max_confidence: medium
 **Not supported / partial**
 
 - **`export` is not a root.** The `exports` signal is absent, so `export function exportedButUnused()` is reported (fixture f5, `risk: language-lacks-visibility, name-matches-unresolved-site`). The `lang:export` rule reads `FileFacts::exports`, which the JS walker never writes (roots.rs:890-915).
-- **`implements-external-contract` never fires** for TypeScript. The `override` modifier is not an attribute, and the Python-style "outside base" rule is Python-only (deadcode/mod.rs:497-506). Fixture f11: `X.hook` (an `override` of the out-of-tree `Base`) is a plain `medium` finding.
+- **`implements-external-contract`** applies: an `override` member whose base is outside the tree carries it. Fixture (0.13.3) f1: `class Ext extends ExternalBase { override foo() }` → `Ext.foo` medium with `implements-external-contract`.
 - **Missing roots and refs that produce false findings:**
-  - Value-ref gaps (§03): `mappedFn`, `timerFn` and `tableFn` are reported.
-  - JSX gaps: `Card`, `Inner` and `Old.clicked` are reported.
+  - JSX element gaps: function components (`Card`, `Inner`) are reported.
   - React `render` is not in the `react` methods (fixture f5: `Old.render` is reported).
-- **Unreachable regions are extracted but nothing consumes them.**
-  - The only consumer of `FileFacts::unreachable` in `crates/` is the signal flag at cgg/src/lib.rs:1935; there is no reader of the regions in cgg-resolve.
-  - Fixture f6: `live -> afterRet`, where the call sits after `return`, is a `high` edge, and `afterRet` is not reported.
+- **Unreachable regions are consumed** under `--dead-code` (`cgg_resolve::unreachable`): an edge from a site after a terminator is capped at medium and keeps nothing alive. Fixture (0.13.3) f3: `return 1; other();` gave `q -> other` medium.
 - **Unresolved-doubt visibility filtering** is implemented only for Java and C# (deadcode/mod.rs:662-675). TypeScript `private` members get no such narrowing.
 
 ## 13. Builtins & stdlib tables
@@ -411,6 +406,7 @@ dispatch: full, exports: none, test_tagging: none, max_confidence: medium
   - No TypeScript entry in `UNION_TYPE_CONSTRUCTORS`, `CALLBACK_TYPE_CONSTRUCTORS`, `TOP_TYPES`, `CAST_INTRINSICS` or `CONSTRUCTING_METHODS`. `Partial<T>`, `Required<T>` and `Promise<T>` are not unwrapped (unverified for `Promise`, whose awaited value is peeled only syntactically).
 - **Not applicable:** a `rust_types`-like wrapper table and implicit packages.
 - **`DYN_MODULE_LOADERS`** includes `require` (facts.rs:165).
+- **`--externals[=KINDS]`** (0.12.0) attributes every post-reconciliation stdlib/external site to a library and kind without changing any in-tree edge. Row: `crates/cgg/tests/externals.rs:132`.
 
 ## 14. Confidence & certainty
 
@@ -429,7 +425,7 @@ dispatch: full, exports: none, test_tagging: none, max_confidence: medium
 - Inherited members and `super` across files (fixture f4).
 - Dynamic-import members.
 - Every value-ref (`Via::Reference`) edge.
-- Overload-set binds.
+- Overload-set binds when more than one overload survives the arity check.
 
 **What is `low`**
 
@@ -437,9 +433,8 @@ dispatch: full, exports: none, test_tagging: none, max_confidence: medium
 
 **What is wrongly `high`**
 
-- The lowercase-name heuristic (fixture f16: `service: any` → `Service.run` `high`).
-- A parameter not shadowing an import (fixture f10: `p -> helper` `high`).
-- Unreachable-code edges (fixture f6).
+- A parameter not shadowing an import (fixture f10: `p -> helper` `high`; still in 0.13.3, fixture f3).
+- Fixed since 0.11.0: the lowercase-name heuristic is now `medium`, and unreachable-code edges are `medium` under `--dead-code`.
 
 **Mermaid.** Arrows with no `high` site get a leading `?` (fixture f9 mermaid output: `N4 -->|?2x| N0`).
 
@@ -460,17 +455,14 @@ dispatch: full, exports: none, test_tagging: none, max_confidence: medium
 
 These were found while cataloguing. Each is cross-referenced to the section with its evidence.
 
-1. **Locals and fields are not typed** (§05). Annotated locals, `new`-initialised locals, class fields, constructor parameter properties, return-type chains, typed inline closures and generic bounds all fall back to by-name fan-out (fixtures f2, f9, f16). This is the biggest resolution gap: the walker writes no `local_types`, `class_fields`, `classes` or `scoped_types`.
-2. **Class fields holding arrow functions are not callables** (`handler = () => {}`; §02, fixture f1). Neither are object-literal arrow properties. Namespace members lose their namespace qualifier, so `NS.f()` fails to resolve (fixture f8).
-3. **Value references are captured only for registrar verbs** (§03). Functions passed to `map`/`forEach`/`setTimeout` or stored in tables, and JSX handlers and components, have no reference, and are reported dead (fixtures f5, f7).
-4. **No test harness for vitest/jest/playwright** (§11). Test-case closures are not callables. The `.mts`/`.cts` test suffixes are unclassified.
-5. **Dead code is capped at `medium`, with no export roots** (§12). `export` is not a root, `override` is not recorded (so `implements-external-contract` never applies), React `render` is not rooted, and unreachable regions are extracted but unused.
-6. **Wrong `high` edges:**
-   - A parameter named like an import binds the import (fixture f10).
-   - The lowercase type-name heuristic overrides an `any` annotation (fixture f16).
-   - Calls after `return` stay `high` (fixture f6).
-7. **Missing call shapes** (§03): `super(...)`, `obj['m']()`, `import()`, `f()()`, `.call`/`.apply`, and local function aliases are not linked.
-8. **Detection** (§01): the `#!/usr/bin/env ts-node` shebang is detected as JavaScript, because detection substring-matches `node` and JavaScript is registered first.
+1. **Fields are not typed** (§05). Class fields, constructor parameter properties, return-type locals and chains, typed inline closures and generic bounds fall back to by-name fan-out (fixtures f2, f9, f16; f1/f4 in 0.13.3). Annotated and `new`-initialised locals are typed since WS23.
+2. **Object-literal arrow properties are not callables**, and namespace members lose their namespace qualifier, so `NS.f()` fails to resolve (fixture f8; f1 in 0.13.3). Class-field functions are methods since WS22.
+3. **JSX element names are not calls** (§03), so function components read as dead. Value positions (including JSX attributes) are references since WS26.
+4. **Two test callbacks on one line share a `handler_at_<line>` name** (§11, fixture f4).
+5. **Dead code is capped at `medium`, with no export roots** (§12). `export` is not a root and React `render` is not rooted.
+6. **Wrong `high` edge:** a parameter named like an import binds the import (fixture f10; f3 in 0.13.3). The lowercase type-name heuristic still overrides an `any` annotation, now at `medium`.
+7. **Missing call shapes** (§03): `obj['m']()`, `import()`, `f()()` and `.call`/`.apply` are not linked; a local function alias is a reference, not a call.
+8. **Detection** (§01): fixed in WS25; `ts-node` scripts are TypeScript.
 9. **Audit and exit-node inconsistency** (§04): calls bound through aliased imports (`import { a as b }` and barrel aliases) also remain in `external_calls`, and with `--include-external` gain a phantom `<external>::name` edge (fixtures f2, f3). A missing member of an in-tree namespace import (`lib.missing()`) surfaced as external `no-candidate-in-file` instead of `not-in-imported-module` (fixture f9; cause unverified).
 10. **FFI** (§09): napi name-twin linking does not convert snake_case to camelCase.
 11. **Frameworks** (§10): 19 TypeScript rules (excluding the three test rules) are pure gaps, among them Next.js, Fastify, Koa, tRPC, GraphQL resolvers, Vue, Svelte and React function components. JavaScript-only rules (`express-gateway`, `meteor`, `polka`, `sails`) have no TypeScript twin.
@@ -486,19 +478,19 @@ These were found while cataloguing. Each is cross-referenced to the section with
 
 | section | support | note |
 | --- | --- | --- |
-| 01 Detection & parsing | full | 4 extensions, TS/TSX grammar split; `ts-node` shebang misdetected as JS |
-| 02 Callables extracted | partial | functions, methods, accessors, interface/abstract members; no class-field arrows, namespace scoping, overload signatures or `declare` |
-| 03 Call-site forms | partial | bare/member/new/casts/generics/optional chaining; no `super()`, `obj['m']()`, `import()`; value refs only for registrar verbs |
+| 01 Detection & parsing | full | 4 extensions, TS/TSX grammar split; `ts-node`/`tsx`/`deno`/`bun` shebangs |
+| 02 Callables extracted | partial | functions, methods, class-field functions, accessors, interface/abstract members, test callbacks; no namespace scoping, overload signatures or `declare` |
+| 03 Call-site forms | partial | bare/member/new/`super()`/casts/generics/optional chaining, arity, value refs, member-read aliases; no `obj['m']()`, `import()` |
 | 04 Imports & module resolution | full | ESM/CJS/`import =`, barrels, tsconfig/package/deno manifests, external refusal; audit residue for aliased imports |
-| 05 Type inference & receiver typing | minimal | parameter annotations and casts only; locals, fields, returns and closures untyped |
-| 06 Inheritance, dispatch & overloading | partial | bases, super, interface dispatch, inheritance fan-out; no `override`, no arity narrowing |
+| 05 Type inference & receiver typing | partial | parameter annotations, casts, annotated and constructed locals; fields, return-typed locals and closures untyped |
+| 06 Inheritance, dispatch & overloading | partial | bases, super, interface dispatch, inheritance fan-out, `override` attribute, arity narrowing |
 | 07 Scoping & shadowing | partial | locals and lexical narrowing; a parameter does not shadow an import (wrong `high` edge) |
 | 08 Macros, preprocessor & codegen | n/a | no macros; decorators recorded as attributes and calls |
 | 09 FFI & cross-language links | partial | napi/wasm-bindgen name twins (no camelCase), protobuf rpc links; no markup |
 | 10 Frameworks & entry points | partial | 44 rules, 22 enumerate (Express, NestJS, Angular, cloud functions, …), 22 are gaps |
-| 11 Test harness entries | minimal | test-file naming only; vitest/jest/playwright are gaps; generic `test_` name rule |
-| 12 Dead-code analysis | partial | capped at `medium`; no export roots, no override contract, unreachable regions unused |
+| 11 Test harness entries | full | vitest/jest/mocha/node-test/playwright/js-test-globals harness nodes over `handler_at_*` callbacks |
+| 12 Dead-code analysis | partial | capped at `medium`; no export roots; override contract cap and unreachable regions work |
 | 13 Builtins & stdlib tables | partial | 594-name stdlib list plus null/maybe tables; no top types or cast tables |
-| 14 Confidence & certainty | partial | `high` for import-anchored and typed-receiver calls; some wrong `high` edges |
+| 14 Confidence & certainty | partial | `high` for import-anchored and typed-receiver calls; one wrong-`high` class remains (parameter vs import) |
 | 15 Dynamic use & reflection | minimal | only the `require` literal (module-load); no bracket/Reflect/import() screens |
 | 16 Known gaps & limitations | n/a | 14 items listed above |

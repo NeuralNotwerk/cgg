@@ -1,5 +1,7 @@
 # verilog
 
+> Revised 2026-11-25 against cgg 0.13.3: no corrections needed; the plugin is unchanged since 0.11.0, and the unrecorded task/function calls, unrecorded `` `include ``, cross-file refusal and the `task`-attribute dead-code root bug were re-confirmed (fixture `lang-docs/verilog/b`). `file:line` citations date from the 0.11.0 audit and may have drifted.
+
 The Verilog / SystemVerilog plugin (`VerilogPlugin`, id `"verilog"`, `crates/cgg-lang/src/plugins/verilog.rs`, 301 lines including 3 unit tests) is one of the smallest plugins in cgg. It uses the crates.io grammar `tree-sitter-verilog` (`Cargo.toml:120` `tree-sitter-verilog = "1.0"`, locked at 1.0.3 in `Cargo.lock`; nothing vendored). It is registered at `crates/cgg-lang/src/plugins.rs:161`. The plugin has no `resolver_kind` override, no `signals()` override (so every `PluginSignals` bit is false, `crates/cgg-lang/src/lib.rs:304`), no `shebangs`, and no `max_line_bytes`. It extracts modules, tasks and functions as callables. It records two reference shapes: module/checker/program/udp/interface instantiation, and `$system_tf` calls. It records no imports, no locals, no types, no bases and no attributes beyond a kind tag. The plugin's own doc comment (`verilog.rs:1-8`) says that "The 'call graph' in Verilog comes mainly from `module_instantiation` … Plain task-enable statements … may not be captured". Resolution in practice is **intra-file only**, because no Verilog file ever has an import record, so the cross-file fallbacks never run (see §04).
 
 ## 01. Detection & parsing

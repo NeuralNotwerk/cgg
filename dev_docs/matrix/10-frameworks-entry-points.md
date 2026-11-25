@@ -154,13 +154,13 @@ Attribute recording (Attr column). These plugins write no source attributes: swi
 
 Ranked by how much entry surface is lost compared with a comparable language that has the support, and how often the language appears in real trees. Effort: S = add or copy `RuleSpec`/helper rows, M = plugin extraction work plus rules, L = a new input format or a new matcher shape.
 
-1. **Kotlin lacks 23 enumerating Java rules, and its Android lifecycle rules are gap-only.**
+1. *Fixed in 0.11.1 (CHANGELOG WS24; rules.rs now has the 23 Kotlin twins and the five Kotlin Android rules carry base types).* **Kotlin lacks 23 enumerating Java rules, and its Android lifecycle rules are gap-only.**
    - `rules.py diff java kotlin` lists the missing ids: akka, caliper, gradle-model-rules, gradle-services, hibernate-listeners, jackson, jakarta-rs, java-closeable, java-concurrent, javafx, jpa-mapping, jsr250-lifecycle, jsr330-inject, junit-sources, micronaut, moshi, servlet, spring-context, spring-jobs, spring-messaging, storm, swing, testng.
    - So `@Scheduled`, `@KafkaListener`, `@Bean`, `@EventListener`, `@PostConstruct`, JAX-RS and Micronaut controllers enter nothing in Kotlin.
    - `android-activity`, `android-fragment`, `android-service`, `android-contentprovider` and `android-application` (rules.rs:3822-3913) have no matchers. Their gap text says the plugin does not record supertypes, but kotlin.rs:174 (`kotlin_bases`) does. Fixture `kt`: `class MainAct : AppCompatActivity()` gives "seen, no rules android-activity" with that stale text, and `onCreate` gets no framework root.
    - The Kotlin `spring` rule also lacks the Java `MessageMapping`/`ExceptionHandler`/`InitBinder`/`ModelAttribute` attributes (kotlin.md §10).
    - Effort **S** (copy rows; the plugin already records attributes and bases).
-2. **JavaScript/TypeScript have no working test harness.**
+2. *Fixed in 0.11.1 (matrix 11, fixtures `js`, `jsg`).* **JavaScript/TypeScript have no working test harness.**
    - `vitest`, `jest` and `playwright` are gap-only in both languages (`rules.py tests`; javascript.md §10, typescript.md §10).
    - By contrast, Python (`py-unittest`, `pytest`), Go (`go-testing`), Rust (`cargo-test`), Java (`junit`, …) and C# (`xunit`, `mstest`, …) mint harness nodes.
    - The JS plugin already synthesizes inline closures for registrars (javascript.rs:1296). `it`/`test`/`describe` are kept out of the verb gate on purpose (registrar.rs:191-205 comment; registrar_verbs doc rules.rs:11897-11904).
@@ -175,17 +175,17 @@ Ranked by how much entry surface is lost compared with a comparable language tha
    - F# records attributes (fsharp.rs:168-173 per fsharp.md) and runs on the same SDKs. Only `azure-functions` is shared.
    - F# also has no `member_sources_for` row (`TestCaseSource` not rooted).
    - Effort **S** for attribute/base rows, **M** for Giraffe/Saturn routing (operator/CE position, which needs plugin work).
-5. **Scala and Groovy lack the JVM rules Java has.**
+5. *Partly fixed in 0.11.1: Groovy `spock` enumerates; Scala and Groovy still have no JUnit/Spring rows.* **Scala and Groovy lack the JVM rules Java has.**
    - Scala: 43 ids missing, Groovy: 42 (`rules.py diff java scala|groovy`), including `spring`, `junit`, `jakarta-rs`, `jsr250-lifecycle`, `spring-context` and `akka`.
    - Scala `akka-scala`/`akka-typed`/`play-mvc` are gap-only, although the plugin records bases and annotations (scala.md §10; stale gap prose at rules.rs:5512, 5571).
    - Groovy records annotations and bases (fixture f9 in groovy.md: `@TaskAction` and `Plugin<Project>` matched), but Spock/Grails are gap-only.
    - Effort **S** (rows) for Spring/JUnit/Akka-classic; **M** for Spock feature methods.
-6. **Inline route closures are entries in JS/TS, Go, Ruby, Perl, Elixir and Clojure, but not in Rust, C#, PHP, Python, Java or Kotlin.**
+6. *At 0.13.3 Swift `Lambda.run { … }` mints a `handler_at_<line>` entry (0.11.1); Rust `get(|| …)` and C# `MapPost(…, () => …)` still do not (fixtures `m10/rs`, `m10/cs`).* **Inline route closures are entries in JS/TS, Go, Ruby, Perl, Elixir and Clojure, but not in Rust, C#, PHP, Python, Java or Kotlin.**
    - Fixture `rs`: `.route("/b", get(|| async { helper() }))` mints only `axum::get('/a')`.
    - Fixture `csl`: `app.MapPost("/b", () => Helper())` mints only `mapget('/a')`.
    - PHP `Route::get('/closure', function () {…})` (php.md §10, fixture p2) and Python lambdas (python.rs has no `handler_at`) behave the same way.
    - Effort **M** per plugin (reuse `registrar::inline_closures`).
-7. **Swift: no attributes and no registrar capture, unlike Kotlin/Java/C#.**
+7. *Registrar capture fixed in 0.11.1 (fixture `m10/sw`); attributes still not captured at 0.13.3 (fixture `m10/swattr`).* **Swift: no attributes and no registrar capture, unlike Kotlin/Java/C#.**
    - swift.rs:114/179 writes `attributes: Vec::new()`, so `swift-testing` (`@Test`/`@Suite`), `@main`, `@IBAction`/`@objc` and Vapor route closures are invisible.
    - `aws-lambda`'s `registrars: ["run"]` is dead because swift.rs never calls `registrar::` (swift.md §10, fixture f9: `legacy`/`work` dead).
    - ObjC is similar: name-only rules with no base types, and imports seen only in `.h` are ignored (objc.md §10, fixture f1).
@@ -197,7 +197,7 @@ Ranked by how much entry surface is lost compared with a comparable language tha
    - The Yesod gap needs a `get*R` pattern. `name_pattern_matches` supports only one of prefix or suffix (mod.rs:570-584), so `get*R` compares as an exact string.
    - Effort **M-L**.
 9. **Dart has zero enumerating rules.** flutter, flame, dart-main, flutter-test and shelf are all detect-only (rules.rs:5402-5498). The plugin records no annotations and captures no registrar arguments, so even `State.initState`/`build` overrides are unrooted. Kotlin's `compose` and Swift's `uikit-lifecycle` root the equivalents. Effort **M** (a base-type rule on `State`/`StatelessWidget`/`FlameGame` needs only bases, which is unverified for dart.rs; the closure-based tests need gap 2's mechanism).
-10. **Member sources exist only for Java and C#.** `member_sources_for` has rows only for (`junit-sources`, java), (`nunit-runner`, csharp) and (`xunit-data`, csharp) (rules.rs:11719-11768). These are missing:
+10. *Kotlin `junit-sources` added in 0.11.1 (matrix 11 fixture `kt`).* **Member sources exist only for Java and C#.** `member_sources_for` has rows only for (`junit-sources`, java), (`nunit-runner`, csharp) and (`xunit-data`, csharp) (rules.rs:11719-11768). These are missing:
     - Kotlin JUnit 5 `@MethodSource`;
     - F# `TestCaseSource`;
     - PHPUnit `#[DataProvider('cases')]` (php.md §10, fixture p9: `AttrOnly::cases` dead).
@@ -280,7 +280,7 @@ Corrections to `dev_docs/languages/*.md`. The language docs themselves are not e
 5. **csharp.md §10** states, from fixture f2, that `aspnet-mvc` enters private controller methods. The cause is confirmed in code: `match_base_types` applies no visibility filter, and when `rule.methods` is empty every member of a matching class is `named` (mod.rs:895-896). This affects every base-type rule without `methods` (aspnet-mvc, codeigniter, actioncable, signalr, orleans, …), not only aspnet-mvc.
 6. **typescript.md §10 "Parity gaps against JavaScript"** lists `express-gateway`, `meteor`, `polka` and `sails` as having no TypeScript twin. Of these, only `polka` enumerates in JavaScript. The other three are gap-only in JS too (javascript.md table), so the only enumerating loss is `polka` (`rules.py diff javascript typescript` → `['polka']`).
 7. **c.md / cpp.md** are consistent. One clarification: cpp.md lists `cpp-callbacks` with "ten" verbs and c.md lists `c-callbacks` with nine. That is correct (`call_once` is C++-only, rules.rs:8019-8045), and C has no C-side equivalent of `run_handler` (`rules.py diff cpp c` → aws-lambda, cpp-callbacks).
-8. **kotlin.md §10 "Missing compared with Java"** names only `junit-sources` and `java-serialization` among Java rules. The full enumerating-rule difference is 23 ids (gap 1 above), including `spring-jobs`, `spring-messaging`, `spring-context`, `jsr250-lifecycle`, `jakarta-rs`, `micronaut`, `servlet` and `testng`, which the doc does not mention.
+8. *Superseded in 0.11.1 (the 23 twins exist).* **kotlin.md §10 "Missing compared with Java"** names only `junit-sources` and `java-serialization` among Java rules. The full enumerating-rule difference is 23 ids (gap 1 above), including `spring-jobs`, `spring-messaging`, `spring-context`, `jsr250-lifecycle`, `jakarta-rs`, `micronaut`, `servlet` and `testng`, which the doc does not mention.
 9. **rust.md §10** says registrar verbs do not use the `ExtractCtx` gate. That is accurate: rust.rs has only `registrar::route_of` (rust.rs:2300), no `capture` and no `is_registrar_verb`. Also note, as the doc does not say, that a closure handler in `get(|| …)` mints no entry (fixture `rs`).
 10. **graphql.md / openapi.md / asyncapi.md / lean.md** say rules exist for "36 languages". This is correct: `languages_with_rules()` (rules.rs:11887-11893) over SPECS gives 36 distinct languages. The 10 without any rule are kivy, hcl, verilog, asm, smithy, proto, graphql, openapi, asyncapi and lean.
 11. **swift.md §10** marks the `xctest` gap text as stale and **objc.md** marks its own `xctest` gap text as stale. Both are correct. The strings at rules.rs:5141 and rules.rs:5381 still say "no prefix matcher", but the rules carry `test*` and the `has_matchers()` path suppresses the gap (frameworks.rs:301-321, mod.rs:395-404).

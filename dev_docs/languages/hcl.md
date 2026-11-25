@@ -1,5 +1,7 @@
 # hcl
 
+> Revised 2026-11-25 against cgg 0.13.3: the plugin is unchanged since 0.11.0; `*.tftest.hcl` is now classified as a test file, the locals language list is longer, and the false `high` intra-file label edge and the stdlib gaps were re-confirmed. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The HCL plugin (`HclPlugin`, `crates/cgg-lang/src/plugins/hcl.rs`, 188 lines) covers Terraform, Terragrunt, Packer, Nomad and other HCL dialects. The grammar is the crates.io `tree-sitter-hcl` crate (`Cargo.toml:102`, `tree-sitter-hcl = "1.1"`; `crates/cgg-lang/Cargo.toml:40`). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:142`. The module doc says it does "dependency graph extraction": HCL has no user-defined functions, so a **labelled block** (`resource "t" "n"`, `module "m"`, `variable "v"`, …) becomes a definition and a **`function_call`** node becomes a reference (`hcl.rs:1-3`). The `LanguagePlugin` trait has no `resolver_kind` method (`grep resolver_kind crates` finds nothing, so CLAUDE.md is stale on this point). The plugin does not override `signals()` (default all-false, `crates/cgg-lang/src/lib.rs:304`), `max_line_bytes()` (None) or `ts_language_for()`. Every HCL file goes through the generic intra-file and cross-file resolvers, and HCL has no language-specific code anywhere in `cgg-resolve` or `cgg-core` except two entries: the `hcl.txt` stdlib table (`crates/cgg-core/src/stdlib.rs:203,244`) and the `SCRIPT_DRIVEN` dead-code class (`crates/cgg-resolve/src/deadcode/caps.rs:31`).
 
 ## 01. Detection & parsing
@@ -103,7 +105,7 @@ The HCL plugin (`HclPlugin`, `crates/cgg-lang/src/plugins/hcl.rs`, 188 lines) co
 
 ## 07. Scoping & shadowing
 
-- **No `FileFacts::locals`.** `cgg_lang::locals::collect` has no HCL branch. Its language list is javascript, typescript, python, lua, scala, kotlin, swift, rust, dart, ocaml and zig (`crates/cgg-lang/src/locals.rs:340-392`; `_ => return None` at :392).
+- **No `FileFacts::locals`.** `cgg_lang::locals::collect` has no HCL branch (0.13.3: `rg '"hcl"' crates/cgg-lang/src/locals*` finds nothing), although its language list has grown well past the 0.11.0 set (Go, C#, C/C++, Groovy, R, Julia, Haskell, Clojure, Nix, Starlark, Solidity, F#, Fortran and others now collect locals).
 - **Consequence, a false `high` edge**: within one file, a function call binds to a block whose *last label* equals the function name. Fixture c had `resource "null_resource" "myfn" {}` and, in the same file, `x = myfn(1)`. The result was three edges `resource::null_resource::caller -> resource::null_resource::myfn`, `high`, resolver `intra-file`. A Terraform function call can never target a resource block, so these edges are always wrong. The same would happen for a block named like a built-in, for example `resource "x" "lower"` with `lower()` in the same file.
   - In fixture b, `lower` in another file left `lower("A")` **unresolved** (`candidates-in-other-files`) instead of filing it as stdlib.
 - No lexical narrowing, positional shadowing or conditional definitions. `for` expression iterators (`for s in ...`) and `each`/`count` are not recorded as bindings.
@@ -134,7 +136,8 @@ The HCL plugin (`HclPlugin`, `crates/cgg-lang/src/plugins/hcl.rs`, 188 lines) co
 
 - **None.**
   - No test rule for `terraform test` (`*.tftest.hcl` with `run "name" {}` blocks), Terratest (Go, not HCL) or Packer/Nomad validation.
-  - A `run "x" {}` block in a `.tftest.hcl` would be a plain `run::x` callable (unverified by fixture; it follows from the ≥2-label rule).
+  - A `run "x" {}` block in a `.tftest.hcl` is a plain `run::x` callable (fixture `lang-docs/hcl/c`, 0.13.3).
+  - **Test-file classification**: since 0.11.1 (WS25) `*.tftest.hcl` is a test file (`crates/cgg-core/src/testfile.rs:157`), so its blocks count as test code in the dead-code report; no test rule mints a harness node for them.
   - No `TestRole`, because `signals().test_defs` is false (default).
   - Not in `TEST_CLASS_MEMBERS_ARE_ROOTS`.
 
@@ -160,7 +163,7 @@ The HCL plugin (`HclPlugin`, `crates/cgg-lang/src/plugins/hcl.rs`, 188 lines) co
 
 ## 14. Confidence & certainty
 
-- **`high`** is reachable only through the generic intra-file linker: a same-file block whose simple name equals the called function name. As shown in 07 this is always a **false** edge (fixture c: three `high` `intra-file` edges to `resource::null_resource::myfn`). No other path yields `high`.
+- **`high`** is reachable only through the generic intra-file linker: a same-file block whose simple name equals the called function name. As shown in 07 this is always a **false** edge (fixture c: three `high` `intra-file` edges to `resource::null_resource::myfn`; re-confirmed in 0.13.3 with fixture `lang-docs/hcl/c`). No other path yields `high`.
 - **`medium`**: none observed. Cross-file never binds (04).
 - **`low`**: only synthetic exit-node edges (`--include-stdlib` / `--include-external`; fixtures a and c).
 - **Mermaid `?` marker**: does not appear on the false intra-file edges, because they are `high`. Exit-node edges carry it (generic behaviour, not separately verified for HCL).
@@ -201,7 +204,7 @@ The HCL plugin (`HclPlugin`, `crates/cgg-lang/src/plugins/hcl.rs`, 188 lines) co
 | 08 Macros, preprocessor & codegen | none | `dynamic` blocks are plain callables; templates not parsed |
 | 09 FFI & cross-language links | none | No provider (Go) linkage, not a descriptor language |
 | 10 Frameworks & entry points | none | Zero rules; coverage reports `no_markers` |
-| 11 Test harness entries | none | No `terraform test` / `.tftest.hcl` rule |
+| 11 Test harness entries | minimal | `*.tftest.hcl` classified as test files; no `terraform test` harness rule |
 | 12 Dead-code analysis | minimal | ScriptDriven class: root-dependent findings withheld, capped Low |
 | 13 Builtins & stdlib tables | partial | 125-name `hcl.txt`; misses recent Terraform functions; Terragrunt/provider fns external |
 | 14 Confidence & certainty | minimal | Only `high` path is a false intra-file label match; exit edges `low` |

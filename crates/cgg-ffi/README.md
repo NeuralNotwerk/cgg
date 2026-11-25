@@ -43,9 +43,10 @@ header does not change when cgg gains a feature and no wrapper needs
 rebuilding.
 
 It is affordable because rendering is nearly free next to analysis.
-Measured through this ABI on cgg's own `crates/` (2,019 callables, median
-of 11): analysis 127 ms, `cgg_graph_render(g, "json")` 6.7 ms (5.3%) for
-2.3 MB, `"mermaid"` 1.3 ms (1.0%) for 184 KB.
+Measured through this ABI on cgg's own `crates/` (5,090 callables, 0.13.3,
+median of 11, default `jobs`): analysis 548 ms,
+`cgg_graph_render(g, "json")` 47.5 ms (8.7%) for 11.2 MiB, `"mermaid"`
+7.8 ms (1.4%) for 540 KiB.
 
 `cgg_analyze` returns an opaque handle rather than a rendered string, so
 asking for mermaid *and* json *and* the metrics costs one analysis, not
@@ -57,7 +58,7 @@ three.
 | --- | --- |
 | `cgg_version()` | Library version. Static — do not free. |
 | `cgg_analyze(options_json, &err)` | Analyze. Returns a handle, or NULL. |
-| `cgg_graph_render(g, format, &err)` | `"mermaid"`, `"json"`, `"dot"`, `"graphml"`. |
+| `cgg_graph_render(g, format, &err)` | `"mermaid"`, `"json"`, `"dot"`, `"graphml"`; `"externals-json"` / `"externals-text"` when the options set `"externals"`. |
 | `cgg_graph_meta(g, &err)` | Counts, metrics and notices as one JSON object. |
 | `cgg_graph_callable_count(g)` | The commonest probe, without parsing JSON. |
 | `cgg_graph_free(g)` / `cgg_string_free(s)` | Release. NULL is a no-op. |
@@ -100,12 +101,13 @@ should not be the thing that changes it.
 
 ## Size
 
-`libcgg.so` is 99 MiB on disk, of which 91 MiB is `.rodata` — the parse
-tables for 45 tree-sitter grammars. `.text` is 6.4 MiB. It is already
-stripped, so that floor is the grammars, not the code. It compresses about
-11:1 (9.3 MiB gzip -9, 5.5 MiB xz -9), so the download a package registry
-serves is roughly 10 MB. `libcgg.a` is larger — 125 MiB — because a static
-archive carries every object whether or not it is linked in.
+`libcgg.so` is 114 MiB on disk (0.13.3, x86-64 Linux), of which 101 MiB
+is `.rodata` — the parse tables for 45 tree-sitter grammars. `.text` is
+10.4 MiB. It is already stripped, so that floor is the grammars, not the
+code. It compresses about 9:1 (12.1 MiB gzip -9, 7.2 MiB xz -9), so the
+download a package registry serves is roughly 13 MB. `libcgg.a` is larger —
+144 MiB — because a static archive carries every object whether or not it
+is linked in.
 
 ## Long-lived hosts
 

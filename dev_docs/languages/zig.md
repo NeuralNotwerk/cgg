@@ -1,6 +1,8 @@
 # zig
 
-The Zig plugin (`crates/cgg-lang/src/plugins/zig.rs`, 830 lines, `ZigPlugin`, id `"zig"`) is a hand-written tree-sitter walker over the `tree-sitter-zig` crate (`Cargo.toml:103`, `tree-sitter-zig = "1.1"`, bound as `tree_sitter_zig::LANGUAGE`, zig.rs:18-20; nothing is vendored). It extracts every named `function_declaration` as a `DefVariant::FreeFunction` whose qualified name is the bare function name (zig.rs:158-210), records every `call_expression` as a `RefRecord` split on the last `.` (zig.rs:245-266), turns `@import("x")` into `ImportRecord { kind: "import" }` with the bound name as alias (zig.rs:267-305), records file-level member aliases (`alias`, `import-member`, zig.rs:600-648), records container spans (`FileFacts::type_spans`, with container-level `decls`) and `@This()` aliases (zig.rs:211-225, 335-418), and types function locals from what is written or what a same-file function returns (`local_types`, zig.rs:424-597). A `build.zig` additionally yields `zig-module` import records from `addModule(...)` (zig.rs:42-49, `manifest.rs:88-133`). There is no `resolver_kind` method any more; Zig goes through the shared pipeline plus a dedicated Zig library-scope resolver in `crates/cgg-resolve/src/libscope.rs` (`build_zig` :1233, `zig_target` :1385, `resolve_zig` :1449, `zig_member_call` :1529, `zig_alias_call` :1574, `zig_generic_call` :1628, `zig_type` :1774, `zig_walk` :1836), called from `cross_file.rs:5455-5476` (WS14), plus Zig-only branches in `cross_file.rs` (alias follow :5777-5820, own-file bare-name guard :5974-5988, typed-receiver read-as-written fallback :2525) and `type_hints.rs` (scoped local lookup :419, param type peel `zig_peel_type` :2709, `untyped_receivers` :933). `ExtractCtx` is ignored (`_ctx`, zig.rs:24); the plugin does not override `signals()` (default `PluginSignals::default()`, `cgg-lang/src/lib.rs:304-306`), so it declares no visibility, attributes, exports, test defs, value refs or dyn uses.
+> Revised 2026-11-25 against cgg 0.13.3: function values are now recorded as value references (WS26), `_test.zig` files are test files, the dead-code `refs` signal is observed, and `--externals` tables exist for Zig. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Zig plugin (`crates/cgg-lang/src/plugins/zig.rs`, 1,068 lines, `ZigPlugin`, id `"zig"`) is a hand-written tree-sitter walker over the `tree-sitter-zig` crate (`Cargo.toml:103`, `tree-sitter-zig = "1.1"`, bound as `tree_sitter_zig::LANGUAGE`, zig.rs:18-20; nothing is vendored). It extracts every named `function_declaration` as a `DefVariant::FreeFunction` whose qualified name is the bare function name (zig.rs:158-210), records every `call_expression` as a `RefRecord` split on the last `.` (zig.rs:245-266), turns `@import("x")` into `ImportRecord { kind: "import" }` with the bound name as alias (zig.rs:267-305), records file-level member aliases (`alias`, `import-member`, zig.rs:600-648), records container spans (`FileFacts::type_spans`, with container-level `decls`) and `@This()` aliases (zig.rs:211-225, 335-418), and types function locals from what is written or what a same-file function returns (`local_types`, zig.rs:424-597). A `build.zig` additionally yields `zig-module` import records from `addModule(...)` (zig.rs:42-49, `manifest.rs:88-133`). There is no `resolver_kind` method any more; Zig goes through the shared pipeline plus a dedicated Zig library-scope resolver in `crates/cgg-resolve/src/libscope.rs` (`build_zig` :1233, `zig_target` :1385, `resolve_zig` :1449, `zig_member_call` :1529, `zig_alias_call` :1574, `zig_generic_call` :1628, `zig_type` :1774, `zig_walk` :1836), called from `cross_file.rs:5455-5476` (WS14), plus Zig-only branches in `cross_file.rs` (alias follow :5777-5820, own-file bare-name guard :5974-5988, typed-receiver read-as-written fallback :2525) and `type_hints.rs` (scoped local lookup :419, param type peel `zig_peel_type` :2709, `untyped_receivers` :933). `ExtractCtx` is read only for `reference_sites` (zig.rs:39-46): when it is set (`--reference-edges`, or `--dead-code`), function values are recorded as `RefRecord::value_ref` sites (`ZigWalker::value`, zig.rs:392-437; §03). The plugin does not override `signals()` (default `PluginSignals::default()`), so it declares no visibility, attributes, exports, test defs or dyn uses; the dead-code value-reference signal is observed from the recorded sites (§12).
 
 Fixtures used for this document live in `<scratch>/parity/zig/` (`p1/` general shapes, build.zig modules, tests, exports, dead code; `p2/` skips, parse errors, payloads, vtables, local structs; `p3/` typed receivers, an in-tree `lib/std/std.zig`, duck fan-out, shadowing; `p4/` same-named members of several containers in one file; `p5/` Zig/C FFI), run with `cgg 0.11.0` (`target/release/cgg`). `show.py` / `sites.py` there dump edges and per-site audit reasons.
 
@@ -68,14 +70,14 @@ Partial / not supported:
 - **Payload captures** `if (o) |oo| oo.inc()` / `if (self.child) |c| c.visit()` → payload is recorded as a local (`locals.rs:373`) but not typed: p3 line 12 duck fan-out (2 medium edges), p2 line 14 external.
 - **Pointer deref receiver** `self.*.visit2()` → receiver `self.*`, medium by name (p2 line 16).
 - **Function pointers / parameters called** `cb()` (`cb: *const fn () void`), `target2()` → no callable of that name; external bucket (p1 line 50, p2 line 27). When a same-named function exists the parameter shadows it (`shadowed-by-local`, p3 line 7).
-- **Function used as a value** `const f = local; f();`, `callback(local)`, `@call(.auto, local, .{})`, `@export(&local, …)` → no reference edge for `local` from these sites; `f()` → external (p1 line 28). The plugin records no value refs (`signals()` default).
+- **Function used as a value** (WS26, since 0.11.1): under `--reference-edges` or `--dead-code` a function named in a call argument, a `const`/`var` initializer, an assignment, a `return`, an initializer field value or a `.{…}` element (comptime vtables), bare, through `&`, or through `Self`, a type, an `@import` alias or a container-level declaration, is a `value_ref` site (zig.rs:392-437). A member through a local (`x.cb`) is a field read and is not recorded. Fixture `lang-docs/zig/a` (0.13.3, `--reference-edges`): `takes(local)` and `const f = local;` → `ref` edges to `local` at high; `takes(util.uf)` → `ref` edge to `util.zig:uf` at high (`cross-file:imports`). `cgg_resolve::value_refs::prune` keeps a Zig value only when it names a declaration of its own file or a file-level alias, or goes through `Self`, a type or an `@import` of a tree `.zig` file; a capitalized bare value is kept only when the file defines a function of that name, and a bare value never binds another file's function by name (CLAUDE.md; `value_refs.rs:236`, `cross_file.rs:6214-6239`). Calling through the local (`f()`) is still not followed (`shadowed-by-local`/external); `@call(.auto, local, .{})` and `@export(&local, …)` are builtin calls, not `call_expression`s.
 - **Builtin calls** (`@call`, `@field(obj, "method")()`, `@cImport`) → `builtin_function` nodes are not `call_expression`s and are not recorded, except that `@field(obj, "method")()` is the callee of an outer `call_expression` whose whole text becomes the name: external site named `@field(obj, "method")` (p1 line 42).
 - **`@cImport` members** `c.printf(…)` → external (p2 line 45).
 - **Container declared inside a function** `Local.inner()` / `S.helper()` → external + `candidates-in-other-files` (p2 line 36, p4 line 31): the span has an empty path (zig.rs:342-345) so `zig_type` cannot name it.
 - **Bare call of a same-named member inside its own container** `helper()` inside `struct A` when `B` and file scope also declare `helper` → `ambiguous-in-file`, no edge (fixture p4 lines 6, 15, 21, 32). Zig has no lexical narrowing entry (`intra_file.rs:119-135`).
 - **Enum-literal value chain** `Color.red.name()` → external + `candidates-in-other-files` (p1 line 33).
 - **Container-level calls** `pub const frame = Functions(@This()).frame;` → the `Functions(...)` call has no enclosing callable (p3 `types.zig:17`).
-- **Arity**: not recorded (Zig is not in `OVERLOAD_ARITY_LANGS`, `type_hints.rs:1583`).
+- **Arity**: not recorded (Zig is not in `OVERLOAD_ARITY_LANGS`, `type_hints.rs:2357`).
 - **Registrar arguments**: none (no registrar capture; `registrar.rs` has no Zig entry).
 
 ## 04. Imports & module resolution
@@ -132,8 +134,8 @@ Not supported:
 - Not applicable in the class sense: Zig has no inheritance, interfaces, traits, `super`, extension methods or overloading. The plugin records no `ClassDecl`, no bases, no `trait_impl_target` (zig.rs writes none).
 - **Interface-by-vtable pattern** (`self.vtable.write(self.ptr)`) is not modelled: field-chain receiver → external (fixture p2 line 8).
 - **`usingnamespace` mixins**: not modelled (§04).
-- Zig is not in `INHERITANCE_LANGS` (dispatch.rs:110-123), so `--dynamic-dispatch` / `inheritance_fanout` add nothing; fixture p1 with `--dynamic-dispatch --reference-edges` produced no `dyn`/`ref` edges.
-- Not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583); no arity recorded. Zig forbids overloading, so no gap.
+- Zig is not in `INHERITANCE_LANGS` (dispatch.rs:110-123), so `--dynamic-dispatch` / `inheritance_fanout` add nothing; fixture p1 with `--dynamic-dispatch` produced no `dyn` edges (`ref` edges from function values exist since WS26, §03).
+- Not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357); no arity recorded. Zig forbids overloading, so no gap.
 - `member_of_calling_class`, `overrides_below`, `resolve_via_bases`: not reached for Zig (no class records).
 
 ## 07. Scoping & shadowing
@@ -190,7 +192,7 @@ Rules whose `language` is `zig` (all four are detect-only: `attributes`, `regist
 - `zig-test` (kind `Test`) is detect-only, so no `<framework-entry>::test::…` node is minted and no `entry` edge exists (fixture p1).
 - `test "name" { … }` / `test { … }` blocks are not callables (§02); calls inside them are `no-enclosing-callable`. The dead-code pass then credits each called function as a **production** `toplevel:invocation` root (not a test root): fixture p1 `local` and `cleanup` → `RootKind::TopLevelInvocation` "called from module top level at main.zig:70/74" (roots.rs:570-612).
 - Name-based test roots: Zig falls into the default arm of `is_test_name` (`test_*` or `Test*`, roots.rs:975-988): fixture p1 `test_underscore` → `builtin:test-name` test root; `testHelperName` → not rooted.
-- Test-file classification: no Zig file-name rule in `testfile.rs` (only the generic test-directory list applies; `classify_test_file`, testfile.rs:50-160).
+- **Test-file classification**: `*_test.zig` is a test file (`testfile.rs:160`, since 0.11.1; fixture `lang-docs/zig/a/util_test.zig` → `test_role: file-name` in the audit), plus the generic test-directory list.
 - `TEST_CLASS_MEMBERS_ARE_ROOTS` is python/php/ruby only (rules.rs:11806).
 - `std.testing.expect` inside a test block → stdlib bucket (fixture p1 line 71).
 
@@ -198,12 +200,13 @@ Rules whose `language` is `zig` (all four are detect-only: `attributes`, `regist
 
 Fixture p1 `--dead-code`: signal table row `zig … class degraded, vis no, attrs no, refs no, disp no`; `findings 0 shown (high) · 10 withheld (medium)`.
 
-- **Class `Degraded`**: the plugin declares no visibility or attributes (`signals()` default) and none are observed (caps.rs:115-176), so every Zig finding carries `language-lacks-visibility`, `language-lacks-attributes`, `language-lacks-value-references`, `language-lacks-dispatch-model` and is capped at **medium** (never high). Fixture p1 findings: `build`, `c_entry`, `callc`, `puts`, `inl`, `unusedPrivate`, `unusedPublic`, `name`, `testHelperName`, `other`.
+- **Class `Degraded`**: the plugin declares no visibility or attributes (`signals()` default) and none are observed (caps.rs), so every Zig finding carries `language-lacks-visibility`, `language-lacks-attributes`, `language-lacks-dispatch-model` and is capped at **medium** (never high). Value references are observed since WS26: fixture `lang-docs/zig/a` (0.13.3) signal row `zig … degraded no no yes no` (`refs yes`), and findings no longer carry `language-lacks-value-references`. Fixture p1 findings: `build`, `c_entry`, `callc`, `puts`, `inl`, `unusedPrivate`, `unusedPublic`, `name`, `testHelperName`, `other`.
 - **Roots found**: `main` (`builtin:main`, `UNIVERSAL_ENTRY`, roots.rs:20), `_start` (`LANG_ENTRY` zig, roots.rs:29), test-name roots (§11), top-level invocations from `test`/`comptime` blocks (§11).
 - **Not roots**: `pub` functions (no visibility recorded — `unusedPublic` reported), `export fn` / `callconv(.c)` (no `ffi:export`; `c_entry`, `callc` reported), `@export`ed functions (rooted only incidentally if called from top level), `build` in `build.zig`, `extern fn` prototypes (`puts` reported as dead).
-- **Value uses invisible**: a function only passed as a value (`callback(local)`, `@call(.auto, f, …)`, vtable initialisers) has no incoming edge (`language-lacks-value-references`).
+- **Value uses**: a function passed as a value inside a function (`callback(local)`) gets a `ref` edge; a value outside any callable (a container-level vtable initialiser `const vt = VTable{ .run = cb2 };`) is a root credited only to the file's own same-named callables (`FILE_SCOPED_VALUE_REF_LANGS`, bare Zig values; fixture `lang-docs/zig/a`: `cb2` → `toplevel:invocation` "named at class or module level"); a container-level value through an imported file (`.free = mod.free`) credits that file's function (roots.rs:1369-1387). `@call(.auto, f, …)` is still invisible.
 - **Unresolved-doubt**: a same-named unresolved site should downgrade a finding; fixture p1 `name` still shows `no-unresolved-site-with-name` although `Color.red.name()` was recorded (in the external bucket), so external-bucket sites do not count as doubt for it.
 - No caps from `implements-external-contract`, `macro-generated`, `reflection` apply (no such signals for Zig).
+- Corpus effect of WS26 (CHANGELOG.md 0.11.1, "WS26 Zig"): 3,485 Zig findings left the report, none `high`.
 
 ## 13. Builtins & stdlib tables
 
@@ -211,6 +214,7 @@ Fixture p1 `--dead-code`: signal table row `zig … class degraded, vis no, attr
 - Used by the external classifier (`external.rs:186-260`): a receiver headed by a stdlib name (`std.debug`, `std`) or a bare stdlib name the tree does not define goes to the stdlib bucket; fixture p1 `std.debug.print` and `assert` → stdlib; `build.zig` `b.addModule`/`b.path`/… → stdlib (receiver typed `std.Build` through the parameter). Also excludes stdlib names from the step-1d global by-name fallback (cross_file.rs:6018-6024).
 - `--include-stdlib` mints `<stdlib>::…` exit nodes at low (fixture p1x: `<stdlib>::std.debug::print`, `<stdlib>::assert`, `<stdlib>::std.Build::addModule`; p2 `<stdlib>::std.ArrayList(u8)::init`). `--include-external` mints `<external>::…` (p1x `<external>::ext::doThing`).
 - When the tree *contains* `std` (Zig compiler repo shape, fixture p3), calls resolve into it rather than to the stdlib bucket.
+- **`--externals`** (0.12.0) has Zig rows: `std`/`builtin`/`root` as stdlib heads, `std.process.Child.init` as a process-spawn API, `std.DynLib.open` as a library load, and `std.os`/`std.posix`/… as system modules (stdlib.rs, the `PROCESS_SPAWN_APIS`/`LIBRARY_LOAD_APIS` tables). Fixture `lang-docs/zig/c`: `ext.doThing()` through `@import("zigextpkg")` → third-party `zigextpkg`; `std.process.Child.init(…)` → process `<dynamic>`.
 - No Zig rows in `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, `MAYBE_TYPE_WRAPPERS`, `NULL_TYPE_MEMBERS`, `TOP_TYPES`, `CALLBACK_TYPE_CONSTRUCTORS`, implicit-package lists (stdlib.rs; grep finds no `zig` outside the manifest lines). No `rust_types`-like wrapper table.
 
 ## 14. Confidence & certainty
@@ -223,7 +227,7 @@ Fixture p1 `--dead-code`: signal table row `zig … class degraded, vis no, attr
 
 ## 15. Dynamic use & reflection
 
-- `dynuse` covers Python, JS, Java, C#, Ruby and PHP only (CLAUDE.md; `crates/cgg-lang/src/plugins/dynuse.rs` has no Zig entry). Zig declares no `dyn_uses` signal.
+- `dynuse` covers Python, Java, C#, Ruby, PHP and Go, plus JS/TS module loads (CLAUDE.md; `crates/cgg-lang/src/plugins/dynuse.rs` has no Zig entry). Zig declares no `dyn_uses` signal.
 - `@field(obj, "name")`, `@hasDecl(T, "name")`, `@call(.auto, f, …)`, `std.meta` iteration, `@export(&f, …)`: not recognised as reflection or value use; a call whose callee is `@field(...)` becomes an external site with the builtin text as its name (fixture p1 line 42).
 - Module loads are static `@import` only; no dynamic loader concept.
 
@@ -235,7 +239,7 @@ Fixture p1 `--dead-code`: signal table row `zig … class degraded, vis no, attr
 - **Field-chain receivers** (`self.child.m()`, `self.vtable.write()`, `priv.config orelse …`) are untyped — CHANGELOG.md:705-706 ("Not covered (WS14b)"); CHANGELOG.md:1394-1396 notes Zig recovered only 105 of 437 `candidates-in-other-files` and 86 of 266 `shadowed-by-local` sites ("the rest: field-chain receivers, comptime function parameters").
 - **Payload captures and `anytype`/`comptime` parameters untyped** → duck fan-out (fixture p3).
 - **Containers declared inside a function** cannot be named (`Local.inner()` external, fixture p2/p4; zig.rs:342-345).
-- **No value references** (functions passed as values, `@call`, vtables) — `signals()` default.
+- **Value references** are recorded since WS26 (§03), but a call through a local bound to a function value (`const f = local; f();`) is not followed, and `@call`/`@export` are not read.
 - **No FFI linking** of `export fn` / `extern fn` with C (fixture p5); `extern fn` prototypes become callables that absorb same-file calls at high.
 - **`usingnamespace`**, `@cImport`, `build.zig.zon` dependencies, `b.createModule`/`addImport` not followed.
 - **Error recovery can drop definitions** (fixture `p2/err.zig`).
@@ -250,7 +254,7 @@ Fixture p1 `--dead-code`: signal table row `zig … class degraded, vis no, attr
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.zig` only; no shebang, no `.zon`; no re-parse; depth/minified handling generic |
 | 02. Callables extracted | partial | all `fn`s incl. container members, but qn has no owner, no `test` blocks, no visibility/attrs |
-| 03. Call-site forms | partial | bare, module-path, container, typed, generic-result calls; no value refs, field chains, builtins, arity |
+| 03. Call-site forms | partial | bare, module-path, container, typed, generic-result calls, value refs; no field chains, builtins, arity |
 | 04. Imports & module resolution | full | `@import` files, build.zig modules, std-style roots, aliases, re-exports, external refusal; no usingnamespace/zon |
 | 05. Type inference & receiver typing | partial | params, written/literal/call-result locals, container spans, `@This()`; no fields, payloads, casts |
 | 06. Inheritance, dispatch & overloading | n/a | no classes/overloads in Zig; vtable pattern unmodelled |
@@ -258,8 +262,8 @@ Fixture p1 `--dead-code`: signal table row `zig … class degraded, vis no, attr
 | 08. Macros, preprocessor & codegen | minimal | type-function `return struct` members bind at medium; no comptime reflection |
 | 09. FFI & cross-language links | none | `export fn` / `extern fn` / `@export` never linked to C |
 | 10. Frameworks & entry points | minimal | 4 detect-only rules (zig-main/build/test/export), none mint nodes |
-| 11. Test harness entries | none | test blocks not callables; zig-test detect-only; only `test_*`/`Test*` name roots |
-| 12. Dead-code analysis | minimal | Degraded class, all findings medium; only `main`/`_start`/name/top-level roots |
+| 11. Test harness entries | none | test blocks not callables; zig-test detect-only; `_test.zig` files classified; only `test_*`/`Test*` name roots |
+| 12. Dead-code analysis | minimal | Degraded class, all findings medium; value refs observed; only `main`/`_start`/name/top-level/value roots |
 | 13. Builtins & stdlib tables | partial | 160-name `zig.txt`; no cast/constructor/wrapper tables |
 | 14. Confidence & certainty | full | high for exact module/container/typed paths; medium for generic results and duck fan-out |
 | 15. Dynamic use & reflection | none | `@field`/`@call`/`@hasDecl` not recognised |

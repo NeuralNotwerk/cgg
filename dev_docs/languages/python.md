@@ -1,5 +1,7 @@
 # python
 
+> Revised 2026-11-25 against cgg 0.13.3: guessed receiver types no longer reach `high`, unreachable regions are consumed, lambda parameters shadow, never-imported bare names and other files' nested defs are refused, PEP 420 imports resolve, async methods take the external-contract cap, member-read aliases and `inspect.getmembers` are read. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Python plugin (`crates/cgg-lang/src/plugins/python.rs`, 1,978 lines, `PythonPlugin`, id `"python"`) does one recursive AST pass over a `tree-sitter-python` tree (workspace dependency `tree-sitter-python = "0.25"`, `Cargo.toml:83`; `ts_language` at `python.rs:58-60`; no vendored grammar). It extracts definitions (`def`, `async def`, methods, named lambdas), call sites (`call` nodes whose callee is an `identifier` or `attribute`), imports (`import` / `from … import`), class records with bases, class-level field declarations, instance-field types, an `__all__` export list, dead-code signals and test roles. It is registered at `crates/cgg-lang/src/plugins.rs:125`. It declares the signals `attributes, dyn_uses, exports, impls, test_defs, unreachable, value_refs, visibility` (`python.rs:44-56`). Python has no plugin-specific "resolver kind" switch beyond the shared pipeline. Language-specific branches live in `cgg-resolve` (`cross_file.rs`, `modules.rs`, `heads.rs`, `intra_file.rs`, `type_hints.rs`, `dispatch.rs`, `ffi.rs`, deadcode) and are cited section by section below. Jupyter notebooks (`.ipynb`) go through the same plugin after their code cells are extracted.
 
 Fixtures for every "fixture" claim below are under `<scratch>/parity/python/f1` … `f20`. They were run with `target/release/cgg` 0.11.0 (`-t json -o out.json`, then parsed by `show.py` in the same directory).
@@ -9,7 +11,7 @@ Fixtures for every "fixture" claim below are under `<scratch>/parity/python/f1` 
 Supported:
 
 - **Extensions** `.py`, `.pyi`, `.ipynb` (`python.rs:38-40`). Fixtures f9/f16: `stub.pyi` is detected as `extension:.pyi`, and `nb.ipynb` yields callable `nb.nbf`.
-- **Shebangs** `python3`, `python`, `python2` (`python.rs:41-43`). Test `crates/cgg-lang/src/detect.rs:708 python_shebang_beats_extension`. Fixture f9: an extensionless `tool` with `#!/usr/bin/env python3` yields `tool.shebang_fn`.
+- **Shebangs** `python3`, `python`, `python2`, `vpython3`, `vpython` (`python.rs:42-44`). Since WS25 the interpreter must equal a keyword or the keyword plus a version (`python3.11`). Test `crates/cgg-lang/src/detect.rs:708 python_shebang_beats_extension`. Fixture f9: an extensionless `tool` with `#!/usr/bin/env python3` yields `tool.shebang_fn`.
 - **Notebooks**: `crates/cgg/src/lib.rs:405-423` routes `.ipynb` through `cgg_lang::notebook::extract_python_source`. That function keeps only `cell_type == "code"` cells, joins them with blank lines (`notebook.rs:22-60`), and drops lines starting with `%`, `!` or `?` (`notebook.rs:70-85`). Malformed JSON is skipped as `ParseError("ipynb: malformed notebook JSON")` (`lib.rs:414-418`). Tests: `notebook.rs extracts_code_cells_and_skips_markdown`, `strips_ipython_magics`.
 - **Grammar**: a single grammar for every Python file. There is no per-file grammar switch (`ts_language_for` is not overridden).
 - **Depth guard**: a file whose tree is deeper than `MAX_TREE_DEPTH = 4000` is skipped as `SkipReason::TooDeep` (`lib.rs:155, 451-456`). This applies to every language.
@@ -23,7 +25,7 @@ Not supported / partial:
 - **Non-Python notebook kernels**: R or Julia kernels are parsed as Python and produce parse errors (`notebook.rs:11-15`).
 - **Cell magics**: only the `%%magic` line is dropped. The body of a `%%bash` cell stays and is parsed as Python (`notebook.rs:70-85`). Unverified by fixture.
 - **Inline shell assignment**: `x = !ls` is kept, because the line does not start with `!` (`notebook.rs:74-77`).
-- **Implicit namespace packages (PEP 420)**: a directory without `__init__.py` contributes no module segment, so the qualified name falls back to the file stem (`python.rs:145-156`).
+- **Implicit namespace packages (PEP 420)**: a directory without `__init__.py` contributes no module segment, so the qualified name falls back to the file stem (`python.rs:145-156`). Imports still resolve: `ModuleIndex` keeps a path fallback (`py_by_path`, modules.rs:167, 450, 1246). Fixture (0.13.3): `from ns.sub import mod; mod.nsf()` with no `__init__.py` bound `mod.nsf` (QN from the stem) at high.
 
 ## 02. Callables extracted
 
@@ -82,12 +84,13 @@ Supported (`ref_from_call`, `python.rs:794-849`; walker `python.rs:279-325`):
 
 Not supported / partial:
 
-- **Arity is not recorded**: Python is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:1583`: java, scala, cpp only). Fixture f2: `z.f(1)` binds all three `Proc.f` overloads.
+- **Arity is not recorded**: Python is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:2357`: java, scala, cpp, csharp, groovy, swift, kotlin, typescript). Fixture f2: `z.f(1)` binds all three `Proc.f` overloads.
 - **Subscript-dispatched calls** `handlers["a"]()` record no reference (fixture f2: no edge to `worker` from that call).
 - **Operator dunders** `x + y` → `__add__`, `x[k]` → `__getitem__`, `len(x)` → `__len__`, and context managers (`with X() as y` → `__enter__`/`__exit__`) create no edges. Fixture f17: `ops` produces no edges to `X.__add__`/`__getitem__`/`__len__`. The dead-code dunder root rule covers liveness instead (section 12).
 - **Paren-less calls**: Python has no paren-less call syntax, so `RefRecord::paren_less` does not apply.
 - **Explicit generic calls**: not applicable (Python has no call-site type-argument syntax). `Foo[int]()` is a subscript callee and is not recorded.
 - **Attribute value refs reached through a variable** (`handler.on_click` passed as a value) are not covered (CHANGELOG.md:752 "Not covered (WS6)").
+- **Member-read aliases** (`f = a.b.load; f()`): the plugin records `FileFacts::member_aliases` (python.rs:790) and `settle_python_member_refs` (type_hints.rs:224, run after per-file propagation) rewrites the call to `a.b.load()`, typing a dotted chain whose base is a constructor-typed local through the run-wide field table, as a weak type. Fixture (0.13.3): `window = MainWindow(); real_launch = window._download.launch_worker; real_launch(1)` bound `DownloadController.launch_worker` at medium. **Partial**: a single-segment head (`l = Loader(); f = l.load; f()`) or a `self.`-headed one (`f = self.loader.load; f()`) is rewritten but left untyped, so it is refused `candidates-in-other-files` even when `l.load()` / `self.loader.load()` written out binds high (fixture f2).
 - **Decorator applications** are recorded as calls (`@app.route("/x")` is a `call`), but at module or class level they have no enclosing callable.
 
 ## 04. Imports & module resolution
@@ -126,9 +129,8 @@ Not supported / partial:
 - **`__all__ += […]` and `__all__.extend(…)`** are deliberately not read (`python.rs:1202-1207`).
 - **Packaging metadata** (`pyproject.toml`, `setup.cfg`, `setup.py` `entry_points`) is not read. The `py-setuptools-entrypoints` rule is a declared gap (`rules.rs:6900`).
 - **Dynamic imports** `importlib.import_module("x")` and `__import__` create no edges. They are a dead-code `module-load` signal only (section 15).
-- **Bare call to a name that is never imported**:
-  - Fixture f11: `run()` in `main.py`, where only `lib.py`/`other.py` define `run`, bound `lib.run` at medium.
-  - Python would raise `NameError`. Name-based fallback is still applied to bare calls.
+- **Bare call to a name that is never imported** is refused, not name-matched. Fixture (0.13.3, f4): `run()` in `a.py`, where only `b.py` defines `run`, is `candidates-in-other-files {candidates: 1}` (in 0.11.0 it bound at medium).
+- **Another file's nested `def`** is never a bare-name candidate (`cross_file::nested_function_ids`, WS33). Fixture f4: `inner()` in `b.py` against `a.outer.inner` is `candidates-in-other-files`.
 - **Workspace module with a missing member** (`lib.nothere()`) was minted as `<external>::lib::nothere` under `--include-external` (fixture f11), although `lib` is a workspace module.
 - **Stale audit record**: a from-import call that resolved cross-file (`hh()` → `lib.helper`, high) still leaves an intra-file `external_calls … no-candidate-in-file` record in the per-file audit (fixtures f1 `h`, f11 `hh`). Observed in the audit; whether the reconciliation should drop it is unverified.
 - **`sys.path` manipulation, `.pth` files and namespace-package merging across directories** are not modelled. Only `__init__.py` chains and same-directory narrowing are (`modules.rs:1127-1146`).
@@ -160,11 +162,11 @@ Not supported / partial (fixtures f3, f4 unless noted):
   - The return type is never applied to a chained call or to a local whose name differs.
 - **Local variable annotation** `sq: Square = get(); sq.area()` is not used: it fans out to both. The plugin reads only `self.x: T` and class-level `x: T`.
 - **Not typed at all**: `with Circle() as cm`, `for x in xs: list[Circle]`, `typing.cast(Circle, o)`, `isinstance(o, Circle)` narrowing, walrus `(w := L())`, tuple unpacking `a, b = L(), K()`, and module globals `G = L()` used in a function. Each fans out or is unresolved. Python has no entry in `CAST_INTRINSICS` (`stdlib.rs:35-46`).
-- **False high from the variable-name heuristic** (a wrong edge):
-  - Fixture f5: `def t(k): k.kw()` binds `K.kw` at **high**, and `def u(l): l.kw()` binds `L.kw` at high, from the parameter's name alone.
-  - Fixture f4: `match o: case L() as k: k.kw()` binds `K.kw` at **high**, which is wrong.
-  - Fixture f6: `circle = obtain(); circle.area()` binds `Circle.area` high, although `obtain` returns nothing typed.
-  - Strategy 2 (`type_hints.rs:863-867`) marks these weak. The intra-file linker still emitted `high`.
+- **Guesses from the variable-name heuristic** (Strategies 2 and 4 mark the site `weak_receiver_type`; since WS19 the intra-file linker honours it, so these bind at **medium**, not high):
+  - `def t(k): k.kw()` binds `K.kw` at medium from the parameter's name alone.
+  - `match o: case L() as k: k.kw()` binds `K.kw` at medium, which is still the wrong class.
+  - `circle = obtain(); circle.area()` binds `Circle.area` at medium, although `obtain` returns nothing typed.
+  - Fixture f1 (0.13.3); in 0.11.0 all three were high.
 - **Closure parameter typing** (`scoped_types`, `settle_closure_args`) is Dart/C#/Scala only. Not applicable: Python lambdas take no annotations.
 - **Implicit receivers** (`settle_implicit_receivers`) are Kotlin only. Not applicable.
 - **Generics and `TypeVar`**: `Generic[T]` is excluded as a base (`dispatch.rs:443-460`). A `T`-typed parameter gives no owner.
@@ -193,7 +195,7 @@ Not supported / partial:
   - Fixture f14: the same with `from pkg.base import Plain2` and `from .base import Plain2` (sub, sub2).
   - Fixture f2: `self.helper_inherited()`.
   - Root cause unverified. `S1().inh()` from the same file resolves, at medium.
-- **Overload arity narrowing**: Python is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:1583`). `@overload` stubs are not dropped as declarations (only `abstractmethod`/`abstract`/Protocol are). Fixture f2: `z.f(1)` → three `Proc.f` edges.
+- **Overload arity narrowing**: Python is not in `OVERLOAD_ARITY_LANGS` (`type_hints.rs:2357`). `@overload` stubs are not dropped as declarations (only `abstractmethod`/`abstract`/Protocol are). Fixture f2: `z.f(1)` → three `Proc.f` edges.
 - **`member_of_calling_class` / `overrides_below`** for bare calls are the Java/C#/Ruby/Scala/Dart paths. Python bare calls cannot reach methods by design.
 - **Mixins and multiple inheritance**: bases are recorded in order, but the C3 MRO is not computed. `one_declaring_ancestor` refuses `high` when several ancestors declare the member (`cross_file.rs:4654`).
 - **Extension methods and traits**: not applicable.
@@ -210,6 +212,8 @@ Supported:
 - **Shadowed by local**: a bare call through a parameter or local is never another file's function. Fixture f11: `def f(helper): helper()` → `shadowed-by-local`. Fixture f15: `except … as helper` and `with open() as run` also shadow.
 - **Lexical narrowing of nested definitions**: Python is in `lexically_scoped` (`intra_file.rs:119-135`). For Python the rule also applies to `dot_call` refs (`intra_file.rs:350-370`). Fixture f1: `outer → outer.inner`. Fixture f11: two same-named `inner` functions each bind their own. Test `resolve.rs python_bare_call_binds_by_lexical_scope`.
 - **Receiver headed by a local** is not treated as an import (`heads.rs:681-683`, `shadows_receiver_head`).
+- **Lambda parameters shadow**: parameters are marked `LocalBinding::param`, so `f = lambda helper: helper()` is `shadowed-by-local` (fixture f1, 0.13.3).
+- **Nested definitions from other files**: a lone nested `def` called from a function that does not enclose it is kept at medium within its file, and is never a bare-name candidate from another file (section 04).
 
 Not supported / partial (fixture f15):
 
@@ -379,11 +383,8 @@ Supported:
 
 Not supported / partial:
 
-- **Unreachable-code signal is extracted but not consumed**:
-  - The plugin computes `FileFacts::unreachable` with the `cfg::PYTHON` terminators: return, raise, break, continue (`cfg.rs:79-90`; `python.rs:118-121`).
-  - Grep finds no reader of `FileFacts::unreachable` in `cgg-resolve` or `cgg/src`; only the `signals().unreachable` flag is copied (`lib.rs:1935`).
-  - Fixture f8: `_cb()` after `return 1` still makes `_cb` live (`--why-live` shows a High hop).
-- **Async methods miss the external-contract cap**: they are recorded with kind `function`, and the cap requires `nd.kind != CallableKind::Function` (`deadcode/mod.rs:505`). Fixture f20: `async def _ahook` in a class with outside base `ExtBase` is reported **high** "unreferenced function". The sync sibling `_shook` is medium with `implements-external-contract:ExtBase`.
+- **Unreachable code** (`FileFacts::unreachable`, `cfg::PYTHON` terminators return, raise, break, continue) is consumed under `--dead-code` by `cgg_resolve::unreachable`: an edge from a site after a terminator is capped at medium and keeps nothing alive (`incoming-only-from-unreachable-code`). Fixture f1 (0.13.3): `return 1` then `helper()` gave `after -> helper` medium.
+- **Async methods** still have graph kind `function`, but a definition whose owner is a class now counts as a method for the external-contract cap. Fixture f1 (0.13.3): `async def _ahook` in a class with outside base `ExtBase` is medium with `implements-external-contract:ExtBase`, like the sync `_shook`.
 - **Arbitrary string literals** naming a function (`x = "_by_str"`) give no doubt. Fixture f8: `_by_str` high. This is intended: only the reflective positions in `dynuse.rs` count.
 - **`.pyi` stub shadows its implementation**: fixture f16, `mod.f` calls bind to `mod.pyi`'s `f` only. The implementation in `mod.py` gets no edge, though it was not reported dead in that fixture.
 - **`__all__ += …` / `.extend`** are not read (section 04).
@@ -400,6 +401,7 @@ Not supported / partial:
 - **Inheritance-ignored bases**: see section 06 (`dispatch.rs:443-460`).
 - **Not populated for Python**: `CAST_INTRINSICS`, `CONSTRUCTING_METHODS` (Ruby `new` only), `CALLBACK_TYPE_CONSTRUCTORS` (Python `Callable[[A], R]` is not used to type closures), `TOP_TYPES` (no `object`/`Any` entry), implicit-package tables (Scala only), and `rust_types`-style wrapper tables.
 - **`--include-stdlib` / `--include-external`** mint `<stdlib>::os::getcwd` / `<external>::requests::get` leaf nodes (fixture f11). With `--include-external`, the leaf for `o.m()` on a parameter receiver was minted as `<external>::o::m`, although `o` is a local, not a module (fixture f11).
+- **`--externals[=KINDS]`** (0.12.0) attributes every post-reconciliation stdlib/external site to a library and kind without changing any in-tree edge. Fixture f6 (0.13.3): `import requests; requests.get("u")` is reported under third-party `requests` (symbol `get`), and `os.getcwd()` is the withheld `stdlib` site. Row: `crates/cgg/tests/externals.rs:85`.
 
 ## 14. Confidence & certainty
 
@@ -422,9 +424,7 @@ Forced below high:
 - **Minified callers** stay medium (`cross_file.rs:4545-4550`).
 - **Mermaid marking**: an arrow with no high site gets a leading `?` label. Fixture f1: `N16 -->|?| N4` (`uses → Child.__init__`).
 
-Defect:
-
-- **False high from the name heuristic**: the variable-name type heuristic (`type_hints.rs:863-867`, Strategy 2, and Strategy 4 at `:823-861`) marks the site weak, but the intra-file link still emits `high`. Fixtures f4, f5, f6: `k.kw()` → `K.kw` high from a param named `k`, `case L() as k` → `K.kw` high, `circle = obtain()` → `Circle.area` high. Section 05 has the full list.
+- **Name-heuristic receivers** are weak and, since WS19, bind at medium intra-file too (section 05). The 0.11.0 false-`high` defect is fixed.
 
 ## 15. Dynamic use & reflection
 
@@ -434,6 +434,7 @@ Defect:
   - Reflection caps same-named findings at medium. `import_module` is a module load and does not cap (`DYN_MODULE_LOADERS`, `facts.rs:165`).
   - Fixture f8: `_by_getattr` medium (`reflection`), `_by_import` high (`module-load` risk only).
 - **Caveat**: per CHANGELOG.md:752-755, a reflective lookup caps every same-named callable of the language, not only those of the receiver's type.
+- **Member enumeration**: `inspect.getmembers(T)` (`MEMBER_ENUMERATION_APIS`, stdlib.rs:563) records a `DynUse` via `DYN_MEMBERS_OF`, putting every method `T` declares under the `reflection` screen. Fixture f5 (0.13.3): `T._hidden` is medium with `name-collides-with-screened-site: reflection`.
 
 Not supported:
 
@@ -447,10 +448,10 @@ Not supported:
 Confirmed by fixture in this pass:
 
 1. **Inherited `self.m()` across files never resolves** and is audited `candidates-in-other-files` (fixtures f2, f13, f14). It works same-file, and for typed receivers and `super()`.
-2. **False `high` edges from the variable-name type heuristic** (fixtures f4, f5, f6): `def t(k): k.kw()` → `K.kw` high; `case L() as k: k.kw()` → `K.kw` high (wrong class); `circle = obtain()` → `Circle.area` high.
+2. **Wrong edges from the variable-name type heuristic**, now at medium (fixture f1): `def t(k): k.kw()` → `K.kw`; `case L() as k: k.kw()` → `K.kw` (wrong class); `circle = obtain()` → `Circle.area`.
 3. **Typing gaps**: return types are not applied to chained calls or differently named locals; local variable annotations (`x: Foo = …`) are ignored; `with … as`, `for` over `list[Foo]`, `typing.cast`, `isinstance` narrowing, walrus, tuple unpacking and module globals are not typed (fixtures f3, f4).
-4. **Unreachable-code regions are extracted but never consumed**. A call after `return` keeps its target live (fixture f8; grep shows no reader).
-5. **Async methods have graph kind `function`**, so they miss the Python `implements-external-contract` cap and report high (fixture f20).
+4. **Member-read aliases through a one-segment or `self.` head stay untyped** (`f = self.loader.load; f()` is refused; section 03).
+5. **Async methods have graph kind `function`** (the external-contract cap now applies to them; section 12).
 6. **A `.pyi` stub next to its `.py` captures every edge**. The implementation gets none (fixture f16).
 7. **`import a, b` comma imports defeat framework detection** for both modules (fixture f12).
 8. **Scoping**: comprehension variables do not shadow, and a `for` variable used after its loop does not shadow (fixture f15).
@@ -459,7 +460,7 @@ Confirmed by fixture in this pass:
 11. **Callables not extracted**: class-body method aliases (`run = _run`), `@x.setter` (classified as a plain method with the getter's name) and anonymous lambdas (fixture f2).
 12. **No edges for operator dunders, subscripts, `len()` or context managers** (fixture f17).
 13. **PyO3 links Rust exports only to same-named Python callables (stubs), never to call sites** (fixture f9).
-14. **Bare calls to never-imported names fall back to name matching** at medium (fixture f11 `run()` → `lib.run`).
+14. **Fixed since 0.11.0**: bare calls to never-imported names are refused (section 04); unreachable regions are consumed and async methods take the external-contract cap (section 12).
 15. **`--include-external` mints `<external>::` leaves** for local-headed receivers (`<external>::o::m`) and for missing members of workspace modules (`<external>::lib::nothere`) (fixture f11).
 16. **Audit quirk**: a from-import call that resolved cross-file keeps a stale intra-file `external_calls` record (fixtures f1, f11).
 
@@ -482,15 +483,15 @@ From code comments, CHANGELOG and README:
 | 02 Callables extracted | partial | functions/methods/ctors/props/named lambdas/nested defs. No setter/alias/anonymous lambda callables. Async methods have kind `function` |
 | 03 Call-site forms | partial | bare/attribute/ctor/`__call__`/kwargs/value refs. No arity, subscript callees or operator dunders |
 | 04 Imports & module resolution | full | absolute/relative/aliased/star/re-export via ModuleIndex, external refusal. Comma imports break framework detection |
-| 05 Type inference & receiver typing | partial | params, ctor assignment, self-field and annotations. Return types and local annotations mostly unused. Name heuristic yields false highs |
+| 05 Type inference & receiver typing | partial | params, ctor assignment, self-field and annotations. Return types and local annotations mostly unused. Name-heuristic guesses are medium |
 | 06 Inheritance, dispatch & overloading | partial | class records, super, typed inherited lookup, inheritance fan-out. Cross-file inherited `self.m()` fails. No overload narrowing |
 | 07 Scoping & shadowing | partial | locals table + lexical nesting. Comprehension/loop-leak scoping wrong. No conditional-def handling |
 | 08 Macros, preprocessor & codegen | n/a | no macros. Decorator/dataclass-generated members not synthesised |
 | 09 FFI & cross-language links | partial | PyO3 (via same-named Python def), Kivy KV, protobuf servicers. No ctypes/cffi/Cython |
 | 10 Frameworks & entry points | full | 49 rules (34 with matchers, 15 gap-only). Broadest rule set after Java |
 | 11 Test harness entries | full | unittest + pytest harness nodes, test-class members rooted. conftest hooks are a declared gap |
-| 12 Dead-code analysis | partial | visibility/exports/dunders/external-contract/reflection caps. Unreachable regions unused. Async-method cap bug |
+| 12 Dead-code analysis | full | visibility/exports/dunders/external-contract/reflection caps, unreachable regions, `getmembers` enumeration |
 | 13 Builtins & stdlib tables | partial | 1,180-name stdlib list + typing wrapper tables. No cast/callback/top-type entries |
-| 14 Confidence & certainty | partial | anchored high paths well defined. Name-heuristic weak types still reach high intra-file |
+| 14 Confidence & certainty | full | anchored high paths well defined; weak (name-heuristic) types capped at medium |
 | 15 Dynamic use & reflection | partial | getattr/setattr/hasattr/delattr/import_module literals. No eval/**import**/attrgetter |
 | 16 Known gaps & limitations | n/a | 16 confirmed gaps listed above |

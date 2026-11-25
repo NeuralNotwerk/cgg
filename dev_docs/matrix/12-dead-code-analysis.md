@@ -1,5 +1,7 @@
 # 12. Dead-code analysis
 
+> **Re-checked against 0.13.3 (2026-11-25).** Written against 0.11.0. Re-verified at 0.13.3: the declared `PluginSignals` per plugin (unchanged except Kotlin `value_refs`, now declared); the **ValRef** column with a function-passed-as-value fixture and a control per language (`scratchpad/matrix-docs/m12/vr`, `vr/ctl`); **ExtContract** for Kotlin, Swift, Scala, TypeScript, Dart, C++, PHP and Python async (`m12/ov`); **Unreach** (`m12/un`); the Kotlin ceiling (`m12/kh`); and the CMake, Erlang, Clojure, Fortran and Elixir notes (`m12/misc`). Other cells and the per-cell evidence section are the 0.11.0 reading; changes are marked with the release that made them.
+
 This category covers `--dead-code` (and `--why-live` / `--report-unreferenced`, which share its engine in `crates/cgg-resolve/src/deadcode/`). It asks how well cgg can say "nothing calls this" for each language, and how honest it is about that claim. The answer depends on five things:
 
 1. **The language class** (`caps::measure`, `crates/cgg-resolve/src/deadcode/caps.rs:163-172`):
@@ -48,49 +50,49 @@ A finding reaches `high` only when the class is `analyzable` (`signals_complete`
 | **Doubt** | A same-named unresolved site lowers a finding (`name-matches-unresolved-site` / `ambiguous-site-in-same-file`). | evidence.rs:102-200 |
 | **VisDoubt** | Doubt is filtered by whether the unresolved site could legally reach the member (the `can_reach` closure). | mod.rs:655-680 |
 | **Tests** | `TestRole` tagging, which enables the `only-used-by-tests` category. | lib.rs:277, mod.rs:820-826 |
-| **Unreach** | Statements after an unconditional terminator. **No language consumes the regions** (see gap 2), so the best mark is 🟡, meaning extracted only. | cfg.rs; cgg/src/lib.rs:1935 |
+| **Unreach** | Statements after an unconditional terminator. At 0.11.0 **no language consumed the regions** (see gap 2), so the best mark was 🟡 (extracted only). Since 0.11.1 the eight plugins that compute them (c, cpp, go, java, javascript, typescript, python, rust) feed `cgg_resolve::unreachable`, giving `incoming-only-from-unreachable-code` (fixtures `m12/un/{py,go}`). | cfg.rs; cgg/src/lib.rs:1935 |
 | **Blind** | The report names the language's known blind spots (`BLIND_SPOTS`). | caps.rs:44-68 |
 
 ## The matrix
 
 | Language | Class | High | Vis | Attrs | ValRef | Dispatch | Export | Entry | Hooks | FFI | TopLvl | Macro | ExtContract | Reflect | Doubt | VisDoubt | Tests | Unreach | Blind | Notes (most important gap) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| rust | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ⬜ | ✅ | 🟡 | ✅ | Trait-declaration methods and `#[cfg(test)]` helpers are false positives. `CONVENTIONAL_METHODS` over-roots (a trait default `describe` is rooted). Doubt is not filtered by `pub(crate)`/private reach. |
-| python | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | 🟡 | ✅ | ✅ | ⬜ | ✅ | 🟡 | ✅ | `async def` methods of a class with an outside base miss the external-contract cap and are reported `high`. Verified: fixture f1 `_ahook` high, `_shook` medium. |
+| rust | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ⬜ | ✅ | ✅ (0.11.1) | ✅ | `#[cfg(test)]` helpers are test code since 0.11.1 (matrix 11 fixture `rs`). Trait-declaration methods are false positives. `CONVENTIONAL_METHODS` over-roots (a trait default `describe` is rooted). Doubt is not filtered by `pub(crate)`/private reach. |
+| python | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | ✅ (async fixed 0.11.1) | ✅ | ✅ | ⬜ | ✅ | ✅ (0.11.1) | ✅ | Fixed in 0.11.1: an `async def` method of a class with an outside base now carries `implements-external-contract` (fixture `m12/ov/python`: `_ahook` medium). |
 | kivy | D·med | ⬜ | — | 🟡 | ⬜ | — | — | — | ✅ | — | ✅ | — | — | — | 🟡 | — | — | — | ✅ | Unresolved KV sites (`self.parent.save()`) are not doubt for the Python methods they name, because the index is keyed by `(language, name)`. |
-| javascript | D·med | ⬜ | 🟡 | ✅ | 🟡 | ✅ | ⬜ | ✅ | 🟡 | — | ✅ | — | ⬜ | 🟡 | ✅ | ⬜ | ⬜ | 🟡 | ✅ | `visibility` is not declared, so every finding is capped at medium. `export` is never a root. |
-| typescript | D·med | ⬜ | 🟡 | ✅ | 🟡 | ✅ | ⬜ | ✅ | 🟡 | — | ✅ | — | ⬜ | 🟡 | ✅ | ⬜ | ⬜ | 🟡 | ✅ | `export` is not a root and `override` gives no contract cap. Verified: f1 `exported` and `X.hook` are plain medium. |
-| go | D·med | ⬜ | ✅ | — | 🟡 | ⬜ | 🟡 | ✅ | 🟡 | ⬜ | ✅ | — | ⬜ | ✅ | ✅ | ⬜ | ✅ | 🟡 | ⬜ | Go has no attributes, so the `attributes` requirement makes it `degraded` forever. It also declares no `impls`, which adds the dispatch cap. Exported names are capped, not rooted. |
-| java | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | — | ✅ | — | ✅ | ✅ | ✅ | ✅ | ⬜ | 🟡 | ⬜ | Extraction gaps make code reached only from `static {}` blocks, field initializers, `this(…)`/`super(…)` or `new Generic<>()` false-dead. |
-| kotlin | A·med* | ⬜ | ✅ | ✅ | ⬜ | 🟡 | 🟡 | ✅ | 🟡 | — | ✅ | — | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | No `value_refs` or `impls`, so every finding is medium although the report says `high`. `override` is not a marker. Verified: f1 `K.priv` medium, `K.hook` has no contract. |
-| c | D·med | ⬜ | ⬜ | 🟡 | 🟡 | — | ⬜ | ✅ | 🟡 | ⬜ | ✅ | ✅ | — | ⬜ | ✅ | ⬜ | ⬜ | 🟡 | ⬜ | `static` vs external linkage is not distinguished. Verified: f3 `s_dead` medium like any extern. `__attribute__((constructor))` and function-pointer initialisers are false-dead. |
-| cpp | D·med | ⬜ | ⬜ | ✅ | 🟡 | 🟡 | ⬜ | ✅ | 🟡 | ⬜ | ✅ | ✅ | ⬜ | — | ✅ | ⬜ | ⬜ | 🟡 | ⬜ | No visibility, which caps every finding. `extern "C"` is not an FFI root. Verified: f3 `c_export` is a finding. `override` is not recorded. |
+| javascript | D·med | ⬜ | 🟡 | ✅ | 🟡 | ✅ | ⬜ | ✅ | 🟡 | — | ✅ | — | ⬜ | 🟡 | ✅ | ⬜ | ⬜ | ✅ (0.11.1) | ✅ | `visibility` is not declared, so every finding is capped at medium. `export` is never a root. |
+| typescript | D·med | ⬜ | 🟡 | ✅ | 🟡 | ✅ | ⬜ | ✅ | 🟡 | — | ✅ | — | ✅ `override` recorded (0.11.1) | 🟡 | ✅ | ⬜ | ⬜ | ✅ (0.11.1) | ✅ | `export` is not a root. `override` caps at medium via `implements-external-contract` since 0.11.1 (fixture `m12/ov/typescript`). |
+| go | D·med | ⬜ | ✅ | — | 🟡 | ⬜ | 🟡 | ✅ | 🟡 | ⬜ | ✅ | — | ⬜ | ✅ | ✅ | ⬜ | ✅ | ✅ (0.11.1) | ⬜ | Go has no attributes, so the `attributes` requirement makes it `degraded` forever. It also declares no `impls`, which adds the dispatch cap. Exported names are capped, not rooted. |
+| java | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | — | ✅ | — | ✅ | ✅ | ✅ | ✅ | ⬜ | ✅ (0.11.1) | ⬜ | Extraction gaps make code reached only from `static {}` blocks, field initializers, `this(…)`/`super(…)` or `new Generic<>()` false-dead. |
+| kotlin | A·med* | ⬜ | ✅ | ✅ | ✅ (0.11.1) | 🟡 | 🟡 | ✅ | 🟡 | — | ✅ | — | ✅ `override` recorded (0.11.1) | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | `value_refs` declared since 0.11.1 (`::f` references), but still no `impls`, so `language-lacks-dispatch-model` caps every finding at medium although the report says `high` (fixture `m12/kh`, 0.13.3). `override` is recorded since 0.11.1. |
+| c | D·med | ⬜ | ⬜ | 🟡 | ✅ (0.11.1) | — | ⬜ | ✅ | 🟡 | ⬜ | ✅ | ✅ | — | ⬜ | ✅ | ⬜ | ⬜ | ✅ (0.11.1) | ⬜ | `static` vs external linkage is not distinguished. Verified: f3 `s_dead` medium like any extern. `__attribute__((constructor))` and function-pointer initialisers are false-dead. |
+| cpp | D·med | ⬜ | ⬜ | ✅ | ✅ (0.11.1) | 🟡 | ⬜ | ✅ | 🟡 | ⬜ | ✅ | ✅ | ✅ `override` recorded (0.11.1) | — | ✅ | ⬜ | ⬜ | ✅ (0.11.1) | ⬜ | No visibility, which caps every finding. `extern "C"` is not an FFI root. Verified: f3 `c_export` is a finding. `override` is recorded since 0.11.1. |
 | csharp | A·high | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | ✅ | — | 🟡 | ✅ | ✅ | 🟡 | ⬜ | ⬜ | ⬜ | An implicit interface implementation gets no contract cap. The contract is labelled with the first outside ancestor, not the right one. Constructors are never reached. |
 | bash | S·low | ⬜ | — | — | ⬜ | — | — | ✅ | ⬜ | — | ✅ | — | — | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | Everything is withheld. `trap handler EXIT` and `"cmd_$1"` dispatch are invisible, and there is no blind-spot disclosure for either. |
 | ruby | D·med | ⬜ | ⬜ | — | 🟡 | 🟡 | ⬜ | ✅ | 🟡 | — | 🟡 | — | ⬜ | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | No `private` section tracking, so private and public look the same. A top-level paren-less call does not root its target. |
-| swift | D·med | ⬜ | ⬜ | ⬜ | ⬜ | 🟡 | ⬜ | 🟡 | 🟡 | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | `@objc`/`@IBAction`/`#selector` targets, `@main`, `Codable` hooks and operators are not roots. `override` is not recorded. Verified: f1 `S.hook` has no contract. |
-| lua | D·med | ⬜ | ⬜ | — | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | — | 🟡 | — | — | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | Metamethods (`__index`, `__call`) are never rooted: `is_dunder` needs a trailing `__`. A returned module table is not an export. |
-| php | D·med | ⬜ | ⬜ | ✅ | 🟡 | ✅ | ⬜ | ✅ | ⬜ | — | ✅ | — | ⬜ | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | Visibility is never extracted, so nothing reaches `high`. Magic methods (`__construct`, `__invoke`) are not roots. Verified: f1 `C::__construct` is a finding. `#[\Override]` is ignored. |
-| dart | D·med | ⬜ | ⬜ | ⬜ | ⬜ | 🟡 | ⬜ | ✅ | ⬜ | — | ✅ | — | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `@override` is never recorded, so the contract marker that exists for Dart never fires. Verified: f2 `W::build`. There are no Flutter lifecycle roots and `_private` is not read. |
-| scala | D·med | ⬜ | ⬜ | ⬜ | ⬜ | 🟡 | ⬜ | ✅ | 🟡 | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | No visibility or annotations are recorded. `override def` of an outside base is not capped. Verified: f2 `K::hook`. `apply`/`unapply`/`given` are not roots. |
+| swift | D·med | ⬜ | ⬜ | ⬜ | ✅ (0.11.1) | 🟡 | ⬜ | 🟡 | 🟡 | — | ✅ | ⬜ | ✅ `override` recorded (0.11.1) | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | `@objc`/`@IBAction`/`@main`, `Codable` hooks and operators are not roots (attributes still not captured at 0.13.3). `override` (0.11.1) and `#selector` values (0.11.1) are read. |
+| lua | D·med | ⬜ | ⬜ | — | ✅ (0.11.1) | ⬜ | ⬜ | ✅ | ⬜ | — | 🟡 | — | — | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | Metamethods (`__index`, `__call`) are never rooted: `is_dunder` needs a trailing `__`. A returned module table is not an export. |
+| php | D·med | ⬜ | ⬜ | ✅ | 🟡 | ✅ | ⬜ | ✅ | ⬜ | — | ✅ | — | ✅ `override` recorded (0.11.1) | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | Visibility is never extracted, so nothing reaches `high`. Magic methods (`__construct`, `__invoke`) are not roots, though `new T` reaches `__construct` since 0.11.1. `#[\Override]` matches since 0.11.1. |
+| dart | D·med | ⬜ | ⬜ | ⬜ | ✅ (0.11.1) | 🟡 | ⬜ | ✅ | ⬜ | — | ✅ | — | ✅ `override` recorded (0.11.1) | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `@override` is recorded since 0.11.1 (fixture `m12/ov/dart`: `W::build` carries `implements-external-contract`). There are no Flutter lifecycle roots and `_private` is not read. |
+| scala | D·med | ⬜ | ⬜ | ⬜ | ✅ (0.11.1) | 🟡 | ⬜ | ✅ | 🟡 | — | ✅ | ⬜ | ✅ `override` recorded (0.11.1) | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | No visibility or annotations are recorded. `override def` of an outside base is capped since 0.11.1 (fixture `m12/ov/scala`). `apply`/`unapply`/`given` are not roots. |
 | hcl | S·low | ⬜ | — | — | — | — | ⬜ | — | — | — | 🟡 | — | — | — | 🟡 | — | — | — | ⬜ | References (`var.x`, `module.y`) are not recorded, so every block is "unreferenced". Withholding everything is the only honest output. |
-| zig | D·med | ⬜ | ⬜ | — | ⬜ | — | ⬜ | ✅ | — | ⬜ | ✅ | — | — | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `pub` is not recorded. `export fn` / `callconv(.c)` are not FFI roots. Sites in the external bucket give no doubt. |
-| objc | D·med | ⬜ | — | ⬜ | ⬜ | ⬜ | ⬜ | ✅ | 🟡 | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | No signals at all. `@selector`/`IBAction` targets and C calls inside methods are invisible, which causes many false findings. |
+| zig | D·med | ⬜ | ⬜ | — | ✅ (0.11.1) | — | ⬜ | ✅ | — | ⬜ | ✅ | — | — | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `pub` is not recorded. `export fn` / `callconv(.c)` are not FFI roots. Sites in the external bucket give no doubt. |
+| objc | D·med | ⬜ | — | ⬜ | ✅ `@selector`, C function values (0.11.1) | ⬜ | ⬜ | ✅ | 🟡 | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | No signals at all. `@selector`/`IBAction` targets and C calls inside methods are invisible, which causes many false findings. |
 | r | S·low | ⬜ | — | — | ⬜ | ⬜ | ⬜ | ✅ | 🟡 | — | 🟡 | — | — | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | A top-level call to a `source()`d file's function is not a root (reason `no-candidate-in-file`). `NAMESPACE`/`@export` are not read. |
-| groovy | D·med | ⬜ | ⬜ | 🟡 | ⬜ | 🟡 | ⬜ | ✅ | 🟡 | — | ✅ | — | ✅ | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | No visibility. No reflection screen (`invokeMethod`, `this."name"()`). Paren-less calls leave no doubt site. |
+| groovy | D·med | ⬜ | ⬜ | 🟡 | 🟡 `this.&m`/`Type.&m` (0.11.1); `obj.&m` through an untyped variable binds nothing (fixture `m12/vr/groovy`) | 🟡 | ⬜ | ✅ | 🟡 | — | ✅ | — | ✅ | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | No visibility. No reflection screen (`invokeMethod`, `this."name"()`). Paren-less calls leave no doubt site. |
 | julia | D·med | ⬜ | — | ⬜ | ⬜ | 🟡 | ⬜ | ✅ | 🟡 | — | ✅ | ⬜ | 🟡 | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | `export` is not read. Functions passed as values (`map(f, v)`) and calls reached through `using` are false-dead. |
 | perl | S·low | ⬜ | — | — | 🟡 | ⬜ | ⬜ | ✅ | ⬜ | — | 🟡 | — | ⬜ | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | `@EXPORT` is not read. `DESTROY`/`AUTOLOAD`/`BEGIN`/`import` are not roots. A qualified top-level call does not root. |
 | elixir | D·med | ⬜ | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | ✅ | ✅ | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | `def` vs `defp` is not recorded (verified: f2 `pub_f` and `priv_f` get identical evidence). Later clauses of a called function are false-dead. |
-| erlang | D·med | ⬜ | — | ⬜ | ⬜ | ⬜ | ⬜ | ✅ | ✅ | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | `-export([...])` is not a root, which is the largest false-positive source for libraries. `fun f/1` and MFA targets are invisible. |
+| erlang | D·med | ⬜ | — | ⬜ | ✅ (0.11.1) | ⬜ | ⬜ | ✅ | ✅ | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — | ⬜ | ⬜ | ⬜ | `-export([...])` is not a root, which is the largest false-positive source for libraries (still true at 0.13.3, fixture `m12/misc/erlang`). `fun f/1` and MFA targets are value references since 0.11.1. |
 | fortran | D·med | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🟡 | — | ⬜ | — | — | — | — | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `PROGRAM` is not a root, so the usual result is `no-roots-found`. `bind(c)` and `public ::` are not read. Name matching is case-sensitive. |
-| clojure | D·med | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🟡 | ⬜ | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | `-main` is not a root. `defn-`/`^:private`/`^:export` are not read. Protocol implementations are false-dead. |
-| haskell | D·med | ⬜ | — | — | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | — | ⬜ | ⬜ | — | 🟡 | — | ⬜ | — | ⬜ | The module export list is ignored. Qualified, operator and composition uses are invisible and leave no doubt site. |
-| ocaml | D·med | ⬜ | — | ⬜ | ⬜ | — | ⬜ | ✅ | — | — | ✅ | ⬜ | — | — | ✅ | — | ⬜ | — | ⬜ | `.mli` signatures are not read, so a library's `val` API reads as dead. Values passed to `List.iter` and through `\|>` are false-dead. |
+| clojure | D·med | ⬜ | ⬜ | ⬜ | ✅ (0.11.1) | ⬜ | ⬜ | 🟡 | ⬜ | — | ✅ | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | `-main` is not a root. `defn-`/`^:private`/`^:export` are not read. Protocol implementations are false-dead. |
+| haskell | D·med | ⬜ | — | — | ✅ (0.11.1) | ⬜ | ⬜ | ✅ | ⬜ | ⬜ | — | ⬜ | ⬜ | — | 🟡 | — | ⬜ | — | ⬜ | The module export list is ignored. Qualified, operator and composition uses are invisible and leave no doubt site. |
+| ocaml | D·med | ⬜ | — | ⬜ | ✅ (0.11.1) | — | ⬜ | ✅ | — | — | ✅ | ⬜ | — | — | ✅ | — | ⬜ | — | ⬜ | `.mli` signatures are not read, so a library's `val` API reads as dead. Values passed to `List.iter` and through `\|>` are value references since 0.11.1 (fixture `m12/vr/ocaml`). |
 | powershell | S·low | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ✅ | 🟡 | — | ✅ | — | — | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `Export-ModuleMember` / `FunctionsToExport` are not roots. Doubt matching is case-sensitive although the language is case-insensitive. |
 | solidity | D/A·med* | ⬜ | 🟡 | 🟡 | ⬜ | ⬜ | ✅ | — | ⬜ | — | ✅ | — | ⬜ | — | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | Modifiers and constructors are false-dead. `internal` is treated as private (inheritable). `override` of an OpenZeppelin base is not capped. |
-| fsharp | D·med | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | 🟡 | — | — | ✅ | — | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `[<EntryPoint>]` with a name other than `main` is reported dead. `private`/`internal` are not read. Functions used through pipes or as values are false-dead. |
+| fsharp | D·med | ⬜ | ⬜ | 🟡 | ✅ (0.11.1) | ⬜ | ⬜ | 🟡 | — | — | ✅ | — | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | `[<EntryPoint>]` with a name other than `main` is reported dead. `private`/`internal` are not read. Functions used through pipes or as values are value references since 0.11.1 (fixture `m12/vr/fsharp`). |
 | starlark | S·low | ⬜ | ⬜ | — | ⬜ | — | ⬜ | ✅ | ⬜ | — | 🟡 | ⬜ | — | — | 🟡 | ⬜ | — | — | ⬜ | A BUILD-file call of a `load()`ed macro does not root it. `implementation = _impl` is invisible. |
-| cmake | S·low | ⬜ | — | — | ⬜ | — | — | ✅ | — | — | 🟡 | — | — | ⬜ | ✅ | — | ⬜ | — | ⬜ | `CMakeLists.txt` is not analyzed, so its calls root nothing. Top-level matching is case-sensitive. |
+| cmake | S·low | ⬜ | — | — | ⬜ | — | — | ✅ | — | — | 🟡 | — | — | ⬜ | ✅ | — | ⬜ | — | ⬜ | `CMakeLists.txt` is analyzed since 0.11.1 (detected by name), but its top-level call of an `include()`d file's function is `no-candidate-in-file` and roots nothing (fixture `m12/misc/cmake`, 0.13.3). Top-level matching is case-sensitive. |
 | nix | S·low | ⬜ | — | — | ⬜ | — | ⬜ | ✅ | — | — | ✅ | — | — | — | ✅ | — | — | — | ⬜ | Attrset members a file returns (its de-facto exports) are not roots. Value uses (`map helper`) are invisible. |
 | verilog | D·med | ⬜ | — | 🟡 | — | — | — | ⬜ | ⬜ | — | ⬜ | ⬜ | — | — | ⬜ | — | ⬜ | — | ⬜ | **Bug:** every `task` is rooted as a framework callback, because its kind tag `task` is in `FRAMEWORK_ATTRS`. The top module is not a root, and called functions are reported dead. |
 | vhdl | D·med | ⬜ | — | 🟡 | — | — | — | ⬜ | — | — | ⬜ | — | — | — | ⬜ | — | ⬜ | — | ⬜ | No roots at all, and no call sites, so nearly every subprogram is reported. |
@@ -146,7 +148,9 @@ A finding reaches `high` only when the class is `analyzable` (`signals_complete`
 
 **ValRef**
 
-- Declared by: rust, python, java, csharp, javascript, typescript, go, php, ruby, perl, elixir.
+- Declared by: rust, python, java, csharp, javascript, typescript, go, php, ruby, perl, elixir; kotlin too since 0.11.1.
+- Since 0.11.1 (WS26) value references are recorded under `--dead-code` for many more languages whether or not the signal is declared. Fixture `m12/vr` plus a control with the use removed (`m12/vr/ctl`) shows the reference keeping `cb` live in c, cpp, clojure, dart, erlang, fsharp, haskell, kotlin, lua, ocaml, scala, swift and zig; julia (`map(cb, …)`) is still a finding; groovy binds only `this.&m`/`Type.&m`.
+- The 🟡 notes below are the 0.11.0 reading:
 - 🟡 where the docs show that only registrar arguments are seen:
   - TS §12 (`mappedFn`, `timerFn`);
   - Go §12 (`lib.less`);
@@ -221,9 +225,9 @@ A finding reaches `high` only when the class is `analyzable` (`signals_complete`
 - Rust: the impl's trait is not declared in the tree.
 - C# `partial` parts (`PARTIAL_DECLARATION`).
 - A marker in `OVERRIDE_MARKERS` (`@Override`, `override`, `@override`, mod.rs:409). Only java.rs, csharp.rs and groovy.rs (`attrs::collect_with_preceding`, groovy.rs:192) put such a marker into `attributes`.
-- Python, unmarked, for non-`Function` kinds only (mod.rs:505), which is why its `async def` methods miss the cap.
+- Python, unmarked, for non-`Function` kinds only (mod.rs:505), which is why its `async def` methods missed the cap at 0.11.0. Fixed in 0.11.1: a definition is a method when its owner is a class (fixture `m12/ov/python`).
 - Verified ✅: Groovy (f2 `G.hook implements-external-contract:Base`).
-- Verified ⬜: Scala, Dart, Ruby (f2), Kotlin, TS, Swift, PHP (f1).
+- Verified ⬜ at 0.11.0: Scala, Dart, Ruby (f2), Kotlin, TS, Swift, PHP (f1). Since 0.11.1 Kotlin, Swift, Scala, TS, Dart, C++ and PHP record the marker (fixtures `m12/ov/*`); Ruby was not re-run.
 - Julia 🟡: `julia-base-dispatch` roots `Base` extensions instead of capping them.
 
 **Reflect**
@@ -254,8 +258,8 @@ A finding reaches `high` only when the class is `analyzable` (`signals_complete`
 **Unreach**
 
 - `unreachable_after_terminator` is called by rust.rs:120, python.rs:119, go.rs:111, java.rs:53, javascript.rs:76, typescript.rs:84, c.rs:59 and cpp.rs:71.
-- The only other mention in `crates/cgg-resolve`, `crates/cgg` and `crates/cgg-core` is the capability-bit copy at `crates/cgg/src/lib.rs:1935` (grep `unreachable`).
-- Verified by the doc fixtures: Python f8, JS f9, TS f6, Go f5 and C f4 all still draw the edge after `return`.
+- At 0.11.0 the only other mention was the capability-bit copy at `crates/cgg/src/lib.rs:1935`, and the doc fixtures (Python f8, JS f9, TS f6, Go f5, C f4) all still drew the edge after `return`.
+- Since 0.11.1 `crates/cgg-resolve/src/unreachable.rs` consumes the regions under `--dead-code`: edges from them are capped at `medium` and the liveness adjacency skips them (fixtures `m12/un/{py,go}`).
 
 **Blind**
 
@@ -282,18 +286,18 @@ Ranked by how much wrong output they cause, weighted by how common the language 
 
    The JS/TS plugin already parses `export` statements for import resolution (`ModuleIndex` re-exports, CLAUDE.md step 3). Evidence: typescript.md §12 (`exportedButUnused`), erlang.md §12 (fixture f1), haskell.md §12 (fixture f3), and this matrix's fixture f1 `exported`.
 
-2. **Unreachable regions are extracted for 8 languages and consumed by none** (S–M). A call after `return`/`throw` still keeps its target live.
+2. *Fixed in 0.11.1 (fixtures `m12/un/{py,go}`: `incoming-only-from-unreachable-code`).* **Unreachable regions are extracted for 8 languages and consumed by none** (S–M). A call after `return`/`throw` still keeps its target live.
    - Plugin call sites: rust.rs:120, python.rs:119, go.rs:111, java.rs:53, javascript.rs:76, typescript.rs:84, c.rs:59, cpp.rs:71.
    - No reader exists outside `crates/cgg/src/lib.rs:1935`.
    - The effort is a filter in `Adj::build`, or a resolver pass that drops sites inside `FileFacts::unreachable`.
    - The other statement languages (C#, Kotlin, Swift, Dart, Scala, PHP, Ruby) do not even extract the regions (no `unreachable` in csharp.rs/kotlin.rs signals, signals listed above).
 
-3. **`override` markers are captured for Java, C# and Groovy only** (S each). Kotlin, Swift, Scala and TS write an `override` modifier, Dart writes `@override`, and PHP writes `#[\Override]`, yet `implements-external-contract` never fires for any of them. An override of an Android, Flutter, UIKit or React base is therefore reported like ordinary dead code.
+3. *Fixed in 0.11.1 (fixtures `m12/ov/*`: Kotlin, Swift, Scala, TS, Dart, C++ and PHP overrides of an outside base carry `implements-external-contract`).* **`override` markers are captured for Java, C# and Groovy only** (S each). Kotlin, Swift, Scala and TS write an `override` modifier, Dart writes `@override`, and PHP writes `#[\Override]`, yet `implements-external-contract` never fires for any of them. An override of an Android, Flutter, UIKit or React base is therefore reported like ordinary dead code.
    - Verified: fixtures f1 and f2.
    - Code: `OVERRIDE_MARKERS` (mod.rs:409) already lists `@override`. The fix is in each plugin: put the modifier into `attributes`, as csharp.rs:332-342 does.
    - The same gap covers C++ `override` (cpp.md §12, `Ext::paintEvent`).
 
-4. **Kotlin is "analyzable" but can never produce `high`** (S–M). Java can.
+4. *Still true at 0.13.3 (fixture `m12/kh`); Kotlin now declares `value_refs` (0.11.1), but not `impls`, so `language-lacks-dispatch-model` still caps it.* **Kotlin is "analyzable" but can never produce `high`** (S–M). Java can.
    - Kotlin declares visibility and attributes (kotlin.rs:18-24) but not `value_refs` or `impls`. Inheritance fan-out runs for it anyway (dispatch.rs:114).
    - So the declared-signal bit, not the model, adds `language-lacks-dispatch-model` and `language-lacks-value-references`.
    - The report also states `max_confidence: high` for Kotlin (fixture f1, mod.rs:1149), which is wrong.
@@ -319,7 +323,7 @@ Ranked by how much wrong output they cause, weighted by how common the language 
 
    Without it the language cannot be `analyzable`, and private dead code (the most certain kind) is capped at medium. C# and Java show that the model handles it.
 
-7. **The Python `async def` external-contract miss** (S). The check `nd.kind != CallableKind::Function` (mod.rs:505) excludes async methods, which the plugin records with kind `function`. Verified: fixture f1 `a.P._ahook` is `high`, while its sync sibling `_shook` is `medium` with `implements-external-contract`. This is a false `high`, which is the band the tool promises is safe.
+7. *Fixed in 0.11.1 (fixture `m12/ov/python`).* **The Python `async def` external-contract miss** (S). The check `nd.kind != CallableKind::Function` (mod.rs:505) excludes async methods, which the plugin records with kind `function`. Verified: fixture f1 `a.P._ahook` is `high`, while its sync sibling `_shook` is `medium` with `implements-external-contract`. This is a false `high`, which is the band the tool promises is safe.
 
 8. **Magic-method and metamethod roots** (S). `DUNDER_LANGS` includes PHP and Lua (roots.rs:160-161), but `is_dunder` needs a trailing `__` (roots.rs:967-969). PHP `__construct`/`__invoke`/`__call` and Lua `__index`/`__gc` are therefore never rooted. Python's equivalents are. Verified: f1 `C::__construct`.
 
@@ -350,7 +354,7 @@ Ranked by how much wrong output they cause, weighted by how common the language 
 
 15. **Verilog `task` false root** (S). The plugin's kind tag `"task"` (verilog.rs:151-152) collides with Celery's `task` in `FRAMEWORK_ATTRS` (roots.rs:186-207), so every Verilog task is a root. The fix is either a language-gated attribute table or a non-colliding tag spelling.
 
-16. **Entry forms that are not `main`** (S each, as `LANG_ENTRY` rows or an attribute rule): Fortran `PROGRAM`, Clojure `-main`, F# `[<EntryPoint>]`, Swift `@main`, Verilog/VHDL top units, Kotlin `@JvmStatic main` in an object (unverified). Each one makes the whole language report `no-roots-found`, which withholds every reachability finding. Evidence: fortran.md, clojure.md, fsharp.md §12.
+16. *Still true at 0.13.3 for Fortran `PROGRAM` and Clojure `-main` (fixture `m12/misc`).* **Entry forms that are not `main`** (S each, as `LANG_ENTRY` rows or an attribute rule): Fortran `PROGRAM`, Clojure `-main`, F# `[<EntryPoint>]`, Swift `@main`, Verilog/VHDL top units, Kotlin `@JvmStatic main` in an object (unverified). Each one makes the whole language report `no-roots-found`, which withholds every reachability finding. Evidence: fortran.md, clojure.md, fsharp.md §12.
 
 17. **Top-level invocation misses** (S–M):
     - Ruby paren-less top-level calls leave no audit record (ruby.md §12, `crates/cgg/src/lib.rs:1070-1086`).

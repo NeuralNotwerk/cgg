@@ -1,15 +1,15 @@
 ---
 name: cgg
-description: Use the `cgg` call-graph CLI to map function-level call relationships across a codebase and pull the result (as mermaid) into the working context. Trigger when the user asks "what calls X?", "what does X depend on?", "what would break if I change this?", needs to understand an unfamiliar module before editing it, scopes a refactor or rename, traces a bug across files, generates architecture diagrams, asks "is this still used?" / "what references this?" / "is anything here unused?", or works on a polyglot codebase with FFI boundaries (PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI). Also trigger proactively before editing any non-trivial function in a large codebase to confirm caller/callee impact — running cgg first is faster and more reliable than grepping for usages. Supports 46 languages (plus Jupyter `.ipynb`) including Rust, Python, TS/JS, Go, Java, Kotlin, C/C++, C#, Swift, Ruby, PHP, Bash, PowerShell, Solidity, F#, Verilog/SV, VHDL, Assembly, CMake, Starlark/Bazel, Nix, and the Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI interface-definition languages (API model topology rendered as service→operation→message/type and operation→schema→schema edges; OpenAPI/AsyncAPI YAML or JSON content-detected). Outputs mermaid (default, agent-readable), plus json/dot/graphml.
+description: Use the `cgg` call-graph CLI to map function-level call relationships across a codebase and pull the result (as mermaid) into the working context. Trigger when the user asks "what calls X?", "what does X depend on?", "what would break if I change this?", needs to understand an unfamiliar module before editing it, scopes a refactor or rename, traces a bug across files, generates architecture diagrams, asks "is this still used?" / "what references this?" / "is anything here unused?", asks what third-party libraries, processes or native code the code reaches, reviews what a diff touched, or works on a polyglot codebase with FFI boundaries (PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI). Also trigger proactively before editing any non-trivial function in a large codebase to confirm caller/callee impact — running cgg first is faster and more reliable than grepping for usages. Supports 46 languages (plus Jupyter `.ipynb`) including Rust, Python, TS/JS, Go, Java, Kotlin, C/C++, C#, Swift, Ruby, PHP, Bash, PowerShell, Solidity, F#, Verilog/SV, VHDL, Assembly, CMake, Starlark/Bazel, Nix, Lean 4, Kivy KV, and the Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI interface-definition languages (API model topology rendered as service→operation→message/type and operation→schema→schema edges; OpenAPI/AsyncAPI YAML or JSON content-detected). Outputs mermaid (default, agent-readable), plus json/dot/graphml.
 ---
 
 # cgg — call graph for agents
 
 `cgg` is an offline, language-agnostic CLI that turns source code into
 a mermaid call graph in milliseconds. A typical library or service
-finishes in well under a second (cgg's own `crates/`: 125 files
-analyzed, ~140 ms); a large application takes a few seconds (NetBox:
-1,273 analyzed files, ~3 s). A really big tree — the Flutter SDK, say
+finishes in well under a second (cgg's own `crates/`: 170 files
+analyzed, ~0.5 s); a large application takes a few seconds (NetBox:
+1,273 analyzed files, ~3.3 s). A really big tree — the Flutter SDK, say
 — runs for many minutes, so scope with a path argument rather than
 pointing it at a monorepo root. Output is plain text designed for
 direct injection into a prompt, so use it to reason about call
@@ -38,18 +38,20 @@ deleting a constant with three referenced sites).
 
 ## Check it's installed
 
-Run `which cgg` once. If missing, surface the install command to the
-user and stop — `cargo install` compiles 45 tree-sitter grammars and
-shouldn't run without confirmation:
+Run `which cgg` once. If missing, surface the install options to the
+user and stop — don't install without confirmation (the `cgg-install`
+skill walks through it):
 
 ```bash
+# prebuilt, no toolchain: linux-x86_64, linux-aarch64, macos-arm64, windows-x64
+gh release download -R NeuralNotwerk/cgg -p '*linux-x86_64.tar.gz'
+# anything else compiles 45 tree-sitter grammars (Rust >= 1.85 + a C compiler):
 cargo install cgg --locked
-# or, from inside a clone of the cgg repo:
-cargo install --path crates/cgg --locked
 ```
 
-If the user declines or doesn't have Rust, fall back to grep/Read.
-Don't try to half-emulate cgg by hand.
+`pip`/`npm install cgg-callgraphgenerator` are libraries, not the CLI.
+If the user declines, fall back to grep/Read. Don't try to half-emulate
+cgg by hand.
 
 ## The mental model: two knobs
 
@@ -65,12 +67,12 @@ Almost every useful invocation is a combination of these two:
   `auth::login`, `MyClass.foo`, or `pkg.module.fn`. Prefix with
   `glob:` for glob syntax. Repeatable — multiple filters OR together.
   This is what makes cgg precise rather than overwhelming.
-- **`-n N`** is the **hop depth** around each filter match. Omitting
-  `-n` gives the *whole* filtered graph, not one hop — always pass
-  `-n 1` explicitly as your starting point. `-n 0` is special: it
-  enumerates entry-to-exit paths *passing through* the matches — use
-  it when the question is "what are all the ways this gets called?"
-  rather than "what's near it?".
+- **`-n N`** is the **hop depth** around each filter match. With a
+  filter, omitting `-n` behaves as `-n 1`; with no filter you get the
+  whole graph. Pass `-n 1` explicitly as your starting point. `-n 0` is
+  special: it enumerates entry-to-exit paths *passing through* the
+  matches — use it when the question is "what are all the ways this gets
+  called?" rather than "what's near it?".
 
 Default output is mermaid to stdout. For anything bigger than ~50
 nodes, write to a file and Read it back rather than letting it flood
@@ -156,16 +158,18 @@ cgg --from-graph /tmp/graph.json --filter 'submit' -n 2
 
 Parsing dominates the wall clock and there is no cache, so a saved
 `-t json` graph is how you ask five questions for the price of one.
-On this repo: ~360 ms to analyze, ~70 ms per replay. `--filter`,
+On this repo: ~0.7 s to analyze, ~0.1 s per replay. `--filter`,
 `-n`, `--exclude-*` and `--rollup` all apply to the loaded document
 and give byte-identical output to running them against the tree.
 
 Two things it cannot do, both of which cgg tells you rather than
 leaving you to find out: a saved graph is the *post-query* graph, so
 replaying a filtered document only narrows it further; and options
-needing analysis facts the document lacks (`--dead-code`,
-`--include-external`, `--dynamic-dispatch`, `--since`, `--lang`) are
-refused with a reason, not ignored.
+needing analysis facts the document lacks (`--dead-code`/`--why-live`,
+`--externals`, `--include-external`, `--dynamic-dispatch`,
+`--reference-edges`, `--since`, `--lang`, `--report-unreferenced`,
+`--no-entry-nodes`, `--property-edges`, `--module-scope-calls`,
+`--fanout-cap`, `--allow-dir`, …) are refused with a reason.
 
 ### Trim noise with exclusions
 
@@ -198,15 +202,16 @@ jq '.edges | length' /tmp/graph.json
 ```
 
 JSON output is the format for CI gates and drift detection. Top-level
-keys are `callables`, `files`, `edges`, `unresolved`, `file_audits`,
-`metrics`. Two shapes to get right before writing a jq expression:
+keys are `schema`, `cgg_version`, `callables`, `files`, `edges`,
+`unresolved`, `file_audits`, `metrics`. Two shapes to get right before
+writing a jq expression:
 
 - **`callables` is an object keyed by stringified id, not an array** —
   `.callables[]` iterates values, but `.callables[0]` is an error. Each
   value has `qualified_name`, `simple_name`, `kind`, `language`, `file`
   (the owning file's **id** — look it up as a key of `files`, which is
   also an object keyed by id; it is not an array offset),
-  `start_line`/`end_line`, `signature_hint`, `visibility`.
+  `start_line`/`end_line`, `signature_hint`, `vis`.
 - **Edges use `src`/`dst`, not `from`/`to`**, and carry `site_line`,
   `site_byte`, `confidence`, `via`, `resolver`.
 
@@ -230,9 +235,28 @@ cgg . --lang rust,python -o /tmp/cgg.mmd
 
 Useful in monorepos when you only care about one slice.
 
+### "What did this change touch?" (review a diff)
+
+```bash
+cgg . --since main..HEAD -n 1 -o /tmp/cgg.mmd
+```
+
+Seeds `--filter` with every callable whose lines the revspec changed
+(added to any explicit `--filter`); stderr reports
+`N file(s) changed, M callable seed(s)`. A bare ref (`HEAD~5`) compares
+against the working tree, uncommitted edits included. Needs `git`.
+
+### Which files get analyzed
+
+The walk honours `.gitignore`, `.cggignore`, `--ignore-file PATH`, and a
+built-in deny list (`vendor`, `build`, `dist`, `target`, …).
+`--allow-dir vendor` analyzes a denied directory anyway;
+`--skip-minified` drops bundled `*.min.js`-style files, which otherwise
+dominate wall time. The stderr summary line counts what was skipped and why.
+
 ### See more than the direct call graph (opt-in)
 
-By default the graph shows resolved internal calls only. Four opt-in
+By default the graph shows resolved internal calls only. These opt-in
 flags add more, each tagged so you can tell them apart in the mermaid
 edge labels:
 
@@ -247,6 +271,19 @@ cgg . --filter 'Service::handle' -n 1 --include-external -o /tmp/cgg.mmd
   edges (tagged `dyn`). Answers "what could a `dyn Trait` call reach?"
 - `--reference-edges` — adds edges for functions passed by name as
   values (tagged `ref`), so registered handlers aren't invisible.
+- `--property-edges` — adds an edge for a member read that runs a getter
+  (`x.shape` on a Python `@property`, a C# property, …) when the
+  receiver's type is declared (tagged `prop`).
+- `--module-scope-calls` — binds top-level calls (script bodies,
+  `if __name__ == "__main__":`) to a synthetic per-file `<module>` caller.
+- `--guess-unique-names` — Rust only: binds an unplaced call to the one
+  callable carrying that name, at `low` confidence.
+
+`--fanout-cap N` (default 5) goes the other way: how many same-named
+candidates a duck-typed call may fan out to before it is dropped and
+audited as `fanout-cap-exceeded`. `--fanout-cap 0` means never guess
+without type evidence — use it when a false edge costs more than a
+missing one.
 
 Leave them off when you want the clean, high-confidence call graph.
 
@@ -261,7 +298,7 @@ were bound through structure and can be trusted.
 
 ```bash
 cgg . --externals -o /tmp/ext.mmd           # branch graph + /tmp/ext.mmd.externals.txt
-cgg . --externals=process,native --no-graph # just the report, to stderr
+cgg . --externals=process,native --no-graph # just the text report, on stderr
 cgg . --externals --filter '^<external>::requests::' -n 0   # every path into one library
 cgg . --externals --rollup-by module        # module → library dependency map
 ```
@@ -270,7 +307,11 @@ The report lists each library (third-party, system, native, process;
 `--externals=all` adds stdlib and unattributed) with its import sites,
 symbols, boundary callers and example branches from an entry point. The
 graph keeps only callables with a path to an external call, ending in
-`<external>::<library>::<symbol>` leaves. Each call's attribution carries
+`<kind>::<library>::<symbol>` leaves (`<external>` for third-party, then
+`<system>`, `<native>`, `<process>`, `<stdlib>`, `<unattributed>`);
+top-level call sites hang off `<toplevel>::<path>`. `--externals-format
+json` (`cgg.externals.v1`) needs `-o`, `--externals-report FILE` or
+`--no-graph`. Each call's attribution carries
 its evidence and a confidence; calls through values of unknown type are
 counted as `unattributed`, never guessed. Manifests are not read.
 
@@ -321,7 +362,8 @@ cgg ./src --exclude-partial '<framework-entry>::lifecycle::'
 
 Kinds: `network` (the only one cgg treats as attack surface), `queue`,
 `schedule`, `cli`, `ffi`, `lifecycle` (the default when no trust
-boundary is asserted), `test`, and `public` (a callable the *language*
+boundary is asserted), `test`, `ui` (an event handler wired in markup,
+e.g. XAML `Click="OnSave"`), and `public` (a callable the *language*
 exposes to anyone with no framework involved — a Solidity
 `public`/`external` function).
 
@@ -349,9 +391,23 @@ cgg ./src --why-live 'MyType::method$'   # why is this considered live?
 Under `--dead-code` the graph still owns stdout, so the report lands
 next to it: a `.deadcode.txt` / `.deadcode.json` sidecar when you pass
 `-o`, and stderr for the text report when you don't.
-`--dead-code-format json` needs a destination (`-o` or
-`--dead-code-report FILE`) — it will tell you so rather than writing
-unparseable JSON into the run summary.
+`--dead-code-format json` needs a destination (`-o`,
+`--dead-code-report FILE`, or `--no-graph`, which puts the JSON on
+stdout) — it will tell you so rather than writing unparseable JSON into
+the run summary.
+
+The other dead-code flags:
+
+| Flag | Effect |
+| --- | --- |
+| `--dead-code-confidence high\|medium\|low` | Lowest band shown (default `high`); withheld counts always print |
+| `--include-tests` | Also show findings in test scope (tests are always analyzed and always count as callers) |
+| `--ignore-names PAT` / `--ignore-attributes PAT` | Suppress findings by name or by attribute/decorator; still counted as callers |
+| `--roots FILE` | Use this `cgg-deadcode.toml` instead of the nearest one found upward |
+| `--write-roots` | Emit a `cgg-deadcode.toml` accepting every current finding, in place of the graph |
+| `--fail-on-dead` | Exit 3 when the report is non-empty |
+| `--no-graph` | Report only, no graph |
+| `--report-unreferenced` | Not `--dead-code`: lists callables no edge points at, no reachability or cascade, in place of the graph |
 
 `--why-live` is the exception: its proof **replaces** the graph on
 stdout, so a run with `--why-live -o out.mmd` writes the proof to
@@ -360,11 +416,15 @@ It looks like this:
 
 ```text
 cgg::read_file
-  LIVE — proof: 2 hop(s) from cgg::analyze [ExportedApi]
-   └→ cgg::analyze_in_pool                         ./cgg/src/lib.rs:134  direct / High
-   └→ cgg::read_file                               ./cgg/src/lib.rs:1608  direct / High
+  LIVE (call path) — proof: 3 hop(s) from cgg::analyze [ExportedApi]
+   └→ cgg::analyze_hosted                          ./crates/cgg/src/lib.rs:181  direct / High
+   └→ cgg::analyze_in_pool                         ./crates/cgg/src/lib.rs:206  direct / High
+   └→ cgg::read_file                               ./crates/cgg/src/lib.rs:2463  direct / High
   weakest hop: High
 ```
+
+A callable with no proof prints `NOT REACHED — no path from any known
+root`.
 
 **BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg reports
 what it could not find a caller for, which is not the same as proving no
@@ -447,8 +507,9 @@ outside it: the id is a handle for reading the arrows, and inserting a
 callable renumbers everything after it. Quote the **labels** to the
 user, never the ids. Numbering is the mermaid default because the id
 repeats on every edge that touches its node, and a ten-character hash
-there costs context-window tokens for nothing — dropping it takes cgg's
-own tree from 127,536 to 80,360 tokens, **37% fewer**.
+there costs context-window tokens for nothing — on cgg's own whole tree
+numbering cuts the mermaid from 727 KB to 553 KB, about a quarter fewer
+bytes and more than that in tokens.
 
 `--node-ids hash` swaps them for the graph's real ids
 (`Cqf3yb5yflr`) — a type prefix plus lowercase base36 digits, derived by
@@ -467,14 +528,15 @@ signatures are not affected.
 
 Note that only the *hash* form has that ambiguity. Numbered ids are
 unique by construction, so two callables that share a qualified name —
-overloads, or same-named helpers in different files, 41 of them on cgg's
-own tree — always get separate nodes. That is why the qualified name is
-never itself the id.
+overloads, or same-named helpers in different files (188 callables under
+45 shared names on cgg's own tree) — always get separate nodes. That is
+why the qualified name is never itself the id.
 
 Each node is a callable, labeled with its fully-qualified name. Each
-edge is a *resolved* call site — cgg doesn't emit edges it can't
-prove, so unresolved sites go to the audit sidecar instead of cluttering
-the graph with guesses.
+edge is a *resolved* call site. Sites cgg cannot bind — or could bind
+only by guessing past `--fanout-cap` — go to the audit sidecar instead
+of the graph; the guesses it does keep are marked `?` (see the
+confidence marker above).
 
 When the same caller calls the same callee at multiple distinct call
 sites in the source, the mermaid and dot renderers collapse those
@@ -484,8 +546,9 @@ into a single arrow with a multiplicity label — e.g.
 is used when the count is 1. When an edge also carries a `Via` tag the
 label slot holds both, space-separated: `-->|std 9x|`, `-->|ref 10x|`.
 JSON and GraphML still emit one edge per call site so programmatic
-consumers don't lose call-frequency information — on the run above, 60
-mermaid arrows against 91 JSON/GraphML edges. JSON carries
+consumers don't lose call-frequency information — `cgg ./crates
+--filter 'cgg::analyze_in_pool$' -n 1` draws 142 mermaid arrows for 223
+JSON edges. JSON carries
 `site_line`/`site_byte` on each edge (the file is the caller's, via
 `callables[src].file`). GraphML does not, unless you pass
 `--locations`, which also labels the collapsed mermaid and DOT arrows
@@ -493,7 +556,9 @@ with every site (`-->|"src/lib.rs:42,88"|`). A rolled-up arrow keeps
 its `Nx` count: it has no single line. `--locations` does not apply
 to `-t json` and says so.
 
-If an edge you expected is missing, check the audit sidecar. It is a
+If an edge you expected is missing, check the audit sidecar. It is
+written only when the run has an output file (`-o P` → `P.audit.json`,
+or `--metrics FILE`); a run to stdout writes none. It is a
 **JSON array of events**, not an object, so select the event first:
 
 ```bash
@@ -501,10 +566,14 @@ jq '.[] | select(.event=="file_analyzed") | .unresolved_calls[]?
     | select(.name | contains("foo"))' /tmp/cgg.mmd.audit.json
 ```
 
-Each entry carries `name`, `site_line`, a structured `reason.stage`
-(`no-candidate-in-file`, `ambiguous-in-file`, `no-candidate-cross-file`,
-…) and the candidate counts behind it. Slice by stage to see whether the
-resolver never found a candidate or found too many:
+Each entry carries `name`, `site_line`, `site_byte`, a structured
+`reason.stage` and, for some stages, a `reason.detail` with the
+candidate count. Common stages: `candidates-in-other-files` (the name
+exists elsewhere but nothing tied this call to it),
+`fanout-cap-exceeded`, `no-candidate-in-file`, `ambiguous-in-file`,
+`shadowed-by-local` (the name is a local/parameter), `not-in-imported-module`,
+`value-ref-ambiguous`. Calls into imported outside libraries are not
+"unresolved"; they are counted as external/stdlib. Slice by stage:
 
 ```bash
 jq -r '.[] | select(.event=="file_analyzed") | .unresolved_calls[]?
@@ -523,8 +592,8 @@ Common reasons calls don't resolve:
   project README's language table for the per-language matrix and the
   benchmark table for how much of it lands in practice.
 
-This is a feature: cgg is honest about what it doesn't know rather
-than emitting low-confidence edges.
+This is a feature: cgg records what it doesn't know rather than
+silently guessing.
 
 ## Output formats
 
@@ -537,19 +606,20 @@ than emitting low-confidence edges.
 
 ## Performance and limits
 
-- Most projects finish in under a second (cgg's own `crates/`: 125
-  files analyzed, ~140 ms); a large application takes a few seconds
-  (NetBox: 2,637 files discovered, 1,273 analyzed, ~3.0 s). Don't
+- Most projects finish in under a second (cgg's own `crates/`: 170
+  files analyzed, ~0.5 s); a large application takes a few seconds
+  (NetBox: 2,650 files discovered, 1,273 analyzed, ~3.3 s). Don't
   pre-optimize; just run it. On a very large tree, narrow the *path*
   you point it at — that is the only lever that matters, and
   `--filter` is not it (filtering happens after the whole tree is
   parsed and resolved).
 - `--jobs` defaults to `0`, which means **auto: half the machine's
-  physical cores, capped at 8** and bounded by any cgroup quota — not
-  every core. Raise it explicitly (`--jobs 32`) on a big tree if the
-  machine has the cores; it helps on parse-bound trees and does
-  roughly nothing on resolve-bound ones, so measure rather than
-  assume. The graph is byte-identical at any thread count.
+  physical cores, capped at 8** (32 once physical cores reach 32) and
+  bounded by any cgroup quota — not every core. Raise it explicitly
+  (`--jobs 32`) on a big tree if the machine has the cores; it helps on
+  parse-bound trees and does roughly nothing on resolve-bound ones, so
+  measure rather than assume. The graph is byte-identical at any thread
+  count.
 - A file whose syntax tree nests deeper than 4,000 levels is skipped,
   audited as `skip_reason: too-deep`, and counted in the run summary.
   That is roughly 2,000 nested calls or 4,000 nested brackets/operators
@@ -560,8 +630,11 @@ than emitting low-confidence edges.
   tree alone — and why a re-run costs the same as the first. If you
   need the same graph twice in a session, write it to a file with `-o`
   and read the file back rather than re-running.
-- C/C++ macros are listed as callables but not expanded — no
-  preprocessor simulation.
+- C/C++ function-like macros are listed as callables; a macro that
+  defines functions (`DEFINE_GETTER(foo)` at file scope) is expanded one
+  level, so the generated `get_foo` is a node. Nothing else is
+  preprocessed — no nested expansion, no `#if` evaluation.
+- `--profile` prints a per-phase timing breakdown to stderr.
 - Type inference is partial: it handles parameters, locals,
   constructors, and return types, but not full generic resolution.
 - No watch mode — re-run when the code changes.
@@ -572,8 +645,8 @@ than emitting low-confidence edges.
 
 1. **Running cgg without `--filter` on a large project and pasting
    the whole graph into context.** This wastes tokens and obscures
-   the answer you wanted. Always start with a filter — even a broad
-   one like `glob:Module::*` is better than nothing.
+   the answer you wanted. Start with a filter — even a broad one like
+   `glob:Module::*` — or, when you don't know names yet, `--rollup`.
 2. **Skipping cgg and grepping for function names instead.** Grep
    matches strings; cgg matches resolved calls. Grep will miss
    method dispatch and over-match on common names. If you find

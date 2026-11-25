@@ -1,5 +1,16 @@
 # Parity remediation plan (top 30 gaps)
 
+> **Status (2026-11-25, cgg 0.13.3): WS19–WS28 are done; WS29 is partly
+> done.** WS19–WS28 (and WS30–WS31, which this plan did not list) shipped
+> together in **0.11.1** (2026-10-23), not in the three cuts suggested
+> under *Summary*: see `CHANGELOG.md`, `## [0.11.1]`, which describes
+> each workstream by name. WS32–WS38 followed in 0.11.2. For each gap,
+> the status table under §3 of [PARITY_MATRIX.md](PARITY_MATRIX.md) gives
+> the CHANGELOG line. Eleven gaps were re-checked at 0.13.3: 1, 6, 8, 10,
+> 12, 19 and 20 by fixture, and 14, 21, 22 and 30 by reading `rules.rs`. WS29 is open: the matrices under `matrix/` were annotated with
+> 0.13.3 re-check notes on 2026-11-25, but `PARITY_MATRIX.md` has not been
+> re-scored. The plan below is kept as written.
+
 Written 2026-10-17 from [PARITY_MATRIX.md](PARITY_MATRIX.md) §3, against
 `remediate/cross-language` at 4bba8c4 (0.11.0 + tooling). Gap numbers below
 are that table's ranks. Workstreams continue the numbering in
@@ -76,6 +87,8 @@ Compatibility note. Only a wholly new feature warrants 0.12.0.
 
 ## WS19 — Confidence honesty (gaps 1, 2, 3, 4, 9) · effort S–M
 
+**Status (0.13.3):** Done in 0.11.1 (CHANGELOG `## [0.11.1]`, "`high` no longer reports a guess as certain … (WS19)").
+
 **Why first:** every item here is a `high` edge that can be wrong. All of
 them are in the shared resolver, so one change fixes many languages.
 
@@ -98,6 +111,8 @@ them are in the shared resolver, so one change fixes many languages.
 
 ## WS20 — Dead-code false positives (gaps 5, 6, 11, 15, 21, 23) · effort S each
 
+**Status (0.13.3):** Done in 0.11.1 ("Dead-code false positives (WS20)").
+
 | Gap | Change | Where |
 | --- | --- | --- |
 | 6 | Decide "is a method" by owner (the definition has an owning class), not by `kind != Function`. Python async methods then get the external-contract cap. | `cgg-resolve/src/deadcode/mod.rs:505` |
@@ -114,6 +129,8 @@ them are in the shared resolver, so one change fixes many languages.
 - **Carry-over:** the WS3/WS4 carry-over checks in TRACKER (Java external-contract overrides) still pass.
 
 ## WS21 — Constructor and super edges (gaps 12, 13) · effort S–M
+
+**Status (0.13.3):** Done in 0.11.1 ("Constructions and constructor delegation reached no constructor (WS21)").
 
 - **Gap 12:** emit a construction (`new T()` in C#, `T()` in Swift, `T.new` in Ruby) as a call site to the type, and add `constructor_names` rows that map it onto `T.T`/`init`/`initialize`. Start with C#, Swift and Ruby (S), then PHP, Scala, Groovy, Solidity, PowerShell, ObjC and F#.
 - **Gap 13:** record delegation sites:
@@ -132,6 +149,8 @@ them are in the shared resolver, so one change fixes many languages.
 
 ## WS22 — Callable extraction parity (gaps 7, 8, 24) · effort S–M
 
+**Status (0.13.3):** Done in 0.11.1 ("Callables missing from the graph … (WS22)").
+
 - **Gap 7:** tag bodiless interface and abstract members `abstract`, as TS, Swift, Scala and Dart already do:
   - Java/C#/Kotlin/Groovy interface methods without a body, and `abstract` methods;
   - Go interface method specs;
@@ -149,12 +168,16 @@ them are in the shared resolver, so one change fixes many languages.
 
 ## WS23 — Receiver typing (gaps 10, 26, 28, 16) · effort S–M · depends on WS19 gap 4
 
+**Status (0.13.3):** Done in 0.11.1 ("Receivers whose type the source declares were left untyped (WS23)").
+
 - **Gap 10:** type Go method receivers (`func (s *Server)`), and same-package parameter types written without a package qualifier. Reuse the Go parameter reader, not the type-first reader that parses `q *Server` back to front. Acceptance: the reproduced fixture binds `s.zip()` to `Server.zip` at high.
 - **Gap 26:** read declared return types for Java, C#, Dart, Groovy, C, C++ and ObjC, so `var t = make(); t.work()` and `getTool().work()` bind. This needs WS19 gap 4's corrected map key. Fix or remove the false comment at `type_hints.rs:~2650`.
 - **Gap 28:** treat JS/TS locals as a typing source: `const t = new Svc()`, `const t: Svc = …`, and `let`/`var` likewise. Use the scoped `FileFacts::locals` spans, not file-wide last-write-wins. Acceptance: TS medium fan-out falls in the corpus; check by reading a sample of new highs.
 - **Gap 16:** Swift and Groovy typed cross-file overload lookups expand to the file's overload set. Either add them to `OVERLOAD_ARITY_LANGS`, if they record arity (see WS28), or expand without narrowing at medium.
 
 ## WS24 — Framework and harness parity (gaps 14, 22, 30) · effort S–M (gap 30 M–L)
+
+**Status (0.13.3):** Done in 0.11.1 ("Framework and test-harness entries missing in Kotlin, C#, Swift and JS/TS (WS24)").
 
 - **Gap 14:**
   - Add `kotlin` to the 23 enumerating Java rules whose triggers are annotations or bases the Kotlin plugin already records (`@Scheduled`, `@KafkaListener`, `@Bean`, `@PostConstruct`, JAX-RS, Micronaut, `junit-sources` `@MethodSource`, …).
@@ -169,6 +192,8 @@ them are in the shared resolver, so one change fixes many languages.
   - *(b)* Make `it(…)`/`test(…)` callbacks callables, which is the closure-based test-framework follow-up already logged for Jest/Vitest, RSpec, Dart and kotest. Do (b) after WS22 gap 8, which adds the same machinery.
 
 ## WS25 — Builtins, reflection and detection (gaps 17, 18, 19, 20) · effort S
+
+**Status (0.13.3):** Done in 0.11.1 ("Detection, the stdlib screen and the reflection screen missed common forms (WS25)").
 
 - **Gap 17:** `module_is_stdlib` splits qualified heads on `::`, `/` and `\` as well as `.`, so `std::fs::read_to_string`, `clojure.string/join` and `\strlen` reach the stdlib tables.
 - **Gap 18:** add the Java and C# reflective calls to the dynuse screen tables. These names belong to the builtin tables, so they are allowed there.
@@ -186,6 +211,8 @@ them are in the shared resolver, so one change fixes many languages.
 
 ## WS26 — Function values as references (gap 25) · effort M per plugin
 
+**Status (0.13.3):** Done in 0.11.1 for JS/TS, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart, Scala, Lua, Erlang, Objective-C, Groovy, Zig and Clojure (one "… were not references (WS26, gap 25)" entry each); later releases extended value references further (see CLAUDE.md).
+
 This is the largest dead-code false-positive class. The shared helpers exist (`registrar.rs:517, 563`). Wire each plugin's value-position arguments (`map(fn)`, `setTimeout(cb)`, `::topHelper`, `sort.Slice(x, less)`) into `RefRecord::value_ref`.
 
 - **Order:** by corpus reach: JS/TS → Go → Kotlin → C/C++ → Ruby → PHP → Swift → Dart → Scala → Lua → the rest.
@@ -197,9 +224,13 @@ This is the largest dead-code false-positive class. The shared helpers exist (`r
 
 ## WS27 — Locals specs (gap 27) · effort M per language
 
+**Status (0.13.3):** Done in 0.11.1 for Go, C#, C, C++, Groovy, R, Julia, Haskell, Clojure, Nix, Starlark, Solidity, F# and Fortran (one "… did not shadow …" CHANGELOG entry each, Fortran as "Fortran array elements, dummy procedures …"). Perl has no locals collector at 0.13.3 (`grep -n collect_perl crates/cgg-lang/src/locals.rs` finds nothing).
+
 Add `locals.rs` specs so parameters and locals shadow, giving `shadowed-by-local` and no wrong `high`. Order: Go → C# → C → C++, then Groovy, R, Julia, Haskell, Clojure, Nix, Starlark, Solidity, F#, Fortran and Perl. Watch perf in each A/B: WS14's locals walk was where 0.11.0's regression came from (fixed in 711bd39).
 
 ## WS28 — Arity narrowing (gap 29, plus 14 #4) · effort M
+
+**Status (0.13.3):** Done in 0.11.1 ("Calls bound the wrong overload in C#, Kotlin, Swift and TypeScript … (WS28)" and "A cross-file call narrowed to one overload … stayed `medium` (WS28)").
 
 Order: C# → Kotlin → Swift → Groovy → TS → others. For each language:
 
@@ -210,6 +241,8 @@ Order: C# → Kotlin → Swift → Groovy → TS → others. For each language:
 Separately (S): let cross-file Java/Scala overloads narrowed to one by arity reach `high`, as the `CertainCtx` text already promises.
 
 ## WS29 — Docs and re-score · effort S
+
+**Status (0.13.3):** Partly done: the matrices were annotated against 0.13.3 on 2026-11-25; the re-score of `PARITY_MATRIX.md` and the "Doc corrections" pass were not done.
 
 - Apply the "Doc corrections" sections of `matrix/*.md` to CLAUDE.md/README; the orchestrator does this, never a subagent. Example: CLAUDE.md says a guessed receiver type "is never `high`", which until WS19 was true cross-file only.
 - Re-run the category agents for 02, 05, 06, 07, 11, 12 and 14 against the new tree and regenerate `PARITY_MATRIX.md`, so the gain is measured, not asserted.

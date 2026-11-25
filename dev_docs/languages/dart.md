@@ -1,6 +1,8 @@
 # dart
 
-The Dart plugin is `DartPlugin` in `crates/cgg-lang/src/plugins/dart.rs` (780 lines including inline tests). It parses `.dart` files with the crates.io grammar `tree-sitter-dart` 0.2 (`Cargo.toml:100`, `crates/cgg-lang/Cargo.toml:38`; `tree_sitter_dart::LANGUAGE`, dart.rs:21-23). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:140`.
+> Revised 2026-11-25 against cgg 0.13.3: tear-offs are value references (WS26), `@override` is recorded (WS20), body constructors bind cross-file, `var x = f()` locals take `f`'s declared return type (WS23), member-read aliases and `--property-edges` getters are new, and local functions are still not callables. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Dart plugin is `DartPlugin` in `crates/cgg-lang/src/plugins/dart.rs` (1,060 lines including inline tests). It parses `.dart` files with the crates.io grammar `tree-sitter-dart` 0.2 (`Cargo.toml:100`, `crates/cgg-lang/Cargo.toml:38`; `tree_sitter_dart::LANGUAGE`, dart.rs:21-23). Nothing is vendored. It is registered at `crates/cgg-lang/src/plugins.rs:140`.
 
 A single recursive `DartWalker` (dart.rs:58-517) keeps two stacks:
 
@@ -9,9 +11,10 @@ A single recursive `DartWalker` (dart.rs:58-517) keeps two stacks:
 
 The walker records definitions, imports/exports/`show`/`hide`, `part`/`part of`/`library` directives, and every `call_expression`. On every node it also calls the shared `closure_types::record("dart", …)` (dart.rs:79), which records typed closure parameters. After the walk it reads the nearest `pubspec.yaml` and records the package name in `FileFacts::packages` plus a `package-root` import record (dart.rs:41-53, `manifest.rs:65-85`).
 
-What the plugin does not do:
+What the plugin does and does not do with the run's switches:
 
-- It ignores its `ExtractCtx` (`_ctx`, dart.rs:27), so it never records registrar arguments or value references.
+- It reads only `ExtractCtx::reference_sites`: when set (`--reference-edges`, or `--dead-code`), `capture_value_positions` (dart.rs:255-374) records tear-offs as `value_ref` sites (§03). It never records registrar arguments.
+- It also records `var`/`final` locals initialised from a bare call as `LocalType` `f()` (dart.rs:136-160), which type propagation reads through `f`'s declared return type (§05).
 - It does not override `signals()`, so every `PluginSignals` flag is false (`cgg-lang/src/lib.rs:269-306`).
 - It has no `resolver_kind` override.
 
@@ -86,13 +89,14 @@ Not supported, or only partly supported:
 - **Extension members** `extension SquareExt on Square { void ext() {} }` have no owner either (qn `ext`) (f1).
 - **Extension-type members** `extension type Meters(int v) { int doubled() … }` have no owner (qn `doubled`) (f3).
 - **Local functions** `void localFn() { … }` inside a body are **not** recorded.
-  - `local_function_declaration` has no `name` field. Its `function_signature` child is then skipped because its parent ends with `declaration` (dart.rs:126-137, 160-166).
+  - The walker has a `function_declaration | local_function_declaration` arm (dart.rs:163-176) that reads `name` or `signature.name`, but it yields no callable for a local function: re-checked on 0.13.3 (`<scratch>/lang-docs/dart/f1`), no `localFn` callable, and the call `take(1)` inside it is attributed to `Holder::use` (high).
   - Fixture f1: no `localFn` callable, and its body's call `topLevel(2)` is attributed to `Holder::use`.
   - `locals.rs:323-329` confirms: "the plugin records no callable for it".
 - **Closures and lambdas** `() { … }`, `(x) => …` are not callables. Their calls are attributed to the enclosing callable (f1 L81, f2 test closures → `main`).
 - **Fields** are not callables. Test `abstract_members_are_declarations_and_supertypes_are_bases` asserts that `n` is absent.
 - **Overloads**: Dart has none, so not applicable.
 - **Generated code** (`*.g.dart` parts) is extracted like any file, with no `macro:`/generated tag (f6 `_$genFn`).
+- **`@override`** is recorded as the `@override` attribute on the member it annotates (`override_marker`, dart.rs:420-438; WS20; test `override_modifier_is_recorded`). It is the only attribute the plugin records besides `abstract`.
 
 ## 03. Call-site forms
 
@@ -119,9 +123,8 @@ Supported shapes:
 - **Expression-bodied closure** `xs.forEach((x) => x.run())`. The grammar reads it as `((x) => x).run()`; `closure_body_receiver` (dart.rs:519-533) makes the receiver `x`. Test `a_call_in_an_expression_bodied_closure_is_on_the_body_value`.
 - **Unnamed constructor call** `Square(2)`, `K(1)`. It is recorded as a bare call named `Square`.
   - It binds only when a `K::K` body-constructor exists **in the same file**: f3 L18 `makeK → K::K` high (intra-file).
-  - Otherwise it is unresolved or external:
-    - f1: `Square` sites are `no-candidate-in-file`, because there is no constructor callable.
-    - f3 b.dart L3: `K(1)` is `external-module dart:core`, although `a.dart` declares `K::K`. `libscope` only indexes top-level names (libscope.rs:225-270), and `constructor_names` has no Dart entry (cross_file.rs:383-391).
+  - Cross-file, a body constructor now binds too: on 0.13.3, `final k = K(1);` in `b.dart` importing `a.dart` (which declares `K(int x) { … }`) gives `W::a → K::K` high, `cross-file:imports` (`<scratch>/lang-docs/dart/f2`). `constructor_names` still has no Dart entry (cross_file.rs:389-399).
+  - Otherwise it is unresolved: f1 `Square(2)` sites are `no-candidate-in-file`, because a bodiless constructor is no callable (§02).
 
 Not supported:
 
@@ -129,11 +132,16 @@ Not supported:
 - **`new K.make()` / `const K()` as calls**: `new_expression` and `const_object_expression` are not `call_expression`. f5 L10-11: no record. They are read only as a receiver shape.
 - **Call operator** `typed()` where `typed` is an object with `call()`. It is recorded as a bare call `typed`, which goes external (`dart:core`). `call_operator_names` has no Dart entry (cross_file.rs:394-401). f1 L69 is external; `Square::call` stayed unreferenced.
 - **Operator invocation** `a + b` is not a call site (f1 L70). `Square::operator+` has no inbound edge.
-- **Getter and setter access** `x.perimeter` / `x.grow = 1` are not call sites. Getters and setters are only reachable by name mention (none recorded).
-- **Tear-offs and method references** `xs.forEach(take)`, `register(handler)`, `final t = K.make;`: no reference recorded, even with `--reference-edges`. f5: no `Via::Reference` edge to `handler`. f1 L77: `Holder::take` reported unreferenced.
-- **Calls through a function-typed variable** `final f = handler; f();` are recorded as bare `f`, which goes external (f5 L17 `<external>::f` with `--include-external`).
-- **Registrar arguments**: the `ExtractCtx` is ignored (dart.rs:27).
-- **Arity**: `RefRecord::arity` is never set (dart.rs:508-515). Dart is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- **Getter and setter access** `x.perimeter` / `x.grow = 1` are not call sites in the default graph. A getter read becomes a `property` edge only under `--property-edges` (below); setters never.
+- **Calls through a function-typed variable** `final h = handler; h();` are recorded as bare `h`, which goes to the external bucket (`no-candidate-in-file`, re-checked on 0.13.3, `<scratch>/lang-docs/dart/f1`).
+- **Registrar arguments**: not recorded (the plugin reads no registrar context).
+
+Supported since 0.11.1:
+
+- **Tear-offs** (WS26): under `--reference-edges` or `--dead-code`, a function, method or constructor named without being called is a `value_ref` site: call arguments and named arguments (`onPressed: _handleTap`, `xs.map(parse)`), variable, field and assignment values, returned values, and `Foo.new`/`Foo.named` (recorded as the construction). Bare, or through `this`, a type or a variable. A name a class declares as a field or getter (`FileFacts::data_members`) is a read, not a tear-off (`MEMBER_DATA_READ_LANGS`, value_refs.rs:386); locals are pruned through the Dart locals table; an `x.m` value through an untyped variable binds only through its type, never by name fan-out; a tear-off outside any callable credits only its own file's callables (`FILE_SCOPED_VALUE_REF_LANGS`, deadcode/roots.rs:1369). Test `tear_offs_are_reference_sites` (dart.rs:1017). 0.13.3 fixture `<scratch>/lang-docs/dart/f2`: `[1].forEach(take)` and `register(handler)` give `reference` edges, both high; `final g = k.run` with untyped `k` gives none.
+- **Member-read aliases**: `final f = p.load; f();` is rewritten to `p.load()` (`member_aliases::ALIAS_LANGS`, member_aliases.rs:17). 0.13.3 fixture `<scratch>/lang-docs/dart/f3`: `use → Foo::load` high.
+- **Getters under `--property-edges`**: a member read through a declared receiver type (`p.size` with `Foo p`) is a `property` edge to the getter (`property_reads.rs:32, 204`). f3: `use → Foo::size` high, `via: property`.
+- **Arity**: `RefRecord::arity` is never set (dart.rs:508-515). Dart is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357).
 - **Paren-less calls**: not applicable (getters are not modelled).
 - **Index operators** `a[i]` are not recorded.
 
@@ -202,11 +210,14 @@ Not supported (fixture f10, every case fanned out at medium over `Foo::go` + `Ba
 
 - **Annotated locals** `Foo typed = Foo(); typed.go();` (L9).
 - **`var`/`final` locals from a construction** `var inferred = Foo(); inferred.go();` (L11).
-- **Locals from a function's return type** `final fromFn = mk(); fromFn.go();` (L13).
 - **Fields** `Foo field = Foo(); … field.go();` (L14), and `late Bar other; other.go();` (L15).
 - **Nullable locals** `Bar? nb; nb?.go();` (L19).
-- **Method return types in chains** `p.self().go()` (L17).
-- Evidence: the Dart plugin writes neither `local_types` nor `class_fields`. grep `local_types` in `cgg-lang/src/plugins/*.rs` lists c_macro, cpp, csharp, go, java, kotlin, python, rust and zig only. Dart is not in `lang_tallies_table!` (type_hints.rs:335-353).
+- **Method return types in chains** `p.self().go()` (L17). Re-checked on 0.13.3: still medium over `Foo::go` + `Bar::go`.
+- Evidence: the Dart plugin writes no `class_fields`, and the only `local_types` it writes are bare-call results (below). Re-checked on 0.13.3 (`<scratch>/lang-docs/dart/f1`): `Foo typed = Foo()`, `var inferred = Foo()`, the field `field` and `Foo? nb` all still fan out at medium.
+
+Supported since 0.11.1 (WS23):
+
+- **Locals from a bare call's declared return type** `final fromFn = mk(); fromFn.go();`. The plugin records `fromFn` as `mk()` (dart.rs:136-160); Dart is in `TYPE_FIRST_RETURN_LANGS` (type_hints.rs:4006), so the type in front of `mk`'s name types the local, when every definition of `mk` agrees and `mk` is not imported. `void`, `Object`, `Future<T>`/`FutureOr<T>`/`Stream<T>` (`AWAITABLE_TYPES`, stdlib.rs:654) and one-letter types type nothing (test `ret("dart", "Future<Tool> load() async") == None`, type_hints.rs:4535). 0.13.3 fixture f1: `Holder::use → Foo::go` high. The same declared type types a bare-call receiver (`mk().go()`).
 - **Implicit receivers**: not applicable. `settle_implicit_receivers` is Kotlin-only (type_hints.rs:1388).
 - **Weak receiver types** (`RefRecord::weak_receiver_type`): never set by Dart (dart.rs:508-515).
 
@@ -227,8 +238,8 @@ Supported:
 
 Not supported, or partial:
 
-- **Extension methods** `extension SquareExt on Square { void ext() {} }`: there is no extension index (unlike C# step 4d or Kotlin step 0b). `made.ext()` bound by name at medium (f1 L64). The extension's `on` type is not recorded, and its members have no owner (§02).
-- **Overloads and arity**: not applicable; Dart has no overloading. `OVERLOAD_ARITY_LANGS` excludes Dart (type_hints.rs:1583).
+- **Extension methods** `extension SquareExt on Square { void ext() {} }`: there is no extension index (unlike C# step 4d or Kotlin step 0b). The extension's `on` type is not recorded, and its members have no owner (§02). On 0.11.0 `made.ext()` bound by name at medium (f1 L64); on 0.13.3 a call through a `Square`-typed parameter is refused instead (`candidates-in-other-files`, although the candidate is in the same file; `<scratch>/lang-docs/dart/f1`).
+- **Overloads and arity**: not applicable; Dart has no overloading. `OVERLOAD_ARITY_LANGS` excludes Dart (type_hints.rs:2357).
 - **`member_of_calling_class` / `overrides_below`**: these are the Java/C# paths. Dart uses `bare_call_reaches` instead. No override-below handling was found for Dart (unverified beyond grep).
 - **Mixin `on` constraints** (`mixin M on Base`): unverified whether `on` types become bases.
 - **Interface `implements` of an external type** (`implements Comparable<Square>`) gives no contract evidence (§12).
@@ -247,7 +258,7 @@ Not supported, or partial:
 - **Own library beats imports**: f11 `helper()` in b.dart → b.dart's `helper`, not a.dart's (high).
 - **Positional shadowing**: none (OCaml, F# and Lua only, per the CLAUDE.md architecture notes).
 - **Conditional definitions**: not applicable (`DefRecord::conditional` is PHP only).
-- **Gap**: a call to a local function or a local closure variable (`localFn()`, `cb()`, `h()`) is recorded external `dart:core` rather than `shadowed-by-local` (f1 L80/L82, f11 L7). It produces no edge, and the local function's body is folded into its parent anyway.
+- **Gap**: a call to a local function or a local closure variable (`localFn()`, `cb()`, `h()`) goes to the external bucket rather than `shadowed-by-local` (f1 L80/L82, f11 L7; re-checked on 0.13.3, `no-candidate-in-file`). It produces no edge, and the local function's body is folded into its parent anyway.
 
 ## 08. Macros, preprocessor & codegen
 
@@ -265,19 +276,19 @@ Not supported, or partial:
 
 ## 10. Frameworks & entry points
 
-Every rule whose `language` is `"dart"` lives in `crates/cgg-core/src/frameworks/rules.rs:5402-5500`. None names Dart in a multi-language list. **None enumerates entries**: all have empty `attributes`, `registrars`, `base_types` and `methods`, and each carries a `gap` string shown in the coverage table under "seen, no rules".
+Every rule whose `language` is `"dart"` lives in `crates/cgg-core/src/frameworks/rules.rs:5724-5820`. None names Dart in a multi-language list. **None enumerates entries**: all have empty `attributes`, `registrars`, `base_types` and `methods`, and each carries a `gap` string shown in the coverage table under "seen, no rules".
 
 | rule id | kind | detect (import prefix) | node | what it does |
 |---|---|---|---|---|
 | `flutter` | Lifecycle | `package:flutter` | false | Detection only. The gap names `build`, `createState`, `initState`, `didChangeDependencies`, `didUpdateWidget`, `deactivate`, `dispose`, `reassemble` as too common to match by name (rules.rs:5402-5418). |
 | `flame` | Lifecycle | `package:flame` | false | Detection only. The gap names `onLoad`, `onMount`, `onRemove`, `onGameResize`, `onParentResize`, `onChildrenChanged`, `update`, `render` (rules.rs:5419-5435). |
 | `dart-main` | Cli | `dart`, `package:flutter`, `package:flame` | false | Detection only. Any `dart:` import triggers it; f1 shows "dart-main — found in 1 file(s), entries NOT enumerated" (rules.rs:5436-5452). |
-| `flutter-test` | Test | `package:flutter_test`, `package:test`, `package:test_api`, `package:flame_test`, `package:integration_test` | true | No entries. The gap explains that test bodies are closures and the plugin records no value or closure arguments (rules.rs:5453-5475). |
-| `shelf` | Network | `package:shelf`, `package:shelf_router`, `package:shelf_static`, `package:shelf_io` | true | No entries. Handlers are values passed to `Router()..get(...)`, which the plugin cannot see (rules.rs:5476-5498). |
+| `flutter-test` | Test | `package:flutter_test`, `package:test`, `package:test_api`, `package:flame_test`, `package:integration_test` | true | No entries. The gap says the plugin records no value or closure arguments; since WS26 it records tear-offs under `--reference-edges`/`--dead-code`, but there are still no registrar verbs, so the rule enumerates nothing. |
+| `shelf` | Network | `package:shelf`, `package:shelf_router`, `package:shelf_static`, `package:shelf_io` | true | No entries. The gap says handler values are invisible; they are now value references under `--dead-code`, so a handler passed by name is no longer unreferenced, but no route entry is minted. |
 
 - Fixture f2 coverage output: `recognised (none)`; `seen, no rules: dart-main, flutter, flutter-test`.
 - `member_sources_for`, `signature_methods_for`, `container_attributes_for`, `markup_kinds_for` and `visibility_entries_for` have no Dart entries (grep in rules.rs finds `dart` only at 5404-5478).
-- **Registrar verbs**: none, because the plugin ignores `ExtractCtx`.
+- **Registrar verbs**: none; the plugin reads only `ExtractCtx::reference_sites`.
 - **Framework-entry nodes**: none are ever minted for Dart (f2 has no `<framework-entry>` callables).
 - Benchmark corpus: `dart-flame` (scripts/benchmark.sh:77), and `APPS` entries `app-dartpad-shelf`, `dart-flame` and `dart-flutter` (benchmark.sh:301, 360-361). The README benchmark row reads `flame | dart | 1,591 | 9 | 0%` (README.md:1329). The 9 edges predate the method-span fix (CHANGELOG lines 819-820), so the row is stale per the user's memory note on README staleness; unverified against a fresh run.
 
@@ -294,15 +305,15 @@ Every rule whose `language` is `"dart"` lives in `crates/cgg-core/src/frameworks
 
 ## 12. Dead-code analysis
 
-- **Capabilities** (f1/f2 `--dead-code-format json`): `class: degraded`, with `visibility`, `value_references`, `dispatch`, `exports` and `test_tagging` all `none`.
+- **Capabilities** (f1/f2 `--dead-code-format json`): `class: degraded`, with `visibility`, `dispatch`, `exports` and `test_tagging` all `none`. Since WS26 `value_references` is `full` (0.13.3, `<scratch>/lang-docs/dart/f2`).
   - `attributes` is measured at runtime: it is `full` when an `abstract` tag exists (f1) and `none` otherwise (f2).
   - **`max_confidence: medium`**: every Dart finding is capped at medium, so the default high threshold shows **zero** Dart findings (f1: "0 shown (high) · 6 withheld (medium) · 1 withheld (low)").
 - **Roots**:
   - `builtin:main` program entry for every `main` (f1, f2), including test files' `main`.
   - `builtin:lifecycle` from `CONVENTIONAL_METHODS` (`initialize`, `to_s`, `toString`, `equals`, `hashCode`, `Dispose`, `describe`; roots.rs:101-111), which applies to every language. f1 rooted `Shape::describe`.
   - Dart has **no `LIFECYCLE` entry** (roots.rs:96-150), so Flutter `build`/`initState`/`dispose` and Flame `onLoad`/`update` are not roots. f2: `MyWidget::build` was reported `never-referenced` (medium).
-- **Override markers**: `OVERRIDE_MARKERS` includes Dart's `@override` (deadcode/mod.rs:405-409). However, the Dart plugin never records attributes (dart.rs:267), so `implements-external-contract` never fires for Dart. f2: `MyWidget::build` (`@override` of the external `StatelessWidget`) carries no contract evidence.
-- **Evidence kinds** seen on Dart findings: `language-lacks-dispatch-model`, `language-lacks-value-references`, `language-lacks-visibility`, `language-lacks-attributes`, `no-incoming-edges`, `name-matches-unresolved-site` (f1 `compareTo` → low), `implemented-trait-surface` (f2 `Base::over`), `incoming-only-from-dead-code`.
+- **Override markers**: `OVERRIDE_MARKERS` includes Dart's `@override`, and since WS20 the plugin records it (§02). On 0.13.3, `MyWidget::build` (`@override` of the external `StatelessWidget`) carries `implements-external-contract` and stays medium (`<scratch>/lang-docs/dart/f2`). Capabilities still report `attributes: none` when no `abstract` tag exists, so findings also carry `language-lacks-attributes`.
+- **Evidence kinds** seen on Dart findings: `language-lacks-dispatch-model`, `language-lacks-value-references` (0.11.0 only), `language-lacks-visibility`, `language-lacks-attributes`, `no-incoming-edges`, `name-matches-unresolved-site` (f1 `compareTo` → low), `implemented-trait-surface` (f2 `Base::over`), `incoming-only-from-dead-code`.
 - **Public API**: none. Dart has no visibility signal (`_private` naming is not read), and `export` directives are not turned into `FileFacts::exports`. Library code under `lib/` that nothing in the tree calls is reported (f2 `secret`, `neverCalled`).
 - **Unresolved doubt quirk**: f1 `paint` (`Color.red.paint()` unresolved in the same file) shows `no-unresolved-site-with-name`. Likewise f2 `secret` despite the refused `h.secret()` site. Root cause unverified.
 - **Unreachable code / test tagging / dynamic-use signals**: none (all `PluginSignals` false).
@@ -351,12 +362,12 @@ Mermaid marks a medium edge with a leading `?` (f3: `N13 -->|?2x| N2`, `N13 -->|
 ## 16. Known gaps & limitations
 
 - **`bin/` is skipped wholesale** (`BUILTIN_DENY_DIRS`, cgg-walk/src/lib.rs:57). Every Dart CLI entry point is invisible (f2).
-- **No constructor callables for bodiless constructors**, and no constructor binding cross-file: `Square(1)` from another file is `external-module dart:core` (f1, f3). `constructor_names` has no Dart entry (cross_file.rs:383-391).
-- **Local variable and field types are never inferred**: `Foo x = …`, `var x = Foo()`, `final x = f()` and fields all fan out by name at medium (f10). Only parameters, casts, constructions and closure parameters are typed.
+- **No constructor callables for bodiless constructors** (f1, f3; re-checked on 0.13.3). A body constructor does bind cross-file now (§03).
+- **Most local variable and field types are not inferred**: `Foo x = …`, `var x = Foo()`, nullable locals and fields all fan out by name at medium (f10; re-checked on 0.13.3). Parameters, casts, constructions, closure parameters and (since WS23) `final x = f()` through `f`'s declared return type are typed.
 - **Cascades (`..m()`), `new`/`const` constructions, operators, call-operator objects and getters/setters are not call sites** (f1, f5).
-- **No value references or tear-offs** (`forEach(take)`, `register(handler)`), so shelf handlers and test closures cannot be linked. This is stated in the `flutter-test` and `shelf` gap text (rules.rs:5472, 5494).
+- **No registrar verbs**: tear-offs are value references since WS26, but test closures and shelf routes are still not enumerated; the `flutter-test` and `shelf` gap text (rules.rs:5793, 5815) still says the plugin records no value arguments, which is now stale.
 - **Enum, extension and extension-type members have no owner**; top-level getters/setters, abstract getters and local functions are not callables (f1, f3).
-- **No `@override`/attribute recording**, so the dead-code report has no external-contract cap. No Flutter/Flame lifecycle roots exist, and Dart findings are capped at medium (§12).
+- **No Flutter/Flame lifecycle roots** exist, and Dart findings are capped at medium (§12). `@override` is recorded since WS20, so overrides of external bases carry `implements-external-contract`.
 - **Framework rules are detection-only**: `flutter`, `flame`, `dart-main`, `flutter-test` and `shelf` each carry a `gap_for` text (rules.rs:5415, 5432, 5449, 5472, 5494; `gap_for`, rules.rs:11876).
 - **Single-letter type names** defeat the callback closure typing (f9).
 - **External-module labelling** for `show`/`hide`-filtered names cites an unrelated import (f2 `dart:io`).
@@ -370,16 +381,16 @@ Mermaid marks a medium edge with a leading `?` (f3: `N13 -->|?2x| N2`, `N13 -->|
 |---|---|---|
 | 01 Detection & parsing | partial | `.dart` only, Dart 3 syntax parses; `bin/` dir is deny-listed, `.dart_tool/` is not |
 | 02 Callables extracted | partial | methods/getters/operators/body-ctors ok; bodiless ctors, enum/extension owners, top-level accessors, local fns missing |
-| 03 Call-site forms | partial | bare/member/`?.`/`!`/generic/static ok; cascades, `new`/`const`, operators, call operator, tear-offs missing |
+| 03 Call-site forms | partial | bare/member/`?.`/`!`/generic/static ok; tear-offs as value refs, member aliases, getters under `--property-edges`; cascades, `new`/`const`, operators, call operator missing |
 | 04 Imports & module resolution | full | library scope with parts, exports, show/hide, prefixes, `package:` via pubspec; minor external-label quirk |
-| 05 Type inference & receiver typing | partial | params, casts, constructions, closure params; no local/field/return-type typing |
+| 05 Type inference & receiver typing | partial | params, casts, constructions, closure params, bare-call result locals; no annotated-local/field/chained-return typing |
 | 06 Inheritance, dispatch & overloading | partial | bases incl. mixins, super, inherited bare calls, INHERITANCE_LANGS; no extension-method index |
 | 07 Scoping & shadowing | partial | DART_SPEC locals and shadowed-by-local; local fns/closure vars go external |
 | 08 Macros, preprocessor & codegen | n/a | no macros; `.g.dart` parts resolve but are untagged |
 | 09 FFI & cross-language links | none | no dart:ffi, platform channels or protobuf→Dart links |
 | 10 Frameworks & entry points | minimal | 5 rules (flutter, flame, dart-main, flutter-test, shelf), all detection-only gaps |
 | 11 Test harness entries | minimal | flutter-test detected, no entries; closures folded into `main` |
-| 12 Dead-code analysis | minimal | degraded class, max medium, no lifecycle roots, `@override` unread |
+| 12 Dead-code analysis | minimal | degraded class, max medium, no lifecycle roots; value references full, `@override` caps external overrides |
 | 13 Builtins & stdlib tables | partial | dart.txt 394 names, Function callback, TOP_TYPES; no wrapper tables |
 | 14 Confidence & certainty | partial | high via libscope/params/casts; most local receivers stuck at medium |
 | 15 Dynamic use & reflection | none | no dynuse, mirrors or noSuchMethod handling |

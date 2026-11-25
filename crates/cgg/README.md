@@ -49,17 +49,21 @@ produces comes back on `RunOutcome`, including an ordered transcript of every
 diagnostic and artifact.
 `cgg::emit` is the CLI's own front end over that value.
 
-It takes no locks and keeps no process-global state, so it is safe to call
-concurrently; each call gets its own worker pool sized by `RunOptions::jobs`.
+It shares no run state between calls (the only process-globals are
+immutable lookup tables and the opt-in `RunOptions::profile` timers), so it
+is safe to call concurrently; each call gets its own worker pool sized by
+`RunOptions::jobs`.
 
 > The library API is **pre-1.0**: `RunOptions` gains a field whenever a
 > graph-affecting flag is added. Pin an exact minor if you depend on it.
 
 ## Other languages
 
-The same pipeline is also a Python module (`import cgg`) and a C ABI
-(`libcgg.so` / `libcgg.a`) that serves .NET, Java, Go, Ruby and anything else
-with an FFI. Both live in the [repository](https://github.com/NeuralNotwerk/cgg).
+The same pipeline is also a Python module (`pip install
+cgg-callgraphgenerator`, `import cgg`), a Node module (`npm install
+cgg-callgraphgenerator`) and a C ABI (`libcgg.so` / `libcgg.a`) that serves
+.NET, Java, Go, Ruby and anything else with an FFI. All three live in the
+[repository](https://github.com/NeuralNotwerk/cgg).
 
 ## Findings are hypotheses
 

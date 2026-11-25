@@ -1,6 +1,8 @@
 # scala
 
-The Scala plugin is `ScalaPlugin` in `crates/cgg-lang/src/plugins/scala.rs` (662 lines, about 175 of them inline tests). It is one recursive tree walker, `ScalaWalker::walk` (scala.rs:72-254). The walker keeps three stacks:
+> Revised 2026-11-25 against cgg 0.13.3: primary and auxiliary constructors are callables reached by `new`, call-form construction, `this(…)` and `extends Base(x)` (WS21/WS22), method values are references (WS26), `override` is recorded (WS20), and arity-narrowed overloads bind at `high`. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Scala plugin is `ScalaPlugin` in `crates/cgg-lang/src/plugins/scala.rs` (1,039 lines including inline tests). It is one recursive tree walker, `ScalaWalker::walk` (scala.rs:72-254). The walker keeps three stacks:
 
 - a scope stack of named `class` / `object` / `trait` definitions;
 - a stack of the enclosing type's bases;
@@ -19,7 +21,7 @@ Scala has no dedicated resolver kind. It runs the generic `intra_file` → `cros
 | `INHERITANCE_LANGS`, `free_variant_is_member` | `dispatch.rs` |
 | Arity narrowing, callback types | `type_hints.rs` (`OVERLOAD_ARITY_LANGS`, `accepts_arity`, `callback_param_types`) |
 
-The plugin overrides no `signals()`, so it declares every `PluginSignals` bit false (scala.rs:11-44; default at cgg-lang/src/lib.rs:304-306). Its `ExtractCtx` argument is ignored (`_ctx`, scala.rs:27). Twelve `RuleSpec`s in `crates/cgg-core/src/frameworks/rules.rs` have `language: "scala"`.
+The plugin overrides no `signals()`, so it declares every `PluginSignals` bit false (default at cgg-lang/src/lib.rs:304-306). From its `ExtractCtx` it reads only `reference_sites` (scala.rs:35, 45): method values (§03) and `FileFacts::data_members` (its `class_fields` names, scala.rs:45-54) are recorded only when it is set. Twelve `RuleSpec`s in `crates/cgg-core/src/frameworks/rules.rs` have `language: "scala"`.
 
 Fixtures used below are `f1` … `f8` under `<scratch>/parity/scala/`. They were run with `target/release/cgg` 0.11.0 (branch `remediate/cross-language`). The dump helper is `dump.py` in the same directory: `E` lines are edges, `U` lines are audit records.
 
@@ -62,7 +64,7 @@ Supported shapes:
 - **Abstract members.** `def area(): Double` with no body is a `function_declaration`. It is recorded as `DefVariant::TraitMethod` (JSON kind `method`) tagged `abstract` (scala.rs:183-200; test `abstract_defs_are_bodiless_declarations`, scala.rs:584).
   - It is recorded only inside a type. A top-level bodiless `def` is skipped (scala.rs:193; same test).
   - `@native def nativeFn(i: Int): Int` is also a bodiless declaration, so it becomes `abstract` with attribute `@native` (fixture f4).
-- **Auxiliary constructors.** `def this(s: String) = this(s.toDouble)` is recorded as a callable named `Square::this` (fixture f1).
+- **Constructors** (WS22). The primary constructor of a class with a parameter list is a `DefVariant::Constructor` named after the class (`Square::Square`), spanning the class header, its parameters and the base-constructor arguments but not the body (`record_primary_constructor`, scala.rs:556-615). An auxiliary `def this(…)` is also a `Constructor` named `Square::Square` (scala.rs:192-203). A class written without a parameter list has no constructor node. Test `constructors_and_constructions_are_recorded` (scala.rs:921). 0.13.3 fixture `<scratch>/lang-docs/scala/f1`: `Square::Square` at lines 3 and 4, `Point::Point` for a case class.
 - **Operator methods.** `def +(o: Square)` → `Square::+`; `def unary_- : Square` → `Square::unary_-` (fixture f1).
 - **Parameterless defs.** `def size: Int = 4` → `Square::size`. This is the shape paren-less sites can bind to (section 03).
 - **Nested (local) defs.** `def main(…) = { def nested(x: Int) = … }` → `Main::nested`. The enclosing function is not part of the name (fixture f1; nesting is handled by span, section 07).
@@ -70,14 +72,15 @@ Supported shapes:
 - **Curried and implicit parameter lists** are kept in `signature_hint` (`super::extract_signature`, scala.rs:354). Fixture f4: `def curried(a: Int)(b: Int)` and `def implicitP(a: Int)(implicit ctx: String)` were both extracted.
 - **Scala 3 top-level defs.** `def topLevel3(i: Int)` at file level → `topLevel3`, with no owner (fixture f3).
 - **Script files.** `.sc` top-level `def scriptFn()` → `scriptFn` (fixture f1).
-- **Attributes.** Annotations preceding a def are collected by the shared collector `attrs::collect_with_preceding` (attrs.rs:70; scala.rs:356-360). The attribute string keeps its arguments. Fixture f3: `@FunctionName("hello")`, `@deprecated("x", "1")`, `@Test`.
+- **Attributes.** Annotations preceding a def are collected by the shared collector `attrs::collect_with_preceding` (attrs.rs:70). The attribute string keeps its arguments. Fixture f3: `@FunctionName("hello")`, `@deprecated("x", "1")`, `@Test`.
+- **`override`** (WS20): the `override` modifier is recorded as the `override` attribute (`attrs::with_override_marker`, scala.rs:448; test `override_modifier_is_recorded`, scala.rs:732). It does not count as attribute capture.
 - **Bases** are read by `attrs::base_types_with_ctor_args` (attrs.rs:195; scala.rs:138-139). They go on every `DefRecord::base_types` of the type (scala.rs:344-346) and on `TypeSpan::bases`.
   - A base written with constructor arguments (`extends Compactible[Entry](v, spark, p) with Mixin`) is kept with its type arguments (test `a_base_with_constructor_arguments_is_recorded`, scala.rs:653).
 - **Anonymous classes.** `new T { … }` is recorded as a `TypeSpan` of kind `anon`, with bases `T` (scala.rs:106-131). It does not get its own scope.
 
 Not supported, or only partly:
 
-- **No callable for a class, object or trait itself, and none for a primary constructor.** Only `function_definition` and `function_declaration` mint callables (scala.rs:172-200).
+- **No callable for a class, object or trait itself.** Since WS22 a primary constructor is a callable (above), but only for a class with a parameter list, and it spans the header only.
   - Code in a class body (field initialisers, `test("…") { … }` registrations, `lazy val`) belongs to no callable (section 03).
   - The `play-module` gap text says the same (rules.rs:5517-5533).
 - **`val` / `var` / `lazy val` function values are not callables.** Examples: `val f = (i: Int) => …`, `val index = Action { … }`, `val routes: Route = …`. Only `class_fields` records them (scala.rs:206-236).
@@ -88,7 +91,7 @@ Not supported, or only partly:
   - The `anon` TypeSpan does not push a scope (scala.rs:108-131).
 - **Scala 3 `enum`, `given … with` and `extension` members get no owner.** These node kinds are not scopes in the walker.
   - Fixture f3: `enum Color: … def label` → `label`; `given intOrd … def compare` → `compare`; `extension (s: String) def shoutIt` → `shoutIt`.
-- **`DefRecord::visibility` is always empty** (scala.rs:355). `private` and `protected` are not read.
+- **`DefRecord::visibility` is always empty** (scala.rs:443, 579). `private` and `protected` are not read.
 - **No `FileFacts::classes` (`ClassDecl`) records.** Scala is not in `CLASS_RECORDS_ARE_EXACT` (dispatch.rs:130). Type information exists only as `TypeSpan`s.
 
 ## 03. Call-site forms
@@ -108,8 +111,8 @@ Supported:
   - Fixture f1: `s.asInstanceOf[Square].area()` → `Square::area` `high`.
 - **Call-form construction as receiver.** `Foo(…).m()` is an instance of `Foo`, because Scala constructs by call (`constructs_by_call`, receiver.rs:47-51).
 - **Explicit type arguments.** `f[Int](1)` and `b.m[String](2)` are recorded as `f` and `m`: the `generic_function` wrapper is unwrapped (scala.rs:392-399; test `explicit_type_argument_calls_strip_the_arguments`, scala.rs:637). Fixture f1: `generic[Int](3)` → `Main::generic` `high`.
-- **Auxiliary-constructor delegation.** `this(…)` inside `def this` is recorded as a call named after the enclosing class, never `this` (scala.rs:428-439; test `types_packages_and_constructor_delegation`).
-  - It binds nothing, because no constructor callable exists. Fixture f1: `Square` at L16 was `no-candidate-in-file`.
+- **Auxiliary-constructor delegation.** `this(…)` inside `def this` is recorded as a call named after the enclosing class, never `this` (test `types_packages_and_constructor_delegation`). Since WS21/WS22 it binds the primary constructor and never the constructor it is written in (`not_def`). 0.13.3 fixture `<scratch>/lang-docs/scala/f1`: `Square::Square@4 → Square::Square@3` high.
+- **Constructions** (WS22). `new Box(1)` / `new Box[Int]()` / `new Base(3) { … }` are recorded as a typed call of the type's constructor with arity (`record_construction`, scala.rs:617-653), and a call-form `Point(1, 2)` reaches the constructor too. `extends Base(x)` in a class header is a `super` call from the primary constructor with the argument count (scala.rs:595-614). 0.13.3 fixtures: `Point(1, 2)` → `Point::Point` high; `new Kid2(1)` → `Kid2::Kid2` high; `Kid2::Kid2 → Base::Base` medium (`<scratch>/lang-docs/scala/f1`, `f2`). A construction of a type with no constructor node (a class without a parameter list, an outside class) is an unresolved site.
 - **Arity.** A parenthesised argument list sets `RefRecord::arity`. A block argument (`f { … }`) leaves it unknown (`call_arity`, scala.rs:451-457; test `a_base_with_constructor_arguments_is_recorded` asserts `Some(2)`).
 - **Paren-less sites.** These are a bare `helper` or a `b.size` in an evaluated position: a block statement, an argument, an operand, a definition value, a branch, an interpolation, a receiver (scala.rs:465-486). They are recorded with `paren_less: true` (scala.rs:315-323).
   - `value_refs::prune_paren_less` (value_refs.rs:125) keeps a site only when some parameterless `def` of that name exists (`declares_no_parameters`, value_refs.rs:91-100; test `paren_less_sites_survive_only_for_parameterless_callables`, value_refs.rs:224).
@@ -123,18 +126,17 @@ Not supported, or only partly:
 - **Curried / multi-argument-list calls record a garbage outer name.** In `curried(1)(2)` the outer `call_expression`'s function is itself a call, and its text becomes the name.
   - Fixture f4: an external record named `curried(1)` (and `List(1).foldLeft(0)`) next to the correct inner `curried` edge.
   - Fixture f3: a ScalaTest `test("handles") { … }` produced an external record named `test("handles")`.
-  - Cause: scala.rs:424-448 uses `self.text(function)` for any non-field callee.
+  - Cause: `record_call` (scala.rs:479-554) uses the callee's text for any non-field callee. Still reproduced on 0.13.3 (`curried(1)(2)` → external `curried(1)`).
 - **Infix method calls are not recorded.** `1 max2 2`, `s + q` and `a max b` produce no reference (fixture f4 L30, fixture f1 L48; there is no `infix_expression` arm in `walk`).
 - **Prefix operators are not recorded.** `-s` → `unary_-` produces no reference (fixture f1 L49).
-- **`apply` sugar is not linked.** `Ops(3)` and `Square(3.0)` stay `no-candidate-in-file` and never reach `Ops::apply` / `Square::apply` (fixtures f1 L39, f4 L24). Step 7 `call_operator_names` does not cover this shape (unverified for Scala). `Ops.apply(4)` written out does bind (fixture f4 L25, `high`).
-- **Case-class construction is not linked.** `Point(1, 2)` has no target, since there is no constructor callable (fixture f1 L37).
+- **`apply` sugar is not linked.** `Ops(3)` stays `no-candidate-in-file` and never reaches `Ops::apply` (fixture f4 L24). When the class has a constructor, `Square(3.0)` now binds the class's constructors (medium, two constructors of one argument each) rather than the companion's `Square::apply`, which is what Scala calls (0.13.3, `<scratch>/lang-docs/scala/f1`). `Ops.apply(4)` written out does bind (fixture f4 L25, `high`).
 - **Calls through a local function value.** `val g = …; g(1)` and `val f: Int => Int; f(2)` land in the **external** bucket, not as `shadowed-by-local` (fixtures f3 L19, f4 L32). The `f(new Dog)` parameter call in fixture f2 L35 does the same.
-- **Method references, eta-expansion and functions passed as values.** `map(inc)`, `inc _` and `Option(1).map(ov)` record nothing (fixtures f1 L57-58, f4 L36). The plugin has no `value_ref` support, and `Main::inc` was a dead-code finding.
+- **Method values** (WS26, supported since 0.11.1). Under `--reference-edges` or `--dead-code`, `xs.map(parse)`, `inc _`, `obj.m _`, `f andThen g`, a `val` initializer and a returned value are `value_ref` sites, bare or through their receiver (`record_method_value`, scala.rs:385-412; `value_position`, scala.rs:685; test `method_values_are_reference_sites`, scala.rs:995). A name in a value position is recorded both ways, and `prune_paren_less` keeps the paren-less call and drops the value reference when a parameterless `def` of that name exists. `val`/`var` members and class parameters go to `data_members` and are reads, bare or through a receiver (`MEMBER_DATA_READ_LANGS`); an `x.m` value through an untyped variable binds only through its type; a method value outside any callable credits only its own file's callables. 0.13.3 fixture `<scratch>/lang-docs/scala/f1`: `List(1).map(inc)` and `val f = inc _` give `Main::main → Main::inc` `reference` high.
 - **Paren-less member access through a local `val`.**
   - `val b: Box = new Box(1); b.size` and `val c = new Box(2); c.size` bound nothing (fixture f5b).
   - In fixture f5, with an `object B` in the same file, `b.size` bound to **`B::size` at `high`**. That is a false high (see section 14). The mechanism was not confirmed.
 - **Paren-less call to a def declared with `()`.** `helper` for `def helper()` is dropped as a value read, by design (fixture f5 L17; value_refs.rs:91-93). Scala 2 auto-application would call it.
-- **Registrar arguments**: none. The plugin does not use `registrar.rs`, and user-supplied registrar verbs are ignored (`_ctx`, scala.rs:27).
+- **Registrar arguments**: none. The plugin does not use `registrar.rs`, and user-supplied registrar verbs are ignored.
 - **Calls in a class body, an `object` body or `.sc` top level** have no enclosing callable. They are audited `no-enclosing-callable` (fixture f1: `compute` at L20 from `val lazyVal = compute()`; `scriptFn` in `run.sc`). Dead code roots their targets (section 12).
 
 ## 04. Imports & module resolution
@@ -170,7 +172,7 @@ Not supported, or only partly:
   - Fixture f2, with directories that do not (`a/Base.scala` for `org.x.a`): `a.speak()` → `medium`.
 - **Not supported, or only partly:**
   - **Renamed-import receivers are not followed.** `import com.ex.util.{Tools => T}; T.tool()` ended as external plus `candidates-in-other-files` (fixture f1 L45), while `Other.go()` from the same selector bound `high`.
-  - **Scala 3 top-level defs are unreachable from other files, even when imported explicitly.** Fixture f8: `import p._; top3(1)` and `import p.top3; top3(1)` are both `candidates-in-other-files`. Only a file named `package.scala` qualifies (cross_file.rs:4184-4191, whose comment reads "Scala 2 has no top-level `def`").
+  - **Scala 3 top-level defs are unreachable from other files, even when imported explicitly.** Fixture f8: `import p._; top3(1)` and `import p.top3; top3(1)` are both `candidates-in-other-files` (still so on 0.13.3, `<scratch>/lang-docs/scala/f2`). Only a file named `package.scala` qualifies (cross_file.rs:4184-4191, whose comment reads "Scala 2 has no top-level `def`").
   - **Scala → Java calls in the same tree do not resolve.** The JVM language family is commented out (crates/cgg-core/src/lang_family.rs:32).
     - Fixture f6: `j.jm()` with `j: org.v.J` (a Java class in the tree) and `J.js()` were both `no-candidate-in-file`, and the Java methods became dead-code findings.
   - **No manifest reading** (`build.sbt`, `build.sc`). `manifest.rs` has no Scala branch (grep).
@@ -227,9 +229,9 @@ Not supported, or only partly:
   - Fixture f2 with `--dynamic-dispatch`: `Animal::speak` → `Dog::speak`, `Cat::speak`; `Loud::volume` → `Dog::volume`, `Cat::volume`; `Animal::common` → `Dog::common`. All are `low`, resolver `dispatch:inheritance`, `Via::Dynamic`.
   - The pass also runs under `--dead-code`.
 - **Overload sets.** Same file plus same qualified name is one callee (`binds_same_name_set`, intra_file.rs:836-850).
-  - Scala is in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583). `accepts_arity` (type_hints.rs:1585-1600) handles defaults, `T*` varargs and implicit / `using` lists (an implicit list takes 0 arguments).
+  - Scala is in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357). `accepts_arity` (type_hints.rs:2373) handles defaults, `T*` varargs and implicit / `using` lists (an implicit list takes 0 arguments).
   - Fixture f4: `ov(1)` → `Ops::ov@17` and `@18` (the second has `b: Int = 2`), excluding `@19`; `ov("a",1,2)` → `@19` only; `implicitP(1)` → bound; `varargs(1,2,3)` → bound.
-  - All the overload edges were `medium`, including the one narrowed to a single overload. The CHANGELOG says arity-narrowed-to-one can be `high` (CHANGELOG.md:58-59), but that was not observed here.
+  - On 0.11.0 all the overload edges were `medium`, including the one narrowed to a single overload. On 0.13.3 an overload set narrowed to one by arity binds `high`: `ov(1)` and `ov("a", 1, 2)` each → their one overload, high (`<scratch>/lang-docs/scala/f3`).
 - **Interface/trait impls (`trait_impl_target`)** are not recorded (`impls` signal false). Dead code reports `dispatch: none` (fixture f1 capability row).
 - **Extension methods** (Scala 3 `extension`, Scala 2 implicit classes) are not linked (fixtures f2 `3.double`, f3 `"hi".shoutIt`). C#-style step 4d is C#-only.
 - **Mixins** are treated as ordinary bases (fixture f2). Self-types are not supported (CHANGELOG.md:1351).
@@ -250,7 +252,7 @@ Not supported, or only partly:
 - **Positional shadowing**: not applied. It is OCaml, F# and Lua only (CLAUDE.md).
 - **Conditional definitions**: not applicable (PHP only).
 - **Known false binding.** A bare call from one object to a name declared only in **another object of the same file** binds intra-file at `high`.
-  - Fixture f5: `A::four` `inner()` → `B::inner` `high`. Fixture f5b, with the object renamed `Q`: `Q::inner` `high`.
+  - Fixture f5: `A::four` `inner()` → `B::inner` `high`. Fixture f5b, with the object renamed `Q`: `Q::inner` `high`. Still reproduced on 0.13.3 (`<scratch>/lang-docs/scala/f1`: `Q::four → A::inner` high).
   - The CHANGELOG lists this as not covered: "Scala bare calls bound in-file to another class's same-named member" (CHANGELOG.md:708-709).
   - Across files the same call is refused (fixture f5 `C.scala`: `candidates-in-other-files`).
 
@@ -317,7 +319,7 @@ Twelve rules have `language: "scala"` in `crates/cgg-core/src/frameworks/rules.r
 
 ## 12. Dead-code analysis
 
-- **Capability row** (fixtures f1, f3): `class: degraded`, `visibility: none`, `value_references: none`, `dispatch: none`, `exports: none`, `test_tagging: none`, `max_confidence: medium`.
+- **Capability row** (fixtures f1, f3): `class: degraded`, `visibility: none`, `value_references: none`, `dispatch: none`, `exports: none`, `test_tagging: none`, `max_confidence: medium`. Since WS26 `value_references` is measured from the run: a run that records a method value reports it, one that records none (0.13.3 `<scratch>/lang-docs/scala/f2`) still says `none`.
   - `attributes` shows `full` only when the run happens to contain an annotated def, or an `abstract`-tagged declaration (fixture f1, where only `abstract` tags existed). Capability is upgraded from observation (caps.rs:136-178), and the plugin declares nothing. Fixture f6, with no annotations, shows `language-lacks-attributes`.
 - **Consequence: no Scala finding can reach `high`.** `signals_complete` needs `Analyzable`, which needs visibility, and the plugin never sets visibility (caps.rs:88-96, 168-175; scala.rs:355). Every Scala finding in fixtures f1, f3 and f6 was `medium`.
 - **Roots that fire for Scala:**
@@ -333,11 +335,11 @@ Twelve rules have `language: "scala"` in `crates/cgg-core/src/frameworks/rules.r
   - Scala 3 `given` members (fixture f3: `compare`);
   - `extension` methods (`shoutIt`) and enum members (`label`);
   - operator methods (`Square::+`, `Square::unary_-`);
-  - auxiliary constructors (`Square::this`);
-  - methods passed as values (`Main::inc`).
+  - constructors that nothing constructs (since WS22 constructors are `Square::Square` callables; a construction reaches them).
+- **No longer findings since WS26:** methods passed as values (`Main::inc`); the value reference keeps them live.
 - **Evidence kinds seen:** `language-lacks-dispatch-model`, `language-lacks-value-references`, `language-lacks-visibility`, `no-incoming-edges`, `no-unresolved-site-with-name`, `name-matches-unresolved-site` (fixture f1 `Tools::tool`), and `implemented-trait-surface` (fixture f1 `Shape::area`).
 - **Confidence caps:**
-  - `implements-external-contract`: the CLAUDE.md list (`@Override`/`override`, …) does not name Scala, and Scala has no `override` handling in the plugin. Unverified whether `override def` of an out-of-tree base is capped.
+  - `implements-external-contract`: since WS20 an `override def` of an out-of-tree base carries it. 0.13.3 fixture `<scratch>/lang-docs/scala/f2`: `Impl::run` (`extends ext.Thing`) is `medium` with `implements-external-contract`.
   - `macro-generated`: not applicable.
   - `reflection`: not produced (section 15).
 - **Unresolved-doubt handling**: generic. A same-name unresolved Scala site counts as doubt (fixture f1 `Tools::tool`). An unresolved Scala site does not create doubt for a Java callable of that name (fixture f6: `org.v.J.jm` had `no-unresolved-site-with-name`).
@@ -364,11 +366,11 @@ Twelve rules have `language: "scala"` in `crates/cgg-core/src/frameworks/rules.r
   - casts and constructions as receivers (fixture f1);
   - typed closure parameters and typed patterns, including callback-settled closures (fixture f2).
 - **`medium` was observed for:**
-  - receivers typed through a local `val`, a constructor parameter or a class `val` (fixtures f1, f3);
+  - receivers typed through a local `val`, a constructor parameter or a class `val` (fixtures f1, f3; re-checked on 0.13.3: `val s = new Square(2.0); s.area()` is still medium);
   - typed parameters whose package is not mirrored by the directory (fixture f2);
   - `super.m()`, which is never high for Scala (cross_file.rs:4693-4699);
   - wildcard-imported object members (fixture f1 `helperFn`) and package-object members (fixture f3 `pkgFn`);
-  - every overload binding, even when narrowed to one (fixture f4);
+  - an overload binding with more than one survivor (fixture f4; narrowed to one it is `high` on 0.13.3);
   - two declaring mixins (fixture f2 `shout`);
   - by-name fan-out (fixture f2 `o.get.speak()`).
 - **`low`**: inheritance dispatch edges, framework entry edges and descriptor edges.
@@ -404,8 +406,7 @@ Found while cataloguing (fixtures):
 
 - Curried calls record the outer call under a junk name (`curried(1)`, `test("handles")`) (fixtures f3, f4; scala.rs:424-448).
 - Infix (`a max b`, `s + q`) and prefix (`-s`) operator calls are not recorded (fixtures f1, f4).
-- `Foo(…)` → companion `apply` and case-class construction are not linked. `this(…)` delegation has no target (fixtures f1, f4).
-- No value references: eta-expansion and method references do not count (fixtures f1, f4).
+- `Foo(…)` → companion `apply` is not linked; with a constructor in the tree it binds the constructor instead (§03). Case-class construction and `this(…)` delegation bind since WS22.
 - No visibility, so Scala dead code is capped at `medium` (section 12).
 - Anonymous-class members collide with the enclosing class's names (fixture f2 `Dog::run` ×2).
 - Scala 3 `enum`, `given` and `extension` members have no owner (fixture f3).
@@ -424,8 +425,8 @@ Ignored tests: none found for Scala (grep `#[ignore]` near Scala tests: none in 
 | section | support | one-line note |
 | --- | --- | --- |
 | 01 Detection & parsing | full | `.scala`/`.sc`, `scala` shebang, one grammar handles Scala 2 and 3; `.sbt` not detected |
-| 02 Callables extracted | partial | defs, abstract decls, aux ctors, operators, overloads; no class, primary-ctor, `val`-function or lambda callables; Scala 3 enum/given/extension members ownerless; no visibility |
-| 03 Call-site forms | partial | bare, member, generic, cast/new receivers, arity, paren-less; curried calls mangled, infix/prefix ops, `apply` sugar and value refs missing |
+| 02 Callables extracted | partial | defs, abstract decls, primary and aux ctors, operators, overloads, `override`; no class, `val`-function or lambda callables; Scala 3 enum/given/extension members ownerless; no visibility |
+| 03 Call-site forms | partial | bare, member, generic, cast/new receivers, constructions, `this(…)`/`extends Base(x)`, arity, paren-less, method values; curried calls mangled, infix/prefix ops and `apply` sugar missing |
 | 04 Imports & module resolution | partial | selectors, wildcards, renames, implicit packages, external refusal; renamed receivers, Scala 3 top-level defs and Scala→Java unresolved |
 | 05 Type inference & receiver typing | partial | params, `T \| Null`, typed lambdas/patterns, callback settling; local/field typing only medium; no implicit conversions |
 | 06 Inheritance, dispatch & overloading | partial | bases via imports, inherited bare calls, super, inheritance fan-out, arity overloads; no linearization, no extension methods |

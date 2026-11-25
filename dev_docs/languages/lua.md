@@ -1,13 +1,15 @@
 # lua
 
-The Lua plugin (`crates/cgg-lang/src/plugins/lua.rs`, 401 lines, `LuaPlugin`, id `"lua"`) is a small hand-written tree-sitter walker over the `tree-sitter-lua` crate (`Cargo.toml:98`, `tree-sitter-lua = "0.5"`, bound as `tree_sitter_lua::LANGUAGE`, lua.rs:21-23; nothing is vendored). It extracts named functions (global, `local`, table-field, colon-method, assigned and named-table-literal functions), records every `function_call` as either a bare or a receiver-split call, and turns `require(...)` into an `ImportRecord { kind: "require" }` with the bound local name as alias (lua.rs:286-312). There is no per-plugin resolver kind: `resolver_kind` no longer exists in `cgg-lang` (grep finds no occurrence), so every Lua file goes through the shared resolver. Resolution is the generic intra-file / cross-file pipeline plus Lua-specific pieces: lexical narrowing and positional shadowing in `intra_file.rs`, the `ModuleIndex`/`FileModules` require resolver in `cgg-resolve/src/modules.rs` (`resolve_lua`, modules.rs:1650-1708), and a parameter/local table in `cgg-lang/src/locals.rs` (`LUA_SPEC`, locals.rs:206-219). It reads no attributes, no visibility, no classes/bases, no types, no value references, no registrar arguments and no dynamic-use literals; `ExtractCtx` is ignored (`_ctx`, lua.rs:27).
+> Revised 2026-11-25 against cgg 0.13.3: function values are value references (WS26), file-scope `local`s are bindings and member aliases of a required module resolve through it, a module's returned table names its functions, `_spec.lua`/`_test.lua` are test files, and shebang detection names `luajit`. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Lua plugin (`crates/cgg-lang/src/plugins/lua.rs`, 640 lines, `LuaPlugin`, id `"lua"`) is a small hand-written tree-sitter walker over the `tree-sitter-lua` crate (`Cargo.toml:98`, `tree-sitter-lua = "0.5"`, bound as `tree_sitter_lua::LANGUAGE`, lua.rs:21-23; nothing is vendored). It extracts named functions (global, `local`, table-field, colon-method, assigned and named-table-literal functions), records every `function_call` as either a bare or a receiver-split call, and turns `require(...)` into an `ImportRecord { kind: "require" }` with the bound local name as alias (lua.rs:286-312). There is no per-plugin resolver kind: `resolver_kind` no longer exists in `cgg-lang` (grep finds no occurrence), so every Lua file goes through the shared resolver. Resolution is the generic intra-file / cross-file pipeline plus Lua-specific pieces: lexical narrowing and positional shadowing in `intra_file.rs`, the `ModuleIndex`/`FileModules` require resolver in `cgg-resolve/src/modules.rs` (`resolve_lua`, modules.rs:1650-1708), and a parameter/local table in `cgg-lang/src/locals.rs` (`LUA_SPEC`, locals.rs:206-219). It also records `FileFacts::module_returns` (the `key = name` fields of a returned table literal, lua.rs:73) and `FileFacts::member_aliases` (`local f = m.b`, lua.rs:107), and, when `ExtractCtx::reference_sites` is set (`--reference-edges` or `--dead-code`), function values as `value_ref` sites (lua.rs:143, 220-260). It reads no attributes, no visibility, no classes/bases, no types, no registrar arguments and no dynamic-use literals.
 
 Fixtures used for this document live in `<scratch>/parity/lua/` (`p1/` general shapes + module resolution + dead code, `p2/` frameworks + table/assignment shapes + skips, `p3/` shadowing + shebang), run with `cgg 0.11.0` (`target/release/cgg`).
 
 ## 01. Detection & parsing
 
 - **Extension** `.lua` only (lua.rs:15-17). Fixture: `p1/lib/util.lua` → `detected_via: extension:.lua`.
-- **Shebangs** `lua`, `luajit` (lua.rs:18-20). Shebang matching is substring-based (`detect.rs:63-70`), so `#!/usr/bin/env luajit` matches the first needle `lua`. Fixture `p3/script` (no extension, `#!/usr/bin/env luajit`) → `detected_via: shebang:lua`; `p1/main.lua` with `#!/usr/bin/env lua` → `shebang:lua` (shebang beats extension, same rule as `detect.rs::python_shebang_beats_extension`).
+- **Shebangs** `lua`, `luajit`. Since WS25 (0.11.1) the interpreter is the program's basename or the first operand after `env`, and must equal a keyword or be a keyword followed by a version (`lua5.4`); it is no longer a substring match. Fixture `lang-docs/lua/a/script` (0.13.3, `#!/usr/bin/env luajit`) → `detected_via: shebang:luajit`; `p1/main.lua` with `#!/usr/bin/env lua` → `shebang:lua` (shebang beats extension, same rule as `detect.rs::python_shebang_beats_extension`).
 - **Content detection**: none. No header heuristic for Lua in `crates/cgg-lang/src/detect.rs` (grep for `lua` there finds nothing).
 - **Not detected**: `.luau` (Roblox Luau), `.nse` (Nmap scripts), `.rockspec`, `.p8` (PICO-8), `.wlua`, `.luacheckrc`/`.busted` config files, Lua embedded in other files (nginx `*_by_lua_block`, Neovim `vim.cmd` heredocs, Redis `EVAL` strings). Evidence: `extensions()` lists `.lua` only (lua.rs:16).
 - **Grammar**: single grammar, `tree_sitter_lua::LANGUAGE` (lua.rs:22). No per-file grammar choice (`ts_language_for` not overridden).
@@ -36,7 +38,7 @@ Supported:
 Not supported / partial:
 
 - **Anonymous functions** — `function() ... end` passed as an argument, returned, or stored anywhere not covered above, is not a callable; calls inside it belong to the nearest enclosing named callable or, at file top level, to none (`no-enclosing-callable`). Fixture p1 `spec/util_spec.lua`: `describe(..., function() it(..., function() ... end) end)` produces no callables and three `src: None` sites.
-- **Module returning a table literal** `return { f = function() end }` — the table is not bound to a name, so `table_binding` returns `None` (lua.rs:173-177) and nothing is recorded. Fixture `p2/ret.lua` → zero callables; a caller's `r.f()` lands in the external bucket (`no-candidate-in-file`).
+- **Module returning a table literal** `return { f = function() end }` — an anonymous function in the returned table is still not a callable. A field naming a file-level function (`return { a = a }`) is recorded in `FileFacts::module_returns` and is a member of the module for requiring files (§04). Fixture `lang-docs/lua/a` (0.13.3): `ret.a()` → `lib/ret.lua:a` high; `ret.f()` binds nothing.
 - **Functions in a nested table literal** `{ ["/path"] = { GET = function() end } }` — the inner table's parent is a `field`, not an assignment, and bracket keys are not `identifier`s (lua.rs:100), so nothing is recorded. Fixture p1: no `GET` node.
 - **Bracket-key fields** `t["name"] = function() end` and `t[k] = function` — the target kind is `bracket_index_expression`, which `record_named_def` ignores (lua.rs:166 `_ => {}`) (inferred from code; not run separately).
 - **Constructors / classes** — no class concept; `Animal.new` is an ordinary `InherentMethod`. No `CallableKind::Constructor`, no `ClassDecl`. `setmetatable`-based classes are invisible as types.
@@ -46,7 +48,7 @@ Not supported / partial:
 
 ## 03. Call-site forms
 
-Every `function_call` node is handled by `record_call` (lua.rs:253-322). No `arity`, `value_ref`, `paren_less`, `typed_receiver`, `path_receiver`, `dot_call` or `weak_receiver_type` flags are ever set (lua.rs:270-276, 315-321 use `..Default::default()`).
+Every `function_call` node is handled by `record_call`. No `arity`, `paren_less`, `typed_receiver`, `path_receiver`, `dot_call` or `weak_receiver_type` flags are set; `value_ref` is set only on function-value sites (below).
 
 Supported:
 
@@ -60,8 +62,8 @@ Supported:
 
 Not supported / partial:
 
-- **Value references / callbacks** — `pcall(run2)`, `table.sort(t, cmp)`, `local f = outer` are not recorded as references at all (no `value_ref`, and `ExtractCtx::reference_sites` is ignored). Fixture p1: `run2` reported dead though passed to `pcall`; `--reference-edges` adds nothing for Lua.
-- **Calls through a local alias** `local f = outer; f()` → recorded as bare `f`, unresolved (external bucket, `no-candidate-in-file`; fixture p1 line 52).
+- **Value references / callbacks** (WS26, since 0.11.1) — a function name in call arguments (`pcall(run2)`, `table.sort(t, cmp)`), table constructor values (`{ h = run2 }`, `{ f, g }`), `=`/`local` right-hand sides and `return`s, bare or through the table written (`M.f`, `obj.f`; never `obj:m`), is a `value_ref` site under `--reference-edges`/`--dead-code`. Names a local or parameter binds are dropped through the Lua locals; an `x.f` value through an untyped table never fans out by name. Fixture `lang-docs/lua/a` (0.13.3): `pcall(run2)`, `table.sort({}, cmp)` and `{ h = run2 }` → `ref` edges at high.
+- **Calls through a local alias** `local f = outer; f()` inside a function → recorded as bare `f`, unresolved (fixture p1 line 52). A file-scope `local a = m.b` with `m` a `require` is different: `a(…)` is resolved as `m.b(…)` (`member_alias_call`); fixture `lang-docs/lua/a`: `local dec = util.decode` … `dec(1)` → `M.decode` high.
 - **Dynamic index calls** `_G["dynamic"]()`, `t[k]()` → the whole text is recorded as the call name (`_G["dynamic"]`) with empty receiver (lua.rs:281, since the callee is a `bracket_index_expression`). Fixture p1 line 59: external bucket, name `_G["dynamic"]`.
 - **Registrar arguments**: none captured. CHANGELOG.md:5056-5058 records that Lua "was assessed and deliberately **not** changed" because its two framework rules are gap rules.
 - **Arity** not recorded (Lua has no overloads; not needed by any narrowing).
@@ -80,7 +82,9 @@ Supported:
 - **Not-in-imported-module refusal**: the module's file exists but provides no such member → `Scoped::Refused` (modules.rs:1692-1694). In the unit test this is asserted as `refused("util")`; in fixture p1 `util.missing()` lands in the external bucket with reason `no-candidate-in-file` (the CLI audit did not show `not-in-imported-module`; the reconciliation step may rewrite it — unverified which).
 - **Conflicting requires**: a local name bound by two different requires is dropped from the map (modules.rs:1434-1450).
 - **Locals shadow the receiver head**: step 0c is skipped when `heads.locals.shadows_receiver_head(r)` (cross_file.rs:5389).
-- **Legacy include-style reach** (cross_file.rs:1846-1866): a `require` import also makes every definition of a file at `path`, `path.lua` or `path.replace('.', '/') + ".lua"` reachable for the older name-based steps; the module alias is also fed to the step-1c scoped lookup as a path fragment (cross_file.rs:2208-2211).
+- **Include-style reach**: a `require` import also makes the definitions of the required file reachable for the name-based steps. Since 0.11.1 (include-style import fix) a call binds the copy in the file the `require` names, and a require path several files share expands to each at `medium`. CLAUDE.md states a `local function` is never in a requiring file's scope, but fixture `lang-docs/lua/b` (0.13.3) still binds a bare `hidden()` in a requiring file to the required file's `local function hidden` at **medium** (`cross-file:imports`); without the `require` it is `candidates-in-other-files`.
+- **Returned table fields** (`FileFacts::module_returns`, 0.11.1): `return { check = check_phase }` makes `m.check(…)` reach `check_phase` in a requiring file (fixture `lang-docs/lua/a`: `ret.a()` high).
+- **Member aliases** (`FileFacts::member_aliases`): a file-scope `local f = m.b` (`m` a `require`) makes `f(…)` the call `m.b(…)`; it stays `shadowed-by-local` when that binds nothing (§03).
 
 Not supported / partial:
 
@@ -107,13 +111,14 @@ Not supported / partial:
 - **super/base calls**: no Lua syntax; `Base.method(self, …)` is an ordinary dot call resolved by name.
 - **`member_of_calling_class`, `overrides_below`, `resolve_via_bases`**: not reached for Lua (no owner/base facts).
 - **`INHERITANCE_LANGS`** (dispatch.rs:110-123) does not include `lua`, so `inheritance_fanout` never runs; `--dynamic-dispatch` adds nothing (no `trait_impl_target`). Fixture p1 with `--dynamic-dispatch` → no `dyn` edges.
-- **Overloading**: `OVERLOAD_ARITY_LANGS = ["java","scala","cpp"]` (type_hints.rs:1583); not applicable to Lua.
+- **Overloading**: `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357: java, scala, cpp, csharp, groovy, swift, kotlin, typescript); not applicable to Lua.
 - **Mixins/traits/extension methods**: not modelled.
+- **Receiver calls keep methods** (0.13.0): Lua is in `RECEIVER_METHOD_LANGS`, so a duck-typed `x.m()` whose candidates mix table members (`InherentMethod`) and free functions keeps the members, and a site's set is narrowed facade/delegatee-wise (a candidate that calls another through a `high` edge keeps the site) (CHANGELOG.md 0.13.0 "Receiver calls reach methods"; not re-run here).
 - **Bare call vs member**: a bare call never reaches a table member (`bare_call_is_never_a_method`, intra_file.rs:49-53; cross_file.rs:4137-4139 treats Lua like Python/JS: `!member`). Test `intra_file::tests::a_lua_bare_call_never_reaches_a_table_member` (intra_file.rs:1546).
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`** supported via `LUA_SPEC` (locals.rs:206-219): `parameters` names (`Scope::Param`), `variable_list` names of `assignment_statement` and `for_generic_clause` declared after their value (`Scope::Decl`), `for_numeric_clause` names (`Scope::Own`); function nodes `function_declaration`/`function_definition`; blocks `block`/`for_statement`. Tests `locals::tests::a_declaration_is_not_in_scope_in_its_own_initializer` (Lua case locals.rs:757) and `dart_ocaml_lua_python_rust_kotlin_swift_scala_zig` (locals.rs:840, Lua case 865: binds `a,b,k,i,v`, not `f,g,t`). Skipped for minified files (§01).
+- **`FileFacts::locals`** supported via `LUA_SPEC` (locals.rs:507), including file-scope `local`s since 0.11.1 (except same-named member aliases of a call result and value-less declarations; `local log = ngx.log` now shadows a bare `log(…)`): `parameters` names (`Scope::Param`), `variable_list` names of `assignment_statement` and `for_generic_clause` declared after their value (`Scope::Decl`), `for_numeric_clause` names (`Scope::Own`); function nodes `function_declaration`/`function_definition`; blocks `block`/`for_statement`. Tests `locals::tests::a_declaration_is_not_in_scope_in_its_own_initializer` (Lua case locals.rs:757) and `dart_ocaml_lua_python_rust_kotlin_swift_scala_zig` (locals.rs:840, Lua case 865: binds `a,b,k,i,v`, not `f,g,t`). Skipped for minified files (§01).
 - **shadowed-by-local**: a bare call through a parameter/local is never another file's function (pipeline-wide rule). Fixture p1 `local f = outer; f()` → unresolved, not bound elsewhere.
 - **Lexical narrowing** of nested definitions: `lexically_scoped` includes `lua` (intra_file.rs:120-136). Fixture p2: `p → h` (line 16) and `q → h` (line 17) each bind their own nested `h` at high.
 - **Positional shadowing**: Lua is in the OCaml/F#/Lua rule — among several same-scope candidates the last one declared before the site wins (intra_file.rs:400-416). Fixture p3: `g → f@1` and `h → f@3`, both high.
@@ -150,12 +155,12 @@ Rules with `language: "lua"` in `crates/cgg-core/src/frameworks/rules.rs` (no ru
 
 - **No `kind: test` rule for Lua** (no Busted, LuaUnit, Telescope or `plenary.busted` harness). Busted's `describe("…", function() it("…", function() … end) end)` produces no callables (anonymous functions), so calls inside are `no-enclosing-callable` (fixture p1 `spec/util_spec.lua`: `describe`, `it`, `util.decode` all `src: None`).
 - **Name-based test roots**: `is_test_name` default arm — names starting `test_` or `Test` (roots.rs:975-990). Fixture p1: `test_something` → root `builtin:test-name` (`test-entry`). This is LuaUnit-shaped (`function TestX:testFoo()` simple name `testFoo` does **not** match: lowercase `test` without underscore; inferred from the code).
-- **Test-file classification**: no Lua-specific file-name rule (`_spec.lua` / `_test.lua` absent from `crates/cgg-core/src/testfile.rs` by-name table); only the generic `TEST_DIRS` (`test`, `tests`, `spec`, `specs`, …) apply. Fixture p1 `spec/util_spec.lua` → `test_role: directory`. A `foo_spec.lua` outside such a directory is production code.
+- **Test-file classification**: `*_spec.lua` and `*_test.lua` are test files by name since 0.11.1 (`testfile.rs:134`), plus the generic `TEST_DIRS`. Fixture `lang-docs/lua/a` (0.13.3): `spec/foo_spec.lua` and top-level `bar_test.lua` → `test_role: file-name`.
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`** = `["python","php","ruby"]` (rules.rs:11806): Lua not included.
 
 ## 12. Dead-code analysis
 
-- **Capability class**: Lua is `Degraded` (no visibility and no attributes recorded; caps.rs:163-172), so `max_confidence: medium` — no Lua finding is ever `high`. Fixture p1 `--dead-code`: `capabilities: class degraded, visibility none, attributes none, value_references none, dispatch none, exports none, test_tagging none, max_confidence medium, root_rules_active ["builtin:test-name","toplevel:invocation"]`; "0 shown (high) · 9 withheld (medium) · 2 withheld (low)". Every Lua finding carries `language-lacks-attributes/dispatch-model/value-references/visibility` evidence.
+- **Capability class**: Lua is `Degraded` (no visibility and no attributes recorded; caps.rs:163-172), so `max_confidence: medium` — no Lua finding is ever `high`. Fixture p1 `--dead-code`: `capabilities: class degraded, visibility none, attributes none, value_references none, dispatch none, exports none, test_tagging none, max_confidence medium, root_rules_active ["builtin:test-name","toplevel:invocation"]`; "0 shown (high) · 9 withheld (medium) · 2 withheld (low)". Every Lua finding carries `language-lacks-attributes/dispatch-model/visibility` evidence; since WS26 value references are observed and `language-lacks-value-references` is gone (fixture `lang-docs/lua/a`, 0.13.3). A value outside any function (a module's returned table) credits only its own file's functions (`FILE_SCOPED_VALUE_REF_LANGS`; fixture: `a` rooted "named at class or module level at ./lib/ret.lua:2").
 - **Root kinds that apply**:
   - `toplevel:invocation` — a callable whose simple name matches a call at file top level (roots.rs:552-614). Fixture p1: `run()` at main.lua:70 roots `run`. **Gap**: the match is by `(language, simple_name)` across the whole tree, so the same top-level `run()` also roots the unrelated `P.run` in `lib/pkg/init.lua` (fixture p1 root list). **Gap**: only intra-file `NoEnclosingCallable` records count, so a top-level call through a module (`util.decode()` in a spec file, external bucket) roots nothing.
   - `builtin:main` — a callable named `main` (`UNIVERSAL_ENTRY`, roots.rs:20); no Lua-specific `LANG_ENTRY`/`LIFECYCLE` entry.
@@ -163,7 +168,7 @@ Rules with `language: "lua"` in `crates/cgg-core/src/frameworks/rules.rs` (no ru
   - `builtin:lifecycle` dunders: Lua is in `DUNDER_LANGS` (roots.rs:160-161), but `is_dunder` requires a `__` prefix **and** suffix (roots.rs:967-969), so Lua metamethods (`__index`, `__call`, `__tostring`, `__gc`) never match. `CONVENTIONAL_METHODS` (`initialize`, `to_s`, …, roots.rs:162-170) applies by name.
 - **Not roots (gaps)**: the table a module `return`s is not an export (no `ExportRecord`s; `exports: none`), so a library's public API with no in-tree caller reads as dead; global functions are not public; framework callbacks (LÖVE, Neovim, Kong phases) are not rooted.
 - **Confidence caps**: `implements-external-contract`, `macro-generated` and `reflection` never apply (no overrides, macros or dynuse for Lua). Unresolved same-name sites lower findings to `low` (`ambiguous-site-in-same-file` evidence; fixture p1 `Animal:sound`, `Dog:sound`).
-- **False findings observed in fixture p1**: `run2` (passed to `pcall`), `dynamic` (called via `_G["dynamic"]`), `cb` (stored in a local), `outer`/`inner` (mis-bound, §07).
+- **False findings observed in fixture p1** (0.11.0): `run2` (passed to `pcall`; fixed by WS26 value references), `dynamic` (called via `_G["dynamic"]`), `cb` (stored in a local), `outer`/`inner` (mis-bound, §07; still reproduced on 0.13.3, fixture `lang-docs/lua/a`).
 
 ## 13. Builtins & stdlib tables
 
@@ -195,16 +200,17 @@ Rules with `language: "lua"` in `crates/cgg-core/src/frameworks/rules.rs` (no ru
 - **CHANGELOG follow-ups**: CHANGELOG.md:1349-1350 ("Not covered (WS14) … Lua module tables (`function M.f` is not extracted, WS8)") — superseded by CHANGELOG.md:863-868 which split names and added module binding; module tables returned as literals remain unextracted (fixture p2 `ret.lua`). CHANGELOG.md:5056-5058: registrar capture deliberately not added.
 - **Unsupported constructs found while cataloguing** (all fixture-confirmed unless marked):
   1. Anonymous functions are not callables (Busted tests, callbacks, route tables) → calls inside them at top level are orphaned.
-  2. `return { f = function() end }` modules produce no callables.
+  2. Anonymous functions in a `return { f = function() end }` table produce no callables (named fields are `module_returns`).
   3. Use of a name before a later `local` of the same name in the same function binds to the later local at high (lexical narrowing ignores declaration order).
   4. No `self`/constructor typing; `setmetatable` inheritance invisible; chained calls on returned objects unresolved.
-  5. Value references (`pcall(f)`, `table.sort(t, cmp)`, `local g = f`) never recorded → false dead findings.
+  5. ~~Value references never recorded~~ — fixed by WS26 (0.11.1), §03.
   6. Nested function qns carry no enclosing scope (`h` and `h`), since `scope` is never pushed (lua.rs:37, 54-60).
   7. `toplevel:invocation` roots every same-simple-name callable tree-wide (`run()` roots `P.run`).
   8. Metamethod dunders never root (is_dunder needs `__` suffix).
   9. Inline `require("m").f()` and deeper `m.sub.f()` are not module-scoped.
   10. No Lua dynuse, no visibility (`local function` ≠ private), no exports, no test harness, `loadstring` missing from stdlib.
   11. `.luau`, `.nse`, `.rockspec` not detected.
+  12. A requiring file's bare call reaches the required file's `local function` at medium (fixture `lang-docs/lua/b`), contrary to CLAUDE.md.
 - **Tests that are weak**: `extracts_references` (lua.rs:395-400) asserts nothing ("just verify extraction works"). No ignored Lua tests (grep `#[ignore]` near Lua tests finds none; unverified across all crates).
 
 ## Summary scorecard
@@ -213,16 +219,16 @@ Rules with `language: "lua"` in `crates/cgg-core/src/frameworks/rules.rs` (no ru
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.lua` + `lua`/`luajit` shebangs; no `.luau`/`.nse`; depth/minified gates apply |
 | 02. Callables extracted | partial | named, local, table-field, colon, assigned and named-table-literal functions; anonymous fns and returned literal tables missing; nested qns unscoped |
-| 03. Call-site forms | partial | bare/dot/colon/string/table-arg calls; no value refs, no arity, chained/dynamic-index calls unresolved |
-| 04. Imports & module resolution | partial | `require` → file via module path incl. `init.lua`, high binding, external refusal; no deeper paths, inline require, package.path |
+| 03. Call-site forms | partial | bare/dot/colon/string/table-arg calls, value refs, member aliases; no arity, chained/dynamic-index calls unresolved |
+| 04. Imports & module resolution | partial | `require` → file via module path incl. `init.lua`, high binding, returned-table fields, member aliases, external refusal; no deeper paths, inline require, package.path |
 | 05. Type inference & receiver typing | none | no locals/self/constructor typing; textual receiver narrowing only |
 | 06. Inheritance, dispatch & overloading | none | no metatable inheritance, not in INHERITANCE_LANGS; bare calls never reach members |
 | 07. Scoping & shadowing | partial | LUA_SPEC locals, lexical + positional shadowing; use-before-local mis-binds at high |
 | 08. Macros, preprocessor & codegen | n/a | Lua has no macros; load/loadstring not followed |
 | 09. FFI & cross-language links | none | no LuaJIT FFI / C API / luaopen links |
 | 10. Frameworks & entry points | minimal | `kong`, `openresty` detect-only gap rules; kong gap text stale |
-| 11. Test harness entries | minimal | only `test_`/`Test` name roots and `spec/` dir tagging; no Busted/LuaUnit |
-| 12. Dead-code analysis | minimal | Degraded class, max medium; no exports; false roots/findings from name-keyed top-level rule and missing value refs |
+| 11. Test harness entries | minimal | only `test_`/`Test` name roots; `_spec.lua`/`_test.lua` and `spec/` tagging; no Busted/LuaUnit |
+| 12. Dead-code analysis | minimal | Degraded class, max medium; value refs observed; no exports; false roots/findings from name-keyed top-level rule |
 | 13. Builtins & stdlib tables | partial | 122-name lua.txt; `loadstring`, `bit32`, LuaJIT/ngx/vim missing |
 | 14. Confidence & certainty | partial | high for intra-file and require-bound members; medium + `?` for by-name; one false-high path |
 | 15. Dynamic use & reflection | none | no dynuse for `_G[...]`, `load`, `rawget` |

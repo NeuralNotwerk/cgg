@@ -1,10 +1,12 @@
 # proto
 
+> Revised 2026-11-25 against cgg 0.13.3: re-verified every extraction and resolution claim by fixture (all still hold), added the `--externals` import inventory (0.12.0) and the new `stdlib.rs` proto entries, and refreshed CHANGELOG and `cross_file.rs` citations. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Protocol Buffers plugin (`ProtoPlugin`) lives in `crates/cgg-lang/src/plugins/proto.rs`, which is 294 lines including tests. Its job is descriptor topology: it maps a `.proto` schema onto cgg's callable/edge model (`proto.rs:1-17`).
 
 - **Grammar**: the crates.io crate `tree-sitter-proto = "0.4"` (`Cargo.toml:125`, `crates/cgg-lang/Cargo.toml:62`), bound as `tree_sitter_proto::LANGUAGE` (`proto.rs:37-39`). Nothing is vendored.
 - **Registration**: `crates/cgg-lang/src/plugins.rs:165` (`reg.register(Box::new(proto::ProtoPlugin))`; module declared at `plugins.rs:39`).
-- **Resolver kind**: the `LanguagePlugin` trait has no `resolver_kind` method, so no per-plugin resolver kind exists. Proto is one of the *descriptor languages*. It has a dedicated branch in cross-file resolution, a global by-simple-name match capped at 4 candidates (`crates/cgg-resolve/src/cross_file.rs:5222-5241`). It also has a dedicated post-pass that links an rpc to the host-language method implementing it (`crates/cgg-resolve/src/descriptor.rs`, `DESCRIPTOR_LANGUAGES = ["proto","graphql","smithy"]` at `:47`, family `grpc` at `:52`).
+- **Resolver kind**: the `LanguagePlugin` trait has no `resolver_kind` method, so no per-plugin resolver kind exists. Proto is one of the *descriptor languages*. It has a dedicated branch in cross-file resolution, a global by-simple-name match capped at 4 candidates (`crates/cgg-resolve/src/cross_file.rs:5930-5941`). It also has a dedicated post-pass that links an rpc to the host-language method implementing it (`crates/cgg-resolve/src/descriptor.rs`, `DESCRIPTOR_LANGUAGES = ["proto","graphql","smithy"]` at `:47`, family `grpc` at `:52`).
 - **Dead code**: the report classifies proto as `LanguageClass::Descriptor` (`crates/cgg-resolve/src/deadcode/caps.rs:41,163`) and withholds every proto finding.
 - **Trait defaults**: the plugin overrides none of `signals()`, `max_line_bytes()` or `ts_language_for()`, so it inherits the defaults at `crates/cgg-lang/src/lib.rs:304,313,322`.
 - **Extraction context**: `ExtractCtx` is ignored (`_ctx`, `proto.rs:43`).
@@ -71,8 +73,9 @@ Proto has no calls. Every "reference" the plugin records is a type reference, bu
 
 ## 04. Imports & module resolution
 
-- **`import "x.proto"` and `import public "x.proto"`**: **not read**. The plugin never looks at `import` nodes (no `import` handling in `proto.rs`), and `FileFacts::imports` stays empty.
-- **Cross-file binding** is a global by-simple-name match within the language, capped at 4 candidates (`cross_file.rs:5222-5241`; also CHANGELOG "Cross-file resolution for descriptor languages", `CHANGELOG.md:5964-5967`).
+- **`import "x.proto"` and `import public "x.proto"`**: **not read for resolution**. The plugin never looks at `import` nodes (no `import` handling in `proto.rs`), and `FileFacts::imports` stays empty.
+- **`--externals` inventory (0.12.0)**: under `--externals` a line scan (`scan_lines`, `crates/cgg-lang/src/externals.rs:516`, `"proto"` arm) records each `import "…"` as an `ExternalUse` side-channel entry that no resolver reads. An import of a file in the tree is dropped; `google/protobuf/…` imports are classified `stdlib` (`crates/cgg-core/src/stdlib.rs:1145`); anything else is `third-party` (test row in `crates/cgg/tests/externals.rs`). Reference sites are not tied to the import: a 0.13.3 fixture (`import "google/protobuf/timestamp.proto"` plus a field `google.protobuf.Timestamp ts`) lists the import under `stdlib` but reports the `Timestamp` site as `unattributed`.
+- **Cross-file binding** is a global by-simple-name match within the language, capped at 4 candidates (`cross_file.rs:5930-5941`; also CHANGELOG "Cross-file resolution for descriptor languages", `CHANGELOG.md:8791`).
   - The edges are tagged resolver `cross-file:imports` (fixture `a`) even though no import was consulted.
   - With 5 same-named messages in 5 packages, `Dup` was left unresolved with reason `candidates-in-other-files {candidates: 5}` (fixture `b`, `usesdup.proto`).
 - **No package narrowing**:
@@ -115,7 +118,7 @@ Proto has no calls. Every "reference" the plugin records is a type reference, bu
 
 - **`ffi::link_ffi`**: no proto involvement.
 - **Descriptor link from rpc to host-language implementation** (`descriptor::link_descriptors`, `crates/cgg-resolve/src/descriptor.rs:60-157`; invoked at `crates/cgg/src/lib.rs:997-1002`, after FFI).
-  - **Which proto nodes link**: only `CallableKind::Method` nodes, i.e. rpcs. Messages, enums and services never link (`descriptor.rs:104-106`; the CHANGELOG fix "a `message` is not an RPC", `CHANGELOG.md:219-221`).
+  - **Which proto nodes link**: only `CallableKind::Method` nodes, i.e. rpcs. Messages, enums and services never link (`descriptor.rs:104-106`; the CHANGELOG fix "a `message` is not an RPC", `CHANGELOG.md:3046`).
   - **Matching rule**: a host method links when its simple name equals the rpc name case-insensitively, **and** its owner contains the service name's last segment case-insensitively (`descriptor.rs:110-133`).
   - **Edge properties**: confidence is always `Low`, with `Via::Descriptor("grpc")`, resolver `descriptor-linker`, and mermaid label `?desc` (`descriptor.rs:134-145`; `crates/cgg-format/src/mermaid.rs:37`; dot styling at `dot.rs:24`).
   - **Supported**:
@@ -165,9 +168,9 @@ Proto has no calls. Every "reference" the plugin records is a type reference, bu
 
 ## 13. Builtins & stdlib tables
 
-- There is no `crates/cgg-core/src/stdlib/proto.txt`, and `stdlib.rs` has no proto entry (`grep` is empty).
+- There is no `crates/cgg-core/src/stdlib/proto.txt`. Since 0.12.0 `stdlib.rs` has two proto entries, both used only by the `--externals` classifier: the stdlib import prefix `google/protobuf/` (`stdlib.rs:1145`) and the stdlib library name `google.protobuf` (`stdlib.rs:1257`). They do not affect the graph's stdlib screen.
 - Scalar types never reach resolution because the grammar separates them (03), so no builtin table is needed for them.
-- **Well-known types are not modelled.** `google.protobuf.Timestamp`, `Any`, `Empty` and similar are screened `external`, not `stdlib`: fixture `a` showed `stdlib: 0`, `external: 3`.
+- **Well-known types are not modelled.** `google.protobuf.Timestamp`, `Any`, `Empty` and similar are screened `external`, not `stdlib`: fixture `a` showed `stdlib: 0`, `external: 3`, and a 0.13.3 fixture still records `Timestamp` as `no-candidate-in-file` with `name_screen_applied: "external"`.
 - `--include-stdlib` adds nothing (fixture `c`). `--include-external` mints `<external>::Any` (fixture `c`).
 - `CAST_INTRINSICS`, `CONSTRUCTING_METHODS` and implicit packages: not applicable.
 
@@ -175,7 +178,7 @@ Proto has no calls. Every "reference" the plugin records is a type reference, bu
 
 - **`high`**: same-file type references via `intra-file` (fixture `a`: 9 of 9 same-file edges were `high`, and mermaid showed no `?`).
 - **`medium`**: every cross-file reference via the descriptor by-name branch (fixture `a`: `Common → Item` ×2 and `HelloRequest → Common`, mermaid `-->|?|`). These stay `medium` even when the package-qualified name is unambiguous, because the qualifier was stripped.
-- **`low`**: every descriptor → implementation edge (`descriptor.rs:139-141`), shown in mermaid as `?desc`. The CHANGELOG records proto −288 `low` edges after the message-is-not-an-rpc fix (`CHANGELOG.md:260`).
+- **`low`**: every descriptor → implementation edge (`descriptor.rs:139-141`), shown in mermaid as `?desc`. The CHANGELOG records proto −288 `low` edges after the message-is-not-an-rpc fix (`CHANGELOG.md:3087`).
 - `CertainCtx` and `OwnerFacts` do not apply.
 
 ## 15. Dynamic use & reflection
@@ -189,7 +192,7 @@ Proto has no calls. Every "reference" the plugin records is a type reference, bu
   - Their references go unresolved, e.g. `Inner` and `Kind` as `no-candidate-in-file` screened external (fixture `a`).
   - Or they bind to a same-named top-level type in another package (fixture `c`: `a.Outer → b.Inner`, a wrong edge).
 - **Package and qualifier are dropped from references** (`proto.rs:208-209`). Cross-file binding ignores packages: `Item` bound to both `demo.v1.Item` and `other.Item` (fixture `a`). With 5 or more same-named types it is refused (`candidates-in-other-files`, fixture `b`).
-- **`import` statements are ignored entirely**. Cross-file edges carry the label `cross-file:imports` regardless (fixture `a`).
+- **`import` statements are ignored by resolution** (only the `--externals` inventory reads them, 04). Cross-file edges carry the label `cross-file:imports` regardless (fixture `a`).
 - **`extend` blocks** produce neither a node nor references (fixture `a`, `b`).
 - **Proto2 `group` fields fail to parse.** This yields `parse_status: error`, a truncated message span and a spurious `group` reference (fixture `b`).
 - There is no re-parse or fallback on parse errors (fixture `b/broken.proto`).
@@ -222,7 +225,7 @@ Proto has no calls. Every "reference" the plugin records is a type reference, bu
 | 10. Frameworks & entry points | none | no proto rules; host gRPC rules are gap-only |
 | 11. Test harness entries | n/a | no test constructs |
 | 12. Dead-code analysis | none | descriptor class, every finding withheld |
-| 13. Builtins & stdlib tables | none | no stdlib table; well-known types screened external |
+| 13. Builtins & stdlib tables | minimal | no stdlib table; `google/protobuf/` imports are `stdlib` in `--externals` only; well-known types screened external |
 | 14. Confidence & certainty | partial | same-file high, cross-file medium, descriptor links low |
 | 15. Dynamic use & reflection | n/a | not applicable |
 | 16. Known gaps & limitations | n/a | 10 concrete gaps listed above |

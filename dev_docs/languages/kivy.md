@@ -1,6 +1,8 @@
 # kivy
 
-The Kivy plugin (`KivyPlugin`, id `"kivy"`, `crates/cgg-lang/src/plugins/kivy.rs`, 1,417 lines) reads Kivy KV markup (`.kv`). It is a markup/host-bridge plugin, not a general-purpose language plugin. Each `on_*` event-binding property (for example `on_release: root.foo()`) becomes a callable node. Every call written inside a binding, or inside another property expression, is recorded as a reference. A dedicated kv→python linker in `cgg-resolve::ffi` (`link_kivy_python`, `crates/cgg-resolve/src/ffi.rs:268`) binds those references onto **Python** methods and emits `Via::Ffi("kv-python")` edges. No crates.io crate exists for the grammar. `tree-sitter-kivy` v0.1.0 (ABI 15, MIT) is vendored under `crates/cgg-lang/vendor/kivy/` (`parser.c` + indent/dedent `scanner.c`) and compiled in `crates/cgg-lang/build.rs:29-38`. The plugin binds the raw `tree_sitter_kivy()` symbol through `LanguageFn` (`kivy.rs:24-28`). One local grammar patch accepts colon-less rule headers (`vendor/kivy/PROVENANCE.md`). There is no `resolver_kind` in the current `LanguagePlugin` trait (grep for `resolver_kind` in `crates/` finds nothing), so this item does not apply. The plugin does not override `signals()`, so every `PluginSignals` flag is false (`crates/cgg-lang/src/lib.rs:269-288`, the trait default at `:300-302`). It is registered at `crates/cgg-lang/src/plugins.rs:126`.
+> Revised 2026-11-25 against cgg 0.13.3: the plugin and linker are unchanged since 0.11.0 (core claims re-run in `lang-docs/kivy/`); added `--externals` reading of `#:import`/`#:include` and a multi-selector rule bug (a `<A,B>` rule after another rule links nothing). `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Kivy plugin (`KivyPlugin`, id `"kivy"`, `crates/cgg-lang/src/plugins/kivy.rs`, 1,417 lines) reads Kivy KV markup (`.kv`). It is a markup/host-bridge plugin, not a general-purpose language plugin. Each `on_*` event-binding property (for example `on_release: root.foo()`) becomes a callable node. Every call written inside a binding, or inside another property expression, is recorded as a reference. A dedicated kv→python linker in `cgg-resolve::ffi` (`link_kivy_python`, `crates/cgg-resolve/src/ffi.rs:272`) binds those references onto **Python** methods and emits `Via::Ffi("kv-python")` edges. No crates.io crate exists for the grammar. `tree-sitter-kivy` v0.1.0 (ABI 15, MIT) is vendored under `crates/cgg-lang/vendor/kivy/` (`parser.c` + indent/dedent `scanner.c`) and compiled in `crates/cgg-lang/build.rs:29-38`. The plugin binds the raw `tree_sitter_kivy()` symbol through `LanguageFn` (`kivy.rs:24-28`). One local grammar patch accepts colon-less rule headers (`vendor/kivy/PROVENANCE.md`). There is no `resolver_kind` in the current `LanguagePlugin` trait (grep for `resolver_kind` in `crates/` finds nothing), so this item does not apply. The plugin does not override `signals()`, so every `PluginSignals` flag is false (`crates/cgg-lang/src/lib.rs:269-288`, the trait default at `:300-302`). It is registered at `crates/cgg-lang/src/plugins.rs:130`.
 
 ## 01. Detection & parsing
 
@@ -40,6 +42,7 @@ Every node is `DefVariant::InherentMethod`, `Vis::Public`, attribute `kv-binding
   - Properties without calls (`text: 'Ok'`, `size: dp(12)`) produce no node, by design (`:263-269`).
   - Paren-less handler references (`on_press: root.by_ref`) produce no node and no ref. In fixture `b`, `Root.by_ref` got no edge.
   - Multi-selector rule `<A,B>:`: only `A` owns the bindings. In fixture `b` only `A.shared` was linked and `B.shared` got no edge.
+  - **Bug (0.13.3)**: when a multi-selector rule is not the first rule in the file, even `A` stops matching. With `<MainWidget>:` before `<A,B>:` (or `<A, B>:`), the def is still `A.on_release:6`, but `root.shared()` is refused as `other: "kv-python: 2 candidates, no owner match"`; the same file with `<A>:`, or with `<A,B>:` first, links `main.A.shared` high (fixtures `lang-docs/kivy/a`, `lang-docs/kivy/b`).
   - Template rules `[Tmpl@BoxLayout]:` parse as an error, and the owner becomes the base `BoxLayout`. In fixture `d/b.kv` the node was `BoxLayout.on_release:2`, which was then unresolved.
   - `canvas:` instruction properties: no node. Their calls have no enclosing callable (fixture `b`: `canvas_fn` → `no-enclosing-callable`). This is a listed blind spot (`deadcode/caps.rs:59-66`).
   - Python `def` inside KV: not applicable (the grammar does not support it).
@@ -73,6 +76,7 @@ References carry `name`, `receiver_hint` (the dotted chain before the name) and 
 - **`#:import name module`**, **`#:include file.kv`** and **`#:set`**: these parse as `directive` tokens (`grammar.js:98`) and the plugin ignores them. `kivy.rs` never touches `imports`/`packages`. Consequences:
   - In fixture `a`, `#:import utils kivy.utils` followed by `utils.get_color_from_hex(...)` gave `no-candidate-cross-file`, and the audit placed it in the external bucket.
   - `#:include` is not followed (blind spot, `caps.rs:62`).
+- **`--externals`** (0.12.0+; attribution only, never resolution): `cgg_lang::externals` line-scans `#:import alias module` as a `kv-import` external use and `#:include` as an import (`crates/cgg-lang/src/externals.rs:541`), and the classifier reads KV modules with the Python workspace vocabulary (`crates/cgg-resolve/src/externals.rs:511`). Fixture `lang-docs/kivy/a`: `#:import utils kivy.utils` + `utils.get_color_from_hex(…)` is attributed to `kivy` (third-party, high); the coverage row reads `kivy … kv-import`. Integration row: `crates/cgg/tests/externals.rs:103`.
 - **`FileFacts::packages`, manifest reading**: none.
 - **`heads.rs` external-module refusal / `modules.rs` `not-in-imported-module`**: not applicable. Neither file mentions kivy, and KV refs carry no import table.
 - **Cross-file target**: the kv-python linker considers **only callables whose language is `python`** that share the simple name (`ffi.rs:317-321`). There is no KV→KV linking and no KV→other-language linking.
@@ -154,7 +158,7 @@ The rule that serves Kivy applications targets the **Python** side:
 
 ## 13. Builtins & stdlib tables
 
-- **No `crates/cgg-core/src/stdlib/kivy.txt`** (the `ls` of the stdlib directory has no match), and no kivy entry in `stdlib.rs`.
+- **No `crates/cgg-core/src/stdlib/kivy.txt`**. `stdlib.rs` has only externals-side rows: `STDLIB_LIBRARY_NAMES` (`kivy-builtins`, stdlib.rs:1217) and a mapping of kivy to Python's stdlib names (stdlib.rs:2474).
 - **Plugin-local filter**: `SKIP_CALLEES` (34 names: KV metric helpers `dp`, `sp`, `pt`, `mm`, `cm`, `inch` and colour helpers `rgb`, `rgba`, plus Python builtins). These calls are dropped at extraction (`kivy.rs:32-66`), so they never appear as unresolved or stdlib.
 - **`CAST_INTRINSICS`/`CONSTRUCTING_METHODS`, implicit packages, `rust_types`**: none.
 - **`--include-stdlib`**: no kivy stdlib sites exist.
@@ -181,7 +185,7 @@ KV edges do not use `CertainCtx`/`OwnerFacts`. Confidence comes from `link_kivy_
 - KV in Python strings (`Builder.load_string`) is not seen (CHANGELOG known limitations; `caps.rs:64`; fixture `b`).
 - `#:include` is not followed, and `#:import` aliases are not resolved (`caps.rs:62`; fixture `a`).
 - `ids.<id>.method()` and `canvas:` instruction calls are blind spots (`caps.rs:60-61`). Canvas calls give `no-enclosing-callable` when the rule is a top-level widget rather than `<Rule>` (fixture `b`).
-- Multi-selector rules `<A,B>:` bind only to the first selector (`kivy.rs:154`; fixture `b`).
+- Multi-selector rules `<A,B>:` bind only to the first selector (`kivy.rs:154`; fixture `b`), and link nothing when another rule precedes them (§02).
 - Template rules `[Name@Base]:` are a parse error, and their owner falls back to the base widget (fixture `d/b.kv`).
 - Rule bases (`@Base+Mixin`) are not recorded, and the linker does no base-chain walk for inherited Python methods.
 - Paren-less handler references (`on_press: root.cb`) and `dispatch('on_x')` produce no edges.

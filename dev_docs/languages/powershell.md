@@ -1,6 +1,8 @@
 # powershell
 
-The PowerShell plugin is `PowerShellPlugin` in `crates/cgg-lang/src/plugins/powershell.rs`. The file is 548 lines, including 9 inline tests at lines 401-548.
+> Revised 2026-11-25 against cgg 0.13.3: `pwsh`/`powershell` shebangs are now detected as PowerShell (WS25), `[T]::new()` binds the class constructor (WS21), `*.Tests.ps1` files are test files and `Test-*` functions are no longer test roots (0.11.1), and `--externals` attributes Verb-Noun cmdlets as stdlib; the other gaps were re-run and still hold. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The PowerShell plugin is `PowerShellPlugin` in `crates/cgg-lang/src/plugins/powershell.rs`. The file is 587 lines, including inline tests.
 
 - **Grammar**: the crates.io crate `tree-sitter-powershell`, workspace pin `"0.26"` (Cargo.toml:114, crates/cgg-lang/Cargo.toml:53), loaded as `tree_sitter_powershell::LANGUAGE` (powershell.rs:21-23). Nothing is vendored.
 - **Walker**: a single recursive `PowerShellWalker` (powershell.rs:44-399) acts on five node kinds (powershell.rs:62-101):
@@ -23,10 +25,7 @@ Fixtures cited below live under `<scratch>/parity/powershell/` (f1 … f14, bis,
 - **Extensions `.ps1`, `.psm1`, `.psd1`** (powershell.rs:15-17).
   - f2: `Mod.psm1` and `Mod.psd1` report `extension:.psm1` / `extension:.psd1`.
   - Matching is case-insensitive. f9: `x.PS1` → `extension:.ps1`.
-- **Shebangs `pwsh`, `powershell`** are declared (powershell.rs:18-20) but never win. Detection checks shebang needles with `word.contains(needle)` in plugin registration order (detect.rs:63-75). Bash is registered earlier, PowerShell at plugins.rs:155, and both `pwsh` and `powershell` contain `sh`.
-  - f9: `#!/usr/bin/env pwsh` (extensionless `script`), `#!/usr/bin/pwsh -NoProfile` (`s3`) and `#!/opt/microsoft/powershell/7/powershell` (`s4`) are all detected as `bash` via `shebang:sh`.
-  - Even `s2.ps1` with a `pwsh` shebang is routed to **bash**, because the shebang rule runs before the extension rule (detect.rs:63 vs 100+).
-  - This is a real misrouting bug: the PowerShell file is parsed by the Bash grammar.
+- **Shebangs `pwsh`, `powershell`** (powershell.rs:18-20). On 0.11.0 they never won: detection was a substring test in registration order, and Bash's `sh` matched first (f9: `#!/usr/bin/env pwsh`, `#!/usr/bin/pwsh -NoProfile`, `#!/opt/microsoft/powershell/7/powershell` and even `s2.ps1` were all routed to bash). Since WS25 (0.11.1) the interpreter is the program's basename or the first operand after `env`, matched exactly (or followed by a version). Fixture `lang-docs/powershell/a/a.ps1` (0.13.3, `#!/usr/bin/env pwsh`) → `language: powershell`, `detected_via: shebang:pwsh`.
 - **Content detection**: none. The only content sniff is the YAML/JSON descriptor sniff (detect.rs:77-97).
 - **Grammar**: one grammar for all three extensions. `.psd1` manifests parse as a hashtable expression and contribute nothing (f2: `Mod.psd1` gives `parse_status ok`, 0 callables, no facts).
 - **Constructs that put the file in `parse_status: error`** with this grammar. Extraction proceeds on the error-recovered tree, with no re-parse or fallback.
@@ -89,7 +88,7 @@ The plugin records two shapes: `command` (bare reference, no receiver; powershel
 
 **Partial or wrong**
 
-- **Constructor calls** `[Service]::new(...)` are recorded as ref `new` with receiver `Service`. They never reach the declared `Service.Service` constructor; the result is `external` (f1 L24/L34, f9 L4 with `Svc()` declared). `New-Object Service` is a command ref `New-Object` → external (f5 L12).
+- **Constructor calls** `[Service]::new(...)`: since WS21 (0.11.1) a type receiver with member `new` (case-insensitive, receiver without `.`) is recorded as a typed call of the class's constructor (powershell.rs:393-397; test `type_new_calls_the_class_constructor`). Fixture `lang-docs/powershell/a` (0.13.3): `[Service]::new("x")` → `Service.Service` high. A dotted type (`[System.Text.StringBuilder]::new()`) keeps the `new` record. `New-Object Service` is still a command ref `New-Object` → external (f5 L12).
 - **Cast receiver** `([Base]$this).Hello()` → empty receiver (parenthesised), so it resolves as a bare name.
   - bis2/c.ps1 binds it to **itself** (`S.Hello -> S.Hello high`), which is a false high.
   - f1 refuses it as `ambiguous-in-file`.
@@ -150,13 +149,13 @@ The plugin records two shapes: `command` (bare reference, no receiver; powershel
 - **Type-literal receivers** `[Svc]::M()` are typed by their written type. They bind high intra-file (f5 L11, L17 `Use-Static2 -> Other.Run high`) and high cross-file via a dot-source (f9 `U1 -> Svc.Make high`).
 - **Variable receivers are never typed.** `type_hints.rs` has no PowerShell handling, and the plugin records no locals, parameter types or `local_types`. f5, all with two classes defining `Run`:
   - `function Use-Param([Service]$svc) { $svc.Run() }` → fans to `Service.Run` **and** `Other.Run`, medium.
-  - `$s = [Service]::new(); $s.Run()` → same fan-out, medium.
+  - `$s = [Service]::new(); $s.Run()` → same fan-out, medium (re-run on 0.13.3, fixture `lang-docs/powershell/a`: `$s.Run()` medium although the constructor call itself now binds).
   - `$s = [Service]::Create(); $s.Stop()` → medium (unique name). The declared return type `[Service]` is not used.
   - `$s = New-Object Service; $s.Run()` → fan-out, medium.
   - `[Service]$s = Get-Thing; $s.Run()` (typed local) → fan-out, medium.
 - **`$this`** → receiver `this`, untyped. f11: `$this.Hello()` in `Kid` fans to `Base.Hello` and the unrelated `Other.Hello` (medium). In bis2/e.ps1 it bound to a `S.Hello` in a **different file** (medium).
   - When the name is unique in the caller's file, it binds high intra-file (f1 `Service.Run -> Service.Hello high`, f11 `Base.Tmpl -> Base.Hook high`).
-- **Casts / constructions**: `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` / `RefRecord::typed_receiver` are not used. `[T]$x` and `[T]::new()` give no type.
+- **Casts / constructions**: `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` are not used. `[T]::new()` is a typed constructor call (§03), but neither it nor `[T]$x` types the variable it is assigned to.
 - **`declared_type` nullability/wrappers, closure-parameter typing (`scoped_types`), implicit receivers, `weak_receiver_type`**: not applicable. The plugin records none of the inputs.
 
 ## 06. Inheritance, dispatch & overloading
@@ -167,7 +166,7 @@ The plugin records two shapes: `command` (bare reference, no receiver; powershel
 - **`base` calls**: constructor chaining `: base()` breaks the parse (01). `([Base]$this).M()` is unmodelled (03).
 - **Overrides**: `Kid.Hook` overriding `Base.Hook` is not linked to `$this.Hook()` in `Base.Tmpl`, even with `--dynamic-dispatch` (f11 `out2.json` is identical). PowerShell is not in `INHERITANCE_LANGS` (dispatch.rs:110-122), and `trait_impl_target` is never set.
 - **Interfaces** (`: IDisposable`): not recorded.
-- **Overloads**: not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583, `["java","scala","cpp"]`), and arity is never recorded.
+- **Overloads**: not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357, `["java","scala","cpp","csharp","groovy","swift","kotlin","typescript"]`), and arity is never recorded.
   - Two same-named functions in one file → `ambiguous-in-file` (f10/b.ps1 `W -> Dup` refused).
   - Same-name methods in different classes of one file → `ambiguous-in-file` for bare calls (f1 L25).
 - **Duck-typed fan-out** on untyped receivers follows `--fanout-cap` (default 5). f10/a.ps1: six classes with `Run` → `fanout-cap-exceeded` (candidates 6).
@@ -234,11 +233,8 @@ Rules whose `language` is `powershell` in `crates/cgg-core/src/frameworks/rules.
   - Its `Describe`/`It` script blocks are not callables.
   - Calls inside `It { … }` at file top level are unattributed (`no-enclosing-callable`, f7 L4 `Test-Helper`).
   - A function called there still becomes a `toplevel:invocation` root (f7: `Test-Helper top-level-invocation`).
-- **The generic test-name rule misfires.** `is_test_name` falls to the default arm `name.starts_with("test_") || name.starts_with("Test")` for PowerShell (crates/cgg-resolve/src/deadcode/roots.rs:975-988).
-  - Every function using the approved PowerShell verb `Test-` (`Test-Path`-style, `Test-TargetResource`, `Test-Thing`) is a `builtin:test-name` **test root** (roots.rs:793-801).
-  - f7: `Test-TargetResource test-entry builtin:test-name`.
-  - These names are also counted into `coverage_test` (roots.rs:718-723).
-- **`*.Tests.ps1` file gating**: no PowerShell-specific test-file recognition. Unverified whether the generic test-path heuristic covers `*.Tests.ps1` (not found by grep in roots.rs).
+- **No name-based tests.** On 0.11.0 `is_test_name`'s default arm made every `Test-` verb function a `builtin:test-name` test root (f7 `Test-TargetResource`). Since 0.11.1 PowerShell has no name-based tests (`is_test_name` returns `false` for `powershell`, roots.rs:1157; test asserts `Test-Connection` is not a test). Fixture `lang-docs/powershell/a` (0.13.3): `Test-Thing` is an ordinary finding.
+- **`*.Tests.ps1` file gating**: since 0.11.1 `*.Tests.ps1` (case-insensitive) is a test file by name (`testfile.rs:136`; fixture `lang-docs/powershell/a/foo.Tests.ps1` → `test_role: file-name`); `Test-Thing.ps1` is not.
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: PowerShell is not listed (rules.rs:11806, `["python","php","ruby"]`).
 - **Benchmark / fuzz harnesses**: none.
 
@@ -251,7 +247,7 @@ Rules whose `language` is `powershell` in `crates/cgg-core/src/frameworks/rules.
 - **Roots**:
   - **`toplevel:invocation`**: a function called from script top level (roots.rs:590-620). f6: `Public-Fn` rooted by `Public-Fn` on line 8, which makes `Private-Fn` reachable. f7: `Build-Body` in run.ps1, `Test-Helper` in a Pester file.
   - **`framework:entry-node`**: DSC `*-TargetResource` (f7).
-  - **`builtin:test-name`**: every `Test*` name (11).
+  - ~~`builtin:test-name`~~: no longer applies to PowerShell since 0.11.1 (§11).
 - **Not roots**:
   - `Export-ModuleMember -Function X` and `FunctionsToExport` (f6: `Unused-Fn` etc. reported, and `Public-Fn` live only because of the top-level call).
   - `[CmdletBinding()]` functions (f7 `Get-Public` reported).
@@ -263,11 +259,12 @@ Rules whose `language` is `powershell` in `crates/cgg-core/src/frameworks/rules.
 
 ## 13. Builtins & stdlib tables
 
-- **No `stdlib/powershell.txt`.** `stdlib_names("powershell")` returns `None` (cgg-core/src/stdlib.rs:184-257; the directory listing has no powershell file).
+- **No `stdlib/powershell.txt`.** There is still no PowerShell stdlib manifest (fixture `lang-docs/powershell/b` on 0.13.3: `--include-stdlib --include-external` gives `<external>::Write-Host`, `<external>::New-Object`, 0 stdlib).
   - Built-in cmdlets (`Write-Host`, `ForEach-Object`, `New-Object`, `Out-Null`, …) all land in the **external** bucket, not stdlib. f5 `--include-external --include-stdlib` mints `<external>::New-Object`, `<external>::ForEach-Object` and `<external>::Get-Thing` (an undefined function) alike, with 0 stdlib.
   - The step-1d stdlib screen (cross_file.rs:6021-6022) therefore never excludes a PowerShell builtin name.
 - **`rust_types`-like tables, `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, implicit packages**: none for PowerShell. `[T]::new` is not a recognised construction.
 - **`--include-stdlib`**: produces nothing for PowerShell (f5 shows 0 stdlib).
+- **`--externals`** (0.12.0) does classify: a bare capitalized Verb-Noun command is attributed to stdlib `Microsoft.PowerShell` (`externals.rs`, the `"bash" | "powershell"` shell arm), any other capitalized non-Verb-Noun command is `unattributed`, and `Microsoft.PowerShell`/`System` are stdlib heads; `Start-Process`, `Invoke-Expression` and `&` are listed as process-spawn APIs (stdlib.rs `PROCESS_SPAWN_APIS`). Fixture `lang-docs/powershell/b`: `Write-Host`, `New-Object`, `Start-Process notepad` and an undefined `Get-Undefined` all land under stdlib `Microsoft.PowerShell` at medium (the Verb-Noun rule does not distinguish an undefined user function, and `Start-Process` is reported as a stdlib symbol, not a `process` site).
 
 ## 14. Confidence & certainty
 
@@ -296,33 +293,33 @@ Rules whose `language` is `powershell` in `crates/cgg-core/src/frameworks/rules.
 
 ## 16. Known gaps & limitations
 
-1. **Shebang misrouting**: `pwsh` / `powershell` shebangs are claimed by Bash's `sh` needle, even on `.ps1` files (f9; detect.rs:63-75).
+1. ~~Shebang misrouting~~ — fixed by WS25 in 0.11.1 (§01).
 2. **Script top level is not a callable**: every top-level call is unattributed (`no-enclosing-callable`). This covers scripts, Azure Functions `run.ps1` and Pester files; see the `azure-functions` gap text (rules.rs:4633).
 3. **Script blocks are not callables**: Pester `Describe`/`It`, `-ScriptBlock`, `$sb = {}` (rules.rs:6479).
 4. **Grammar parse failures lose calls**: an inline `param(...) Call` drops the call silently (f8). Constructor `: base()`, `./script.ps1` invocation and DSC `configuration` also put the file in error (01).
 5. **Case-sensitive name matching** in a case-insensitive language (f12).
 6. **No receiver typing** from parameter types, typed locals, `[T]::new()` or `New-Object` (f5).
 7. **No base-class records or inheritance dispatch**, even under `--dynamic-dispatch` (f11).
-8. **Constructors are never call targets**: `[T]::new()` is external (f1, f9).
-9. **Backslash import paths do not resolve** on POSIX, and dot-source/Import-Module is non-transitive (cross_file.rs:3491-3504).
+8. ~~Constructors are never call targets~~ — `[T]::new()` binds the constructor since WS21 (§03); `New-Object T` still does not.
+9. **Backslash import paths do not resolve** on POSIX (re-run on 0.13.3, fixture `lang-docs/powershell/a`: `. .\lib\helper.ps1` binds nothing through the import; `Shared` fans to both copies at medium), and dot-source/Import-Module is non-transitive.
 10. **Any import enables workspace-wide bare-name binding** (step 1d), binding all ≤3 copies at medium (f4).
 11. **Exports / visibility / attributes are not recorded**: `Export-ModuleMember`, `FunctionsToExport`, `[CmdletBinding()]`, `hidden` (rules.rs:6532 gap).
-12. **`Test-*` verb functions are misclassified as tests** (roots.rs:987).
+12. ~~`Test-*` verb functions are misclassified as tests~~ — fixed in 0.11.1 (§11).
 13. **No stdlib table**: builtin cmdlets are indistinguishable from unknown externals (13).
 14. **Aliases, module-qualified `Mod\Fn`, scope modifiers (`global:`), quoted/variable `&` targets and `${function:X}`** are unresolved or unrecorded (03, f14).
 15. **Nested functions are not lexically scoped**, and redefinition / conditional definitions are ambiguous (f10).
 16. **Enums, properties and DSC configurations are not extracted** (f1, f14).
 17. **Grammar quirk**: a `1..3 |` range is recorded as a command (f1, f9).
 
-The CHANGELOG has PowerShell entries only for the computed `-ChildPath` import (CHANGELOG.md:1929) and the DSC detection gap (CHANGELOG.md:2201). No `#[ignore]` PowerShell tests exist (powershell.rs:401-548; `crates/cgg/tests/detect_prefixes.rs:72` `every_detect_prefix_can_actually_fire` covers the detect prefixes via `Import-Module {prefix}`).
+Before 0.11.0 the CHANGELOG had PowerShell entries only for the computed `-ChildPath` import and the DSC detection gap; 0.11.1 adds the shebang (WS25), `[T]::new()` (WS21), `*.Tests.ps1`/`Test-*` and include-style dot-source binding entries. No `#[ignore]` PowerShell tests exist (powershell.rs:401-548; `crates/cgg/tests/detect_prefixes.rs:72` `every_detect_prefix_can_actually_fire` covers the detect prefixes via `Import-Module {prefix}`).
 
 ## Summary scorecard
 
 | section | support | note |
 | --- | --- | --- |
-| 01. Detection & parsing | partial | `.ps1/.psm1/.psd1` work case-insensitively; pwsh shebangs go to bash; several constructs break the parse and lose calls |
+| 01. Detection & parsing | partial | `.ps1/.psm1/.psd1` work case-insensitively; `pwsh`/`powershell` shebangs detected; several constructs break the parse and lose calls |
 | 02. Callables extracted | partial | functions, filters, workflows, class methods/ctors/statics; no top level, script blocks, enums, properties or DSC configs; flat nested names |
-| 03. Call-site forms | partial | commands, `&` with a bare name, `$x.M()`, `[T]::M()`; no quoted/variable `&`, script paths, `${function:}`, aliases; case-sensitive matching |
+| 03. Call-site forms | partial | commands, `&` with a bare name, `$x.M()`, `[T]::M()`, `[T]::new()` → constructor; no quoted/variable `&`, script paths, `${function:}`, aliases; case-sensitive matching |
 | 04. Imports & module resolution | partial | Import-Module / dot-source / using recorded; forward-slash paths resolve high; backslash paths fail; non-transitive; exports ignored; any import enables a medium global fallback |
 | 05. Type inference & receiver typing | minimal | only type-literal receivers; variables, params, casts and `[T]::new()` untyped |
 | 06. Inheritance, dispatch & overloading | none | no bases, no override linking, not in INHERITANCE_LANGS or OVERLOAD_ARITY_LANGS |
@@ -330,9 +327,9 @@ The CHANGELOG has PowerShell entries only for the computed `-ChildPath` import (
 | 08. Macros, preprocessor & codegen | n/a | no macros; aliases and Invoke-Expression unexpanded |
 | 09. FFI & cross-language links | none | no Add-Type/C# cmdlet bridge; script invocation not linked |
 | 10. Frameworks & entry points | minimal | 4 rules; only powershell-dsc mints entries (tree-wide activation); module/pester/azure-functions detect-only |
-| 11. Test harness entries | none | Pester detect-only; `Test-*` verb functions falsely rooted as tests |
+| 11. Test harness entries | none | Pester detect-only; `*.Tests.ps1` test files; no name-based tests |
 | 12. Dead-code analysis | minimal | script-driven: all findings low and withheld; only toplevel:invocation and DSC roots; exports not roots |
-| 13. Builtins & stdlib tables | none | no stdlib/powershell.txt; cmdlets land in external |
+| 13. Builtins & stdlib tables | minimal | no stdlib/powershell.txt (cmdlets land in external); `--externals` attributes Verb-Noun commands to `Microsoft.PowerShell` |
 | 14. Confidence & certainty | partial | high for intra-file and include-anchored bindings; false highs from cast/chained receivers and non-exported module functions |
 | 15. Dynamic use & reflection | none | no dynuse; Invoke-Expression, `& $fn`, `$x.$m()` unmodelled |
-| 16. Known gaps & limitations | n/a | 17 gaps listed; shebang misrouting, top-level/script-block blindness and silent call loss are the most severe |
+| 16. Known gaps & limitations | n/a | 17 gaps listed (3 fixed in 0.11.1); top-level/script-block blindness and silent call loss are the most severe |

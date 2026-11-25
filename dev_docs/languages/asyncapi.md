@@ -1,21 +1,23 @@
 # asyncapi
 
-The AsyncAPI plugin (`AsyncApiPlugin`, `crates/cgg-lang/src/plugins/asyncapi.rs`, 170 lines, registered at `crates/cgg-lang/src/plugins.rs:168`) is one of the five interface/descriptor languages. It maps an event/message API document onto the call-graph model: every named channel, operation (AsyncAPI 3), component message, component schema and component parameter becomes a callable node, and every `$ref` pointer becomes a reference from the shape that contains it to the shape the pointer's last segment names. It has no grammar of its own. It parses with the published `tree-sitter-yaml` crate (`tree_sitter_yaml::LANGUAGE`, `asyncapi.rs:36-38`), which also reads JSON because JSON is flow-style YAML. All tree walking lives in the shared helper module `crates/cgg-lang/src/plugins/structured.rs`, which the OpenAPI plugin uses too. The `LanguagePlugin` trait has no `resolver_kind` (grep finds none in `crates/`). Resolution is generic: byte-span containment in `intra_file`, then a global match on simple name in `cross_file` that allows at most 4 candidates (`crates/cgg-resolve/src/cross_file.rs:5221-5240`). Version tested: cgg 0.11.0 (`target/release/cgg`). All fixtures are under `<scratch>/parity/asyncapi/`.
+> Revised 2026-11-25 against cgg 0.13.3: re-verified the detection, `$ref` and resolution gaps by fixture (all still hold), added the `--externals` `$ref` inventory and stdlib-table entry (0.12.0), and refreshed `detect.rs`, `cross_file.rs` and README citations. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The AsyncAPI plugin (`AsyncApiPlugin`, `crates/cgg-lang/src/plugins/asyncapi.rs`, 170 lines, registered at `crates/cgg-lang/src/plugins.rs:168`) is one of the five interface/descriptor languages. It maps an event/message API document onto the call-graph model: every named channel, operation (AsyncAPI 3), component message, component schema and component parameter becomes a callable node, and every `$ref` pointer becomes a reference from the shape that contains it to the shape the pointer's last segment names. It has no grammar of its own. It parses with the published `tree-sitter-yaml` crate (`tree_sitter_yaml::LANGUAGE`, `asyncapi.rs:36-38`), which also reads JSON because JSON is flow-style YAML. All tree walking lives in the shared helper module `crates/cgg-lang/src/plugins/structured.rs`, which the OpenAPI plugin uses too. The `LanguagePlugin` trait has no `resolver_kind` (grep finds none in `crates/`). Resolution is generic: byte-span containment in `intra_file`, then a global match on simple name in `cross_file` that allows at most 4 candidates (`crates/cgg-resolve/src/cross_file.rs:5930-5941`). Version tested: cgg 0.11.0 (`target/release/cgg`). All fixtures are under `<scratch>/parity/asyncapi/`.
 
 ## 01. Detection & parsing
 
 Supported:
 
 - **Extensions `.yaml` / `.yml` / `.json`**, matched without regard to case. Evidence: `asyncapi.rs:30-32`, `detect.rs:88-89`. In fixture `detect/upper.YAML`, a `.YAML` file was detected as `content:asyncapi`.
-- **Content detection is required.** For these extensions the detector reads the first 8 KiB (`detect.rs:157-159`) and looks for a root `asyncapi:` key. With no match the file is `Unknown`. It never falls through to the extension rule, so ordinary YAML/JSON is left alone (`detect.rs:78-95`). `detected_via = "content:asyncapi"`.
+- **Content detection is required.** For these extensions the detector reads the first 8 KiB (`detect.rs:190`) and looks for a root `asyncapi:` key. With no match the file is `Unknown`. It never falls through to the extension rule, so ordinary YAML/JSON is left alone (`detect.rs:104-126`). `detected_via = "content:asyncapi"`.
 
   ```yaml
   asyncapi: 2.6.0
   info: {title: x}
   ```
 
-  Evidence: test `detect.rs::asyncapi_detects_by_content` (`detect.rs:819`), test `ordinary_yaml_json_stays_unknown`, and fixture `detect/plain.yaml`, which was skipped as `unknown-extension`.
-- **Two matchers** (`detect.rs:173-200`). The first matches a line-leading `key:`, quoted or not, in the first 64 lines (YAML and pretty-printed JSON). The second matches a quoted `"asyncapi"` in the first 2048 bytes of a document that starts with `{` (minified JSON). That 2048-byte window is cut back to a char boundary (test `a_non_ascii_json_head_does_not_panic`). In fixture `json/min.json`, minified JSON with `asyncapi` as the second key was detected.
+  Evidence: test `detect.rs::asyncapi_detects_by_content` (`detect.rs:1052`), test `ordinary_yaml_json_stays_unknown` (`detect.rs:1067`), and fixture `detect/plain.yaml`, which was skipped as `unknown-extension`.
+- **Two matchers** (`detect.rs:201-230`). The first matches a line-leading `key:`, quoted or not, in the first 64 lines (YAML and pretty-printed JSON). The second matches a quoted `"asyncapi"` in the first 2048 bytes of a document that starts with `{` (minified JSON). That 2048-byte window is cut back to a char boundary (test `a_non_ascii_json_head_does_not_panic`). In fixture `json/min.json`, minified JSON with `asyncapi` as the second key was detected.
 - **A leading comment is fine.** Fixture `v2/api.yml` starts with `# comment first` and was detected.
 - **Shebangs: none** (`asyncapi.rs:33-35`). The shebang rule runs before content sniffing (`detect.rs:62-74`).
 - **Parsing.** One grammar, `tree-sitter-yaml`, for both YAML and JSON. There is no `ts_language_for` override, so the trait default applies (`lib.rs:322`). `structured::unwrap` (`structured.rs:18-34`) looks through `flow_node`/`block_node` and skips `anchor`/`tag`/`comment`. Block and flow mappings and pairs are both handled (`structured.rs:50-56`). In fixture `json/api.json`, JSON gave the same defs and edges as YAML.
@@ -25,10 +27,10 @@ Supported:
 
 Not supported / partial:
 
-- **False-positive detection.** The line matcher calls `trim_start()` (`detect.rs:175`), so an indented, non-root `asyncapi:` key anywhere in the first 64 lines also claims the file. In fixture `detect/nested.yaml` (`config:\n  asyncapi: true\nchannels: ...`), the file was detected as `content:asyncapi` and extracted a channel `c`. The comment there says "root key", but the code does not check the root.
+- **False-positive detection.** The line matcher calls `trim_start()` (`detect.rs:202`), so an indented, non-root `asyncapi:` key anywhere in the first 64 lines also claims the file. In fixture `detect/nested.yaml` (`config:\n  asyncapi: true\nchannels: ...`), the file was detected as `content:asyncapi` and extracted a channel `c`. The comment there says "root key", but the code does not check the root.
 - **First key wins between OpenAPI and AsyncAPI.** Fixture `detect/both.yaml` (`openapi:` then `asyncapi:`) was detected as `content:openapi`.
 - **Multi-document YAML: only the first document is read.** `document_root` takes the first `document` node (`structured.rs:94-101`). In fixture `detect/multidoc.yaml`, only channel `c1` was extracted and `c2` was silently dropped.
-- **A root key past line 64 or byte 8192** (huge leading comments or license headers) is not detected. Unverified by fixture; the limits come from the code at `detect.rs:157-159, 174`.
+- **A root key past line 64 or byte 8192** (huge leading comments or license headers) is not detected. Unverified by fixture; the limits come from the code at `detect.rs:190, 201`.
 
 ## 02. Callables extracted
 
@@ -89,12 +91,13 @@ Not supported / wrong:
 
 ## 04. Imports & module resolution
 
-- **No import statements.** Cross-file linking is a global simple-name lookup over all asyncapi callables (`cross_file.rs:5221-5240`). It binds every candidate when 1 to 4 exist. More than 4 gives `candidates-in-other-files`. The cap is hard-coded and ignores `--fanout-cap`. In fixture `fan` (5 files each declaring `Shared`), the result was unresolved with `{"stage":"candidates-in-other-files","detail":{"candidates":5}}`, and the same with `--fanout-cap 10`.
+- **No import statements.** Cross-file linking is a global simple-name lookup over all asyncapi callables (`cross_file.rs:5930-5941`). It binds every candidate when 1 to 4 exist. More than 4 gives `candidates-in-other-files`. The cap is hard-coded and ignores `--fanout-cap`. In fixture `fan` (5 files each declaring `Shared`), the result was unresolved with `{"stage":"candidates-in-other-files","detail":{"candidates":5}}`, and the same with `--fanout-cap 10`.
+- **`--externals` inventory (0.12.0)**: under `--externals` the shared OpenAPI/AsyncAPI line scan (`scan_lines`, `crates/cgg-lang/src/externals.rs:516`) records each `$ref` whose value does not start with `#` as an `ExternalUse` naming the file or URL before `#`. A 0.13.3 fixture with `$ref: 'common/schemas.yaml#/Thing'` lists `common/schemas.yaml` as `third-party` (also the `asyncapi` row in `crates/cgg/tests/externals.rs`); the `Thing` site itself stays `unattributed`. No resolver reads the scan, so no edge changes.
 - **Cross-file edges are `medium`** with resolver `cross-file:imports`. In fixture `v3`, `schema User -> schema Address` (in `common.yaml`) was medium.
 - **The same file takes precedence.** In fixture `json`, both files declare `M`, and each channel bound only its own file's `M`, intra-file at high.
 - **Not applicable**: `FileFacts::packages`, manifests, `heads.rs` external-module refusal, `modules.rs` `not-in-imported-module`, and workspace vocab. None of these name asyncapi (grep).
 - **Gap**: the `$ref` file path, which is the actual "import", is never used to narrow candidates (section 03).
-- **Gap**: languages are kept separate. The lookup key is `(lang, name)` (`cross_file.rs:5233`), so an AsyncAPI `$ref` never reaches an OpenAPI schema of the same name (inferred from the key; not fixture-tested).
+- **Gap**: languages are kept separate. The lookup key is `(lang, name)` (`cross_file.rs:5934`), so an AsyncAPI `$ref` never reaches an OpenAPI schema of the same name (inferred from the key; not fixture-tested).
 
 ## 05. Type inference & receiver typing
 
@@ -119,7 +122,7 @@ Not applicable. AsyncAPI has no macros. YAML anchors and aliases (`&a` / `*a`) a
 ## 09. FFI & cross-language links
 
 - **`ffi::link_ffi`**: not applicable (no asyncapi in `ffi.rs`).
-- **Descriptor → implementation linking: not covered.** `DESCRIPTOR_LANGUAGES = ["proto", "graphql", "smithy"]` (`crates/cgg-resolve/src/descriptor.rs:47`) leaves out asyncapi (and openapi). An AsyncAPI operation (`onUserSignUp`) or a v2 `operationId` is never linked to the host-language handler that implements it, and no `Via::Descriptor` edge is produced. This is despite the module comment at `descriptor.rs:3` and README (around line 1005) listing AsyncAPI among the descriptor languages for "Descriptor linking". In fact the README step means only the `$ref` edges.
+- **Descriptor → implementation linking: not covered.** `DESCRIPTOR_LANGUAGES = ["proto", "graphql", "smithy"]` (`crates/cgg-resolve/src/descriptor.rs:47`) leaves out asyncapi (and openapi). An AsyncAPI operation (`onUserSignUp`) or a v2 `operationId` is never linked to the host-language handler that implements it, and no `Via::Descriptor` edge is produced. This is despite the module comment at `descriptor.rs:3` and README (`README.md:1063-1064`) listing AsyncAPI among the descriptor languages for "Descriptor linking". In fact the README step means only the `$ref` edges.
 - **Markup code-behind**: not applicable.
 
 ## 10. Frameworks & entry points
@@ -127,7 +130,7 @@ Not applicable. AsyncAPI has no macros. YAML anchors and aliases (`&a` / `*a`) a
 - **No framework rule targets asyncapi.** `grep 'language: "' crates/cgg-core/src/frameworks/rules.rs` lists 36 languages, and neither asyncapi nor openapi is among them. Every rule is matched on `rule.language` (`crates/cgg-resolve/src/frameworks/mod.rs:648, 709`), so no rule can apply.
 - **No rule matches channels, operations or messages.** There are no rule ids, registrars, member_sources, signature_methods, container_attributes, markup_kinds or visibility entries for asyncapi.
 - **Related gap prose**: the Connexion `gap` (`rules.rs:8163`) covers Python handlers named only by an OpenAPI `operationId` string. It is OpenAPI, not AsyncAPI, and no rule reads AsyncAPI `operationId` or `x-` handler keys to root host-language code.
-- **Benchmark**: `asyncapi-spec` (`https://github.com/asyncapi/spec.git`, subdir `examples`) is in `scripts/benchmark.sh:106`, and its APPS line is at `benchmark.sh:348`. README benchmark row `README.md:1358`: 279 callables, 374 edges, 7%, 15 ms.
+- **Benchmark**: `asyncapi-spec` (`https://github.com/asyncapi/spec.git`, subdir `examples`) is in `scripts/benchmark.sh:106`, and its APPS line is at `benchmark.sh:348`. README benchmark row `README.md:1535`: 279 callables, 374 edges, 7%, 14 ms.
 
 ## 11. Test harness entries
 
@@ -143,7 +146,7 @@ None. There are no rules of kind `test` for asyncapi, and AsyncAPI has no test-f
 
 ## 13. Builtins & stdlib tables
 
-- **No `crates/cgg-core/src/stdlib/asyncapi.txt`.** None of the 30 stdlib files and none of the `include_str!` entries in `stdlib.rs:184-213` is for asyncapi. No `rust_types`-like tables, and no `CAST_INTRINSICS`/`CONSTRUCTING_METHODS` entries.
+- **No `crates/cgg-core/src/stdlib/asyncapi.txt`.** No stdlib list or `include_str!` entry in `stdlib.rs` is for asyncapi. No `rust_types`-like tables, and no `CAST_INTRINSICS`/`CONSTRUCTING_METHODS` entries. Since 0.12.0 the only asyncapi entry in `stdlib.rs` is the `--externals` stdlib-library label `("asyncapi", "asyncapi")` (`stdlib.rs:1260`).
 - **`--include-stdlib` mints nothing** for asyncapi. **`--include-external`** turns each unresolved `$ref` into an `<external>::<name>` leaf. In fixture `v3`: `<external>::kafka`, `<external>::user~1deleted`, `<external>::ack`, `<external>::common`, `<external>::Ext.json`, with `ext` edges. The unattributed `saslScram` gets no node because it has no source callable.
 - **Built-in AsyncAPI keywords** are not names, so no builtin filter is needed. Only `$ref` values become references.
 
@@ -171,9 +174,9 @@ Gaps found while cataloguing (all fixture-verified unless marked):
 - Same-named shapes of different kinds (message and schema) collide. They produce medium fan-out to both and identical mermaid labels (`v3`).
 - AsyncAPI 2 `operationId`, channel-local messages, and these component sections are not callables: `components/channels`, `operations`, `messageTraits`, `operationTraits`, `securitySchemes`, `servers`, `replies`, `correlationIds`, bindings.
 - No descriptor → implementation link. asyncapi is missing from `DESCRIPTOR_LANGUAGES` (`descriptor.rs:47`), so handlers serving an AsyncAPI operation look dead in the host language.
-- The cross-file candidate cap is a fixed 4 that ignores `--fanout-cap` (`cross_file.rs:5235`; fixture `fan`).
+- The cross-file candidate cap is a fixed 4 that ignores `--fanout-cap` (`cross_file.rs:5936`; fixture `fan`).
 - There is no qualified name or owner, so `kind` is visible only through `signature_hint`, and nodes are all `function`.
-- No `gap_for()` text, no CHANGELOG follow-up items and no ignored tests for asyncapi were found. The plugin has 4 unit tests (`asyncapi.rs:119-169`) plus 1 detection test (`detect.rs:819`). No integration fixture under `crates/*/tests` names asyncapi; `crates/cgg/tests/detect_prefixes.rs:94,179` only skips it.
+- No `gap_for()` text, no CHANGELOG follow-up items and no ignored tests for asyncapi were found. The plugin has 4 unit tests (`asyncapi.rs:119-169`) plus 1 detection test (`detect.rs:1052`). No integration fixture under `crates/*/tests` names asyncapi; `crates/cgg/tests/detect_prefixes.rs:94,179` only skips it.
 
 ## Summary scorecard
 

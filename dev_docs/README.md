@@ -1,6 +1,6 @@
 # dev_docs
 
-Internal reference docs for cgg's language parity work. These are not user documentation: the user-facing docs are the repo `README.md` and `skills/`. Every claim here cites code (`file:line`) or a fixture run, as of 2026-10-17 (0.11.0 plus the `remediate/cross-language` commits).
+Internal reference docs for cgg's language parity work. These are not user documentation: the user-facing docs are the repo `README.md` and `skills/`. Every claim here cites code (`file:line`) or a fixture run, as of 2026-10-17 (0.11.0 plus the `remediate/cross-language` commits), except `matrix/17-external-dependencies.md`, written 2026-11-23 for `--externals` (0.12.0).
 
 **Start here: [PARITY_MATRIX.md](PARITY_MATRIX.md).** It has the 46-language × 16-category overview, the top 30 parity gaps ranked by reach × cheapness, and coverage notes.
 
@@ -9,9 +9,10 @@ Internal reference docs for cgg's language parity work. These are not user docum
 | Path | Contents |
 | --- | --- |
 | [PARITY_MATRIX.md](PARITY_MATRIX.md) | Combined overview matrix, top 30 gaps, legend, coverage notes |
+| [REMEDIATION_PLAN.md](REMEDIATION_PLAN.md) | Workstream plan for the top 30 gaps, written from the matrix on 2026-10-17 |
 | [languages/](languages/) | 46 language catalogues, one per registered plugin (`rust.md`, `python.md`, …). Each has sections 01–16 matching the categories below, plus a summary scorecard |
-| [frameworks/](frameworks/) | `rules-part-1.md` to `rules-part-4.md`: every `RuleSpec` in `crates/cgg-core/src/frameworks/rules.rs` (475 specs), with its triggers, matching semantics and enumerating or gap-only status |
-| [matrix/](matrix/) | 16 category files. Each has a per-language capability matrix, a ranked **Parity gaps** list (with S/M/L effort), doc corrections and the fixtures run |
+| [frameworks/](frameworks/) | `rules-part-1.md` to `rules-part-4.md`: every `RuleSpec` in `crates/cgg-core/src/frameworks/rules.rs` (475 specs at the snapshot; the file has 507 now), with its triggers, matching semantics and enumerating or gap-only status |
+| [matrix/](matrix/) | 17 category files. Each has a per-language capability matrix, a ranked **Parity gaps** list (with S/M/L effort), doc corrections and the fixtures run |
 
 ## Categories (`matrix/`)
 
@@ -31,6 +32,7 @@ Internal reference docs for cgg's language parity work. These are not user docum
 14. [Confidence & certainty](matrix/14-confidence-certainty.md)
 15. [Dynamic use & reflection](matrix/15-dynamic-use-reflection.md)
 16. [Known gaps & limitations](matrix/16-known-gaps-limitations.md)
+17. [External dependencies](matrix/17-external-dependencies.md) (`--externals`)
 
 ## Legend (shared by every matrix)
 

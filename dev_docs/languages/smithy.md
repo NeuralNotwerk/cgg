@@ -1,6 +1,8 @@
 # smithy
 
-Smithy is an interface-definition language (IDL): it has no functions, only *shapes*. The plugin (`crates/cgg-lang/src/plugins/smithy.rs`, 372 lines, `SmithyPlugin`, id `"smithy"`) maps the Smithy shape graph onto cgg's callable/edge model. Every top-level shape becomes a callable named `namespace#Shape`, and every shape reference in a shape body becomes a call site (smithy.rs:1-22). The grammar is **vendored**: `parser.c` and `tree_sitter/parser.h` come from the `tree-sitter-smithy` 0.0.1 crate (ABI 14, MIT). The published crate pins `tree-sitter 0.20` and the deprecated `language()` API (`crates/cgg-lang/vendor/smithy/PROVENANCE.md`), so `crates/cgg-lang/build.rs:20-27` compiles the C parser and smithy.rs:30-34 binds the raw `tree_sitter_smithy()` symbol through `tree_sitter_language::LanguageFn`. `grammar.js` is kept for reference only and is not compiled. `LanguagePlugin` has no `resolver_kind` method in the current trait (`crates/cgg-lang/src/lib.rs:296-341`). Smithy's resolution is not a plugin property. It comes from three things: the `"smithy"` arm of the descriptor-language by-name block in `cgg-resolve/src/cross_file.rs:5222-5242`, `DESCRIPTOR_LANGUAGES` in `cgg-resolve/src/descriptor.rs:47`, and the dead-code `DESCRIPTOR` class in `cgg-resolve/src/deadcode/caps.rs:41`. The README language table describes it as "namespace shapes (global)" (README.md:526).
+> Revised 2026-11-25 against cgg 0.13.3: re-verified the extraction, resolution and descriptor-link claims by fixture (all still hold), added the `--externals` `use` inventory (0.12.0) and the `smithy.api` stdlib entries, and refreshed `cross_file.rs`, README and CHANGELOG citations. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+Smithy is an interface-definition language (IDL): it has no functions, only *shapes*. The plugin (`crates/cgg-lang/src/plugins/smithy.rs`, 372 lines, `SmithyPlugin`, id `"smithy"`) maps the Smithy shape graph onto cgg's callable/edge model. Every top-level shape becomes a callable named `namespace#Shape`, and every shape reference in a shape body becomes a call site (smithy.rs:1-22). The grammar is **vendored**: `parser.c` and `tree_sitter/parser.h` come from the `tree-sitter-smithy` 0.0.1 crate (ABI 14, MIT). The published crate pins `tree-sitter 0.20` and the deprecated `language()` API (`crates/cgg-lang/vendor/smithy/PROVENANCE.md`), so `crates/cgg-lang/build.rs:20-27` compiles the C parser and smithy.rs:30-34 binds the raw `tree_sitter_smithy()` symbol through `tree_sitter_language::LanguageFn`. `grammar.js` is kept for reference only and is not compiled. `LanguagePlugin` has no `resolver_kind` method in the current trait (`crates/cgg-lang/src/lib.rs:296-341`). Smithy's resolution is not a plugin property. It comes from three things: the `"smithy"` arm of the descriptor-language by-name block in `cgg-resolve/src/cross_file.rs:5930-5941`, `DESCRIPTOR_LANGUAGES` in `cgg-resolve/src/descriptor.rs:47`, and the dead-code `DESCRIPTOR` class in `cgg-resolve/src/deadcode/caps.rs:41`. The README language table describes it as "namespace shapes (global)" (README.md:536).
 
 Fixtures used below live in `<scratch>/parity/smithy/` (dirs `a`–`g`). They were run with `target/release/cgg` (0.11.0 build in the tree).
 
@@ -71,9 +73,10 @@ References are `RefRecord { name, site_line, site_byte }` with an empty `receive
 ## 04. Imports & module resolution
 
 - **`use` statements are ignored**: `_use_statement` is a hidden grammar rule (grammar.js:403-407) and the plugin records no `imports`. Fixture `f`: `namespace acme.x; use acme.y#Thing; structure Widget { t: Thing }`, with `Thing` defined in both `acme.y` and `other.z`. **Both** bind (`Widget -->|?| acme.y#Thing` and `Widget -->|?| other.z#Thing`).
-- **Namespace is not used for resolution.** Same-file shapes bind first through the intra-file linker. Fixture `a`: `GetCityOutput -> example.weather#CityCoordinates` (high) and *not* `example.common#CityCoordinates`. Any other reference goes to the descriptor-language arm in `cross_file.rs:5222-5242`: a global `(language, simple_name)` lookup that binds **every** candidate when there are 1–4, and binds nothing at 5 or more. Fixture `d` (five `Dup`s in `n1`…`n5`) records unresolved `candidates-in-other-files {candidates: 5}`.
-- Cross-file edges carry resolver `cross-file:imports` (cross_file.rs:958) even though no import was involved (fixture `a`: `GetCityInput -> example.common#Shared medium cross-file:imports`).
+- **Namespace is not used for resolution.** Same-file shapes bind first through the intra-file linker. Fixture `a`: `GetCityOutput -> example.weather#CityCoordinates` (high) and *not* `example.common#CityCoordinates`. Any other reference goes to the descriptor-language arm in `cross_file.rs:5930-5941`: a global `(language, simple_name)` lookup that binds **every** candidate when there are 1–4, and binds nothing at 5 or more. Fixture `d` (five `Dup`s in `n1`…`n5`) records unresolved `candidates-in-other-files {candidates: 5}`.
+- Cross-file edges carry resolver `cross-file:imports` (cross_file.rs:961) even though no import was involved (fixture `a`: `GetCityInput -> example.common#Shared medium cross-file:imports`).
 - **No `FileFacts::packages`**: the namespace is not recorded as a package. No manifest reading (`smithy-build.json` is not read).
+- **`--externals` inventory (0.12.0)**: under `--externals` a line scan (`scan_lines`, `crates/cgg-lang/src/externals.rs:516`, `"smithy"` arm) records each `use a.b#X` line as an `ExternalUse` that no resolver reads. The library is the namespace before `#` (`crates/cgg-resolve/src/externals.rs:342`); a namespace the tree declares is dropped, `smithy.api` is `stdlib` (`crates/cgg-core/src/stdlib.rs:1146`), anything else is `third-party` (test row `smithy` in `crates/cgg/tests/externals.rs`). The shape references themselves are not tied to the `use`: a 0.13.3 fixture with `use aws.protocols#Thing` and `structure W { t: Thing }` lists `aws.protocols` as a third-party import while the `Thing` site is `unattributed`.
 - **heads.rs external-module refusal / `WorkspaceVocab`**: no smithy handling (grep for `smithy` in `heads.rs` and `modules.rs` returns nothing). **`not-in-imported-module`**: never produced.
 - **Unresolved references**: a name with no candidate goes to the per-file **external** bucket (fixture `c`: `Missing` → `external_calls: 2` together with `Dup`). It appears as `<external>::Missing` under `--include-external`.
 - `crates/cgg/tests/detect_prefixes.rs:94,179` explicitly exempts smithy from import-prefix framework detection ("Descriptor languages: an 'import' is a schema reference").
@@ -131,14 +134,14 @@ References are `RefRecord { name, site_line, site_byte }` with an empty `receive
 
 ## 13. Builtins & stdlib tables
 
-- No `crates/cgg-core/src/stdlib/smithy.txt`, and no smithy entries in `stdlib.rs` (CAST_INTRINSICS, CONSTRUCTING_METHODS, implicit packages: none).
+- No `crates/cgg-core/src/stdlib/smithy.txt`, and no smithy entries in the call-screening tables (CAST_INTRINSICS, CONSTRUCTING_METHODS, implicit packages: none). Since 0.12.0 `stdlib.rs` names `smithy.api` as Smithy's stdlib namespace for the `--externals` classifier only (`stdlib.rs:1146`, `1256`).
 - The prelude list is **local to the plugin** (`PRELUDE`, smithy.rs:38-60, 21 names). These references are dropped at extraction, so they never reach the stdlib bucket and `--include-stdlib` adds nothing for smithy (fixture `a` run: `0 stdlib`).
 - The prelude list is missing parts of the Smithy prelude: prelude *traits* (irrelevant, since traits are skipped), and `PrimitiveBoolean`… are listed. `smithy.api#Unit` is listed. Shapes added in later Smithy versions are not checked (unverified).
 
 ## 14. Confidence & certainty
 
 - **high**: same-file references bound by the intra-file linker (fixture `a`: every same-file edge is `high`, resolver `intra-file`).
-- **medium**: every cross-file reference, from the descriptor-language arm of `cross_file.rs:5222-5242`, even when only one candidate exists. Fixture `a`: `GetCityInput -> example.common#Shared medium`. Mermaid marks these with `?` (fixture `f`: `N0 -->|?| N1`).
+- **medium**: every cross-file reference, from the descriptor-language arm of `cross_file.rs:5930-5941`, even when only one candidate exists. Fixture `a`: `GetCityInput -> example.common#Shared medium`. Mermaid marks these with `?` (fixture `f`: `N0 -->|?| N1`).
 - **low**: descriptor → host-language links (`?desc`), always (descriptor.rs:141).
 - Same-name candidates in other namespaces all bind at medium (04). That is a wrong edge, and the medium label is accurate.
 
@@ -158,9 +161,10 @@ References are `RefRecord { name, site_line, site_byte }` with an empty `receive
 - Inline `input :=`/`output :=` structures are folded into the operation and get no `XInput`/`XOutput` node.
 - Members are not nodes. A `Shape$member` reference collapses to `Shape`.
 - The JSON AST model format is not detected.
+- `--externals` lists `use` targets as libraries but leaves the shape references written through them `unattributed` (04).
 - The prelude skip is by simple name, so user shapes named like prelude types are never referenced.
 - Unit test coverage is limited to the four tests in smithy.rs (extraction only). There is no resolve-level or descriptor-link smithy test. `crates/cgg-py/tests/test_analyze.py:552` only asserts the language is listed. No ignored tests.
-- CHANGELOG: introduced with the descriptor plugins (CHANGELOG.md:5947-5952). The benchmark row was added later (CHANGELOG.md:5481-5484). README row 1354: `smithy/protocol-tests | 827 | 1,374 | 49%`.
+- CHANGELOG: introduced with the descriptor plugins (CHANGELOG.md:8773-8778). README benchmark row 1531: `smithy/protocol-tests | 827 | 1,374 | 49%`.
 
 ## Summary scorecard
 
@@ -181,4 +185,4 @@ References are `RefRecord { name, site_line, site_byte }` with an empty `receive
 | 13 Builtins & stdlib | partial | 21-name in-plugin prelude skip list; no stdlib file |
 | 14 Confidence | partial | same-file high, cross-file medium, descriptor low; namespace-blind |
 | 15 Dynamic use | n/a | no runtime |
-| 16 Known gaps | n/a | 13 gaps listed above |
+| 16 Known gaps | n/a | 14 gaps listed above |

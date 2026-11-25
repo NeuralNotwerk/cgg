@@ -1,5 +1,7 @@
 # perl
 
+> Revised 2026-11-25 against cgg 0.13.3: shebang detection is no longer a substring match (no `sh` hijack), `*.t` files are test files, and `POSIX::floor`-style qualified core-module calls are screened as stdlib (all 0.11.1). `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Perl plugin (`PerlPlugin`, `crates/cgg-lang/src/plugins/perl.rs`, 1,030 lines, of which 20 are inline tests at perl.rs:717-1030) parses Perl 5 with the crates.io grammar `tree-sitter-perl`. The workspace pins `"1.1"` (Cargo.toml:112), which Cargo.lock:1664-1666 resolves to 1.1.2. The plugin binds `tree_sitter_perl::LANGUAGE` (perl.rs:27-29); nothing is vendored. It does not override `resolver_kind`, `max_line_bytes` or `ts_language_for`.
 
 A single recursive `PerlWalker` (perl.rs:52-704) does five things:
@@ -30,7 +32,7 @@ All fixtures cited below live under `<scratch>/parity/perl/` (f1 … f11). Each 
 **Supported:**
 
 - **Extensions `.pl`, `.pm`, `.t`** (perl.rs:15-17). Matching is case-insensitive: in f6, `Makefile.PL` → `extension:.pl` and `X.PM` → `extension:.pm`.
-- **Shebang needle `perl`** (perl.rs:18-20). Detection is a substring test over the whole first line, with plugins iterated in registration order (detect.rs:63-75; `read_shebang` reads ≤256 bytes, detect.rs:207-220). Perl is registered 24th (plugins.rs:148). In f6 these all report `shebang:perl`:
+- **Shebang keyword `perl`** (perl.rs:18-20). Since WS25 (0.11.1) the interpreter is the program's basename, or the first operand after `env`, and must equal the keyword or be the keyword followed by a version (`perl5.36`); it is no longer a substring test. In f6 (and re-run in fixture `lang-docs/perl/a` on 0.13.3) these all report `shebang:perl`:
   - `#!/usr/bin/env perl` (extensionless `script/noext`);
   - `#!/usr/local/bin/perl5.36 -w`;
   - `#!perl` in `t.t`.
@@ -39,7 +41,7 @@ All fixtures cited below live under `<scratch>/parity/perl/` (f1 … f11). Each 
 
 **Not supported or partial:**
 
-- **Shebang hijack by earlier plugins**: `#!/home/shared/bin/perl` is detected as **bash** (`shebang:sh`, f6 `shared.pl`). Bash (registered 12th, plugins.rs:135) has needle `sh`, and `shared` contains it. Any interpreter path containing `sh` misroutes a Perl script.
+- **Shebang hijack (fixed in 0.11.1)**: on 0.11.0 `#!/home/shared/bin/perl` was detected as **bash** (substring `sh` in `shared`, f6 `shared.pl`). Fixture `lang-docs/perl/a/shared` on 0.13.3 → `shebang:perl`.
 - **Unrecognised extensions** (f6, all `file_skipped … unknown-extension`):
   - `.cgi`, `.psgi` (so `app.psgi`, the PSGI app entry, is never parsed: f5, f6);
   - `.plx`, `.pod`;
@@ -231,7 +233,7 @@ CHANGELOG.md:681-686 describes the same behaviour.
 - `--dynamic-dispatch` / `dispatch::inheritance_fanout`: Perl is **not** in `INHERITANCE_LANGS` (dispatch.rs:110-123). No base-member → override edges, so a call landing on `My::Domain::greet` never reaches `My::Domain::Void::greet`. f1 with `--dynamic-dispatch` had 0 `dyn` edges.
 - `trait_impl_target`, `impls` signal: not set.
 - `member_of_calling_class`, `overrides_below`, extension methods, `one_declaring_ancestor`: none have a Perl branch.
-- **Overloading by arity**: not applicable to Perl. It is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583), and arity is never recorded.
+- **Overloading by arity**: not applicable to Perl. It is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357), and arity is never recorded.
 
 ## 07. Scoping & shadowing
 
@@ -306,7 +308,7 @@ Every rule in `crates/cgg-core/src/frameworks/rules.rs` with `language: "perl"`;
   - `subtest` bodies are anonymous (§02).
   - Top-level `.t` code has no callable.
 - **Test-name rule**: `is_test_name`'s default arm (`name.starts_with("test_") || name.starts_with("Test")`, roots.rs:975-987) applies to Perl. A sub named `test_*` or `Test*` becomes a `builtin:test-name` test root anywhere, not only in test files.
-- **Test-file classification**: Perl has no `by_name` rule in `classify_test_file` (testfile.rs:76-120). `TEST_DIRS` (testfile.rs:36-46) contains `test`/`tests` but **not `t`**, so a conventional `t/basic.t` is **not** a test file. Callees reached only from `.t` files count as production-live, and `--include-tests` gating has nothing to withhold (code read; f5 `test_helper` in `t/basic.t` was rooted as `toplevel:invocation`, not as a test).
+- **Test-file classification**: since 0.11.1 every `*.t` file is a test file by name (`testfile.rs:132`; fixture `lang-docs/perl/a/t/basic.t` on 0.13.3 → `test_role: file-name`). `TEST_DIRS` still lacks `t`, so a `.pl`/`.pm` helper under `t/` (e.g. `t/lib/Helper.pm`) is production code.
 - **Test::Class (`sub x : Test {…}`), Test2::V0, Test::Spec / Test::Spec-style `describe`/`it`**: no rules. `TEST_CLASS_MEMBERS_ARE_ROOTS` covers Python/PHP/Ruby only (CLAUDE.md), not Perl.
 - **Benchmark/fuzz harnesses**: none.
 
@@ -344,7 +346,7 @@ Every rule in `crates/cgg-core/src/frameworks/rules.rs` with `language: "perl"`;
 - **Perl-specific tables in stdlib.rs**: `PERL_BASE_PRAGMAS` (stdlib.rs:11-15) and `PERL_BASE_KEYWORDS` (stdlib.rs:17-20); see §06.
 - **`CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, `TOP_TYPES`, implicit packages, `rust_types`-like wrapper tables**: no Perl entries (stdlib.rs:35-46, 58, 151-155).
 - **Gaps in the list** (from fixtures):
-  - `floor` from `POSIX` is not stdlib; it went to the external bucket (f2 L22).
+  - A bare `floor` imported from `POSIX` is not stdlib; it goes to the external bucket (f2 L22; still so in fixture `lang-docs/perl/a` on 0.13.3). The qualified `POSIX::floor(…)` is stdlib since 0.11.1: a call's own qualifier is split on `::`, and `STDLIB_MODULES` names the Perl core modules (fixture: `<stdlib>::POSIX::floor`).
   - `bless` is listed, but the grammar's `bless` node is never recorded as a call.
   - `say` is listed (stdlib, f2 L25).
 
@@ -410,8 +412,8 @@ Found while cataloguing (fixtures):
 6. **Package-block scope leaks** past `package X { … }`, and fully qualified `sub A::B::c {…}` is mis-named (f10).
 7. **Anonymous subs are not callables**, except registrar handlers. This covers `$cb = sub {…}`, dispatch tables `{ key => sub {…} }`, `subtest`, Moose `around`/`before`/`after`, hooks and helpers. Code-ref invocations (`$cr->()`, `&$cr`, `$self->$m`) record nothing (f1, f4).
 8. **Method::Signatures / Function::Parameters `method`/`func` and Perl 5.38 `class`/`method`/`field`** are not extracted (f4).
-9. **`.psgi`, `.cgi`, `.plx`, `.xs` and the `bin/` directory are skipped**. A `#!…/shared/…/perl` shebang is detected as bash (f1, f5, f6).
-10. **`t/` is not a test directory and `.t` is not a test-file name** (testfile.rs:36-46, 76-120). There are no test harness entries (§11).
+9. **`.psgi`, `.cgi`, `.plx`, `.xs` and the `bin/` directory are skipped** (re-checked on 0.13.3: `app.psgi` `unknown-extension`, `bin/x.pl` `builtin` deny). The `#!…/shared/…/perl` → bash misdetection of 0.11.0 is fixed (§01).
+10. **`t/` is not a test directory** (only `.t` files are test files since 0.11.1, testfile.rs:132). There are no test harness entries (§11).
 11. **Cross-framework bleed** between mojolicious and dancer2 registrar rules (f5).
 12. **No `--dynamic-dispatch`/inheritance fan-out** (not in `INHERITANCE_LANGS`). No dynuse, no FFI/XS, no `name_mentions`.
 13. **Double-recorded bare calls** (inner `call_expression_with_bareword` walked again, perl.rs:177-178) inflate audit bucket counts.
@@ -424,7 +426,7 @@ No Perl test is marked `#[ignore]` (`grep -n ignore crates/cgg-lang/src/plugins/
 
 | section | support | one-line note |
 | --- | --- | --- |
-| 01 Detection & parsing | partial | `.pl/.pm/.t` + `perl` shebang. `.psgi/.cgi/.xs` unknown, `bin/` denied, `sh`-substring shebang hijack, attribute/qualified-sub parse errors |
+| 01 Detection & parsing | partial | `.pl/.pm/.t` + `perl` shebang. `.psgi/.cgi/.xs` unknown, `bin/` denied, attribute/qualified-sub parse errors |
 | 02 Callables extracted | partial | Named subs with package QNs. No anonymous subs (except route handlers), Moose accessors, `method`/`func`, Corinna, glob/eval subs. Block-package scope leaks |
 | 03 Call-site forms | partial | Bare, `$obj->m`, `Pkg->m`, invocant/SUPER, registrar args. `Pkg::f()` never binds; code-ref/dynamic-method calls unrecorded; no arity |
 | 04 Imports & module resolution | partial | `use` opens a package to bare calls. `require` maps to no file; no Exporter lists, `@INC`, packages/heads refusal |
@@ -434,7 +436,7 @@ No Perl test is marked `#[ignore]` (`grep -n ignore crates/cgg-lang/src/plugins/
 | 08 Macros, preprocessor & codegen | none | Source filters, string-eval subs, AUTOLOAD, generated accessors unmodelled; no `name_mentions` |
 | 09 FFI & cross-language links | none | No XS/Inline/FFI::Platypus; `.xs` not detected |
 | 10 Frameworks & entry points | partial | mojolicious + dancer2 enumerate routes (low). catalyst/plack are gap rules. No string targets; cross-framework bleed |
-| 11 Test harness entries | none | `test-more` is a gap rule. `t/` and `.t` not classified as tests; only the `test_*` name rule |
+| 11 Test harness entries | none | `test-more` is a gap rule. `.t` files are test files (0.11.1), `t/` is not a test dir; only the `test_*` name rule |
 | 12 Dead-code analysis | minimal | Script-driven class. Findings capped/suppressed, roots = framework entries + top-level invocations; no visibility/exports |
 | 13 Builtins & stdlib tables | full | 167-name `perl.txt` plus base pragma/keyword tables; in-file defs win over stdlib names |
 | 14 Confidence & certainty | partial | High for single-candidate intra-file, invocant and `use`d-package hits. Medium on same-name copies. Redefinitions refused |

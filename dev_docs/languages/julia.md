@@ -1,6 +1,8 @@
 # julia
 
-The Julia plugin (`crates/cgg-lang/src/plugins/julia.rs`, 442 lines, `JuliaPlugin`, id `"julia"`) is a single hand-written tree walker over the `tree-sitter-julia` crate, version 0.23.1 (`Cargo.toml:109`, `tree-sitter-julia = "0.23"`; bound at `julia.rs:21-23` as `tree_sitter_julia::LANGUAGE`). No grammar is vendored. It does not override `resolver_kind`, `signals()`, `max_line_bytes` or `ts_language_for`, so it takes the trait defaults (`crates/cgg-lang/src/lib.rs:295-340`). That means no dead-code signals are declared. It ignores `ExtractCtx` (`_ctx`, `julia.rs:27`). The plugin records only definitions (all `DefVariant::FreeFunction`), call references (bare name text, no receiver, no arity) and `using`/`import` records. It records no locals, classes/bases, packages, attributes, visibility, value refs, name mentions or dyn uses. Resolution is the generic intra-file and cross-file pipeline. Julia has a few explicit memberships: `lexically_scoped` (`crates/cgg-resolve/src/intra_file.rs:119-135`), `binds_same_name_set` (multiple-dispatch methods as one callee, `intra_file.rs:830-852`), and the "dotted module, unqualified import" arm of the `import` handler (`crates/cgg-resolve/src/cross_file.rs:2063-2077`).
+> Revised 2026-11-25 against cgg 0.13.3: Julia now has a locals table (parameters, lambda/`do` parameters and function-body locals shadow functions, `shadowed-by-local`), another file's nested functions are no longer bare-name candidates, and `runtests.jl` is a test file by name. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Julia plugin (`crates/cgg-lang/src/plugins/julia.rs`, 442 lines, `JuliaPlugin`, id `"julia"`) is a single hand-written tree walker over the `tree-sitter-julia` crate, version 0.23.1 (`Cargo.toml:109`, `tree-sitter-julia = "0.23"`; bound at `julia.rs:21-23` as `tree_sitter_julia::LANGUAGE`). No grammar is vendored. It does not override `resolver_kind`, `signals()`, `max_line_bytes` or `ts_language_for`, so it takes the trait defaults (`crates/cgg-lang/src/lib.rs:295-340`). That means no dead-code signals are declared. It ignores `ExtractCtx` (`_ctx`, `julia.rs:27`). The plugin records only definitions (all `DefVariant::FreeFunction`), call references (bare name text, no receiver, no arity) and `using`/`import` records. Its locals are collected outside the plugin, by `locals::collect_julia` (`crates/cgg-lang/src/locals.rs:1676`). It records no classes/bases, packages, attributes, visibility, value refs, name mentions or dyn uses. Resolution is the generic intra-file and cross-file pipeline. Julia has a few explicit memberships: `lexically_scoped` (`crates/cgg-resolve/src/intra_file.rs:119-135`), `binds_same_name_set` (multiple-dispatch methods as one callee, `intra_file.rs:830-852`), and the "dotted module, unqualified import" arm of the `import` handler (`crates/cgg-resolve/src/cross_file.rs:2063-2077`).
 
 Fixtures for this catalogue are in `<scratch>/parity/julia/` (p1 to p6, run with `target/release/cgg` 0.11.0).
 
@@ -126,7 +128,7 @@ Supported:
 
 Not supported or partial:
 
-- **No method selection.** There is no arity or argument-type narrowing: Julia is not in `OVERLOAD_ARITY_LANGS` (`crates/cgg-resolve/src/type_hints.rs:1583`, `["java","scala","cpp"]`), and no `arity` is recorded.
+- **No method selection.** There is no arity or argument-type narrowing: Julia is not in `OVERLOAD_ARITY_LANGS` (`crates/cgg-resolve/src/type_hints.rs:2357`, `["java","scala","cpp","csharp","groovy","swift","kotlin","typescript"]`), and no `arity` is recorded.
 - **Calls from code with no caller.** A call to such a name from a callable-struct body (no enclosing callable) is recorded `ambiguous-in-file` (fixture p1 line 28, `file_local: 3`).
 - **No inheritance.** `abstract type Shape end` and `struct Circle <: Shape` are not recorded (no `ClassDecl`, no `base_types`). Julia is not in `INHERITANCE_LANGS` (`crates/cgg-resolve/src/dispatch.rs:110-123`), so `inheritance_fanout` never runs.
 - **No `--dynamic-dispatch` edges.** No `trait_impl_target` is set; the dead-code capability table reports `dispatch: none` (fixture p1).
@@ -139,9 +141,12 @@ Supported:
 
 - **Lexical narrowing of nested definitions.** `lexically_scoped` includes `"julia"` (`intra_file.rs:119-135`). Fixture p4: `a1 -> Outer.loc:23` and `a2 -> Outer.loc:27`, each `high` to its own nested `loc`. CHANGELOG: "Lexical scope for bare calls beyond Python: … Haskell and Julia".
 
+- **Locals table (WS27, 0.11.1).** `locals::collect_julia` (`crates/cgg-lang/src/locals.rs:1676`) records parameters of functions, macros, short-form methods, lambdas and `do` blocks (positional, optional, keyword, varargs, typed, destructured; each from the end of its own declaration, so a default still sees the module's function; never `where` type parameters), function-body `=`/`local` locals and local functions to the end of the innermost `for`/`while`/`let`/`try`/`catch`/comprehension/lambda/function (not `if`/`begin`; never a name declared `global`), and `for`, comprehension, `let` and `catch` variables. A literal local shadows too, since Julia has no function-only lookup. A bare call through one is `shadowed-by-local`. Fixture (2026-11-25, `lang-docs/julia/a`): `function user(helper) helper() end`, `helper = x -> 2; helper(1)` and `helper = 3; helper()` are each `shadowed-by-local`, while `function dflt(p = helper())` still binds `M.helper` `high`.
+- **Another file's nested functions are not bare-name candidates (WS33).** `cross_file::nested_function_ids` lists Julia (`crates/cgg-resolve/src/cross_file.rs:5348`). Fixture: `inner()` called from `other.jl`, where `inner` is nested in `M.outer`, binds nothing (`candidates-in-other-files`).
+- **A lone nested definition outside the caller** binds at `medium`, not `high` (WS19).
+
 Not supported:
 
-- **No `FileFacts::locals`.** `locals::spec` has no Julia table (`crates/cgg-lang/src/locals.rs:380-394`), so there is no `shadowed-by-local`. Fixture p6: `function user(helper) helper() end` binds `M.user -> M.helper` at `high`, but the parameter shadows it.
 - **No positional shadowing** (that is only OCaml, F# and Lua).
 - **No conditional-definition tracking** (`DefRecord::conditional` is not set). `if cond; f() = 1; else; f() = 2; end` gives two same-name methods that bind as an overload set (inferred from `binds_same_name_set`; unverified by fixture).
 - **Module boundaries are not scopes for bare-name lookup** (see §04, `deep(4)`).
@@ -178,7 +183,7 @@ Rules with `language: "julia"` in `crates/cgg-core/src/frameworks/rules.rs`. Det
 
 - **`julia-test` is detect-only** (§10). No harness node is minted and no `@testset`/`@test`/`@testitem` case is enumerated (fixture p1).
 - **Name-convention test roots work generically.** `is_test_name` falls to `_ => name.starts_with("test_") || name.starts_with("Test")` (`crates/cgg-resolve/src/deadcode/roots.rs:975-989`). Fixture p1: `test_helper` is a `test-entry` root (`builtin:test-name`).
-- **Test files are classified by directory.** Fixture p1: `test/runtests.jl` has `test_role: "directory"` in the audit.
+- **Test files.** `runtests.jl` is a test file by name (`crates/cgg-core/src/testfile.rs:162`; fixture 2026-11-25: `test/runtests.jl` has `test_role: "file-name"`); other files under a test directory are classified by directory.
 - **Calls inside `@testset … begin … end` at top level have no caller.** The fixture p1 runtests site `Geo.area` has `src: null`, and is also an unbound qualified call.
 - **Not applicable:** `TEST_CLASS_MEMBERS_ARE_ROOTS` (no classes).
 
@@ -196,12 +201,13 @@ Rules with `language: "julia"` in `crates/cgg-core/src/frameworks/rules.rs`. Det
 
 - **`crates/cgg-core/src/stdlib/julia.txt`, 248 lines.** It holds names like `abs`, `map`, `print`, `include`, `Float64`, `Base`, `LinearAlgebra` and macro names (`@assert`, `@inline`, `@eval` …). It is loaded at `crates/cgg-core/src/stdlib.rs:206,247`. CHANGELOG (stdlib audit) lists it as one of eight lists "seeded from language references only", not tuned against corpus noise.
 - **Dotted calls with a stdlib head screen as stdlib.** Fixture p1: `LinearAlgebra.dot`, `Base.length` and `Base.:+` land in `stdlib_calls`. Under `--include-stdlib` they become `<stdlib>::LinearAlgebra.dot`, `<stdlib>::Float64`, `<stdlib>::map` (fixture p1 `s.json`).
+- **`--externals` (0.12.0).** The opt-in inventory attributes external sites to a library through the file's `using`/`import` records (row `julia` in `crates/cgg/tests/externals.rs`: `using HTTP` then `HTTP.get(…)` is `third-party` `HTTP`, while the included in-tree `util.jl` is not attributed). It never changes an edge.
 - **External bucket.** Unknown names (`norm` from `using LinearAlgebra: norm`, `eval`, `-`) go to the external bucket, and `--include-external` mints `<external>::…` leaves (fixture p1).
 - **None:** `rust_types`-like wrapper tables, `CAST_INTRINSICS`/`CONSTRUCTING_METHODS`/`MAYBE_TYPE_WRAPPERS`/`UNION_TYPE_CONSTRUCTORS`/`NULL_TYPE_MEMBERS` Julia entries (no `julia` in `stdlib.rs` beyond lines 206/247), and implicit-package tables (`Base`/`Core` are only in the name list).
 
 ## 14. Confidence & certainty
 
-- **`high` from intra-file single candidates.** Fixture p4: `caller -> fast/gg/kw/f1/f2/Inner.deep` high; `a1 -> loc` high. This includes wrong highs: a parameter-shadowed name (fixture p6 `user -> helper` high) and a bare call into a nested module never brought in with `using` (fixture p4 `deep(4)`). A constructor calling its own name also binds high to itself (fixture p1 `Geo.Circle -> Geo.Circle` high, `Circle(r::Int) = Circle(Float64(r))`): the intended target, the default struct constructor, is not a node.
+- **`high` from intra-file single candidates.** Fixture p4: `caller -> fast/gg/kw/f1/f2/Inner.deep` high; `a1 -> loc` high. This includes wrong highs: a bare call into a nested module never brought in with `using` (fixture p4 `deep(4)`). A constructor calling its own name also binds high to itself (fixture p1 `Geo.Circle -> Geo.Circle` high, `Circle(r::Int) = Circle(Float64(r))`): the intended target, the default struct constructor, is not a node.
 - **`high` from `import A` + bare call to a unique `A.f`.** Fixture `q`: `main -> A.fa high cross-file:imports`.
 - **`medium`:** multiple-dispatch sets (every method), step 1c/1d by-name cross-file matches (fixture p3). The framework entry edge is `low`.
 - **No `CertainCtx` typed-receiver or `OwnerFacts` path.** No receivers.
@@ -226,7 +232,7 @@ None. The Julia plugin does not call `dynuse::extract` (only java, ruby, go, jav
 - **Callable-struct methods `function (m::T)(x)` are not extracted** (`rules.rs:6399`, fixture p1).
 - **Short-form definitions with a qualified or operator name are recorded as calls, not definitions:** `Base.length(x) = …`, `Base.:+(a,b) = …`, `+(a) = a` (fixtures p1, p4).
 - **No zero-method `function f end`, no lambda / anonymous / `do` callables, no struct or abstract-type records.**
-- **No locals**, so parameters that shadow globals bind high to the wrong target (fixture p6). No receiver, argument-type or arity data, so multiple dispatch always fans out to every method.
+- No receiver, argument-type or arity data, so multiple dispatch always fans out to every method.
 - **No value references, broadcast calls (`f.(x)`), infix operator calls or pipes (`x |> f`)** (fixture p1).
 - **Bare-name lookup ignores module boundaries** (fixture p4 `deep(4)` high).
 - **Nested function qualified names omit the enclosing function** (`Geo.inner`), because `scope` only tracks modules (`julia.rs:47,65-77`).
@@ -246,13 +252,13 @@ None. The Julia plugin does not call `dynuse::extract` (only java, ruby, go, jav
 | 04 Imports & module resolution | minimal | only `import M` feeds resolution; `using`, `import M: f`, `using .M`, aliases and `include` are ignored |
 | 05 Type inference & receiver typing | none | no receivers, types or argument types recorded |
 | 06 Inheritance, dispatch & overloading | minimal | same-file dispatch methods bind as one set (medium); no type hierarchy, arity or dispatch narrowing |
-| 07 Scoping & shadowing | partial | lexical narrowing of nested defs; no locals or shadowing; module boundaries ignored |
+| 07 Scoping & shadowing | partial | lexical narrowing of nested defs; locals table with `shadowed-by-local`; module boundaries ignored |
 | 08 Macros, preprocessor & codegen | none | macros neither extracted nor expanded; macro head recorded as a call |
 | 09 FFI & cross-language links | none | `ccall`/PyCall not linked |
 | 10 Frameworks & entry points | partial | 5 rules: `julia-module-init` (node), `julia-base-dispatch` (root mark), `julia-test`/`flux`/`genie` detect-only |
 | 11 Test harness entries | minimal | `julia-test` detect-only; generic `test_`/`Test` name roots only |
 | 12 Dead-code analysis | minimal | degraded class, max medium; no exports or visibility; value-passed functions show as dead |
 | 13 Builtins & stdlib tables | partial | 248-name `julia.txt`, reference-seeded; no type or cast tables |
-| 14 Confidence & certainty | partial | high only from single-candidate intra-file or `import M`; some wrong highs (shadowing, module boundary) |
+| 14 Confidence & certainty | partial | high only from single-candidate intra-file or `import M`; some wrong highs (module boundary) |
 | 15 Dynamic use & reflection | none | no dynuse; `getfield`/`eval` are plain calls |
 | 16 Known gaps & limitations | n/a | see list: `using` inert, qualified calls unbound, macros and functors missing, `include` not followed |

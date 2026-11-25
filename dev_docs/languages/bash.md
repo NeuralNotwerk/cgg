@@ -1,5 +1,7 @@
 # bash
 
+> Revised 2026-11-25 against cgg 0.13.3: shebang detection no longer steals `pwsh`/perl/fish scripts and takes `dash`/`ksh`/`mksh`/`ash` (WS25), a sourced name binds the copy in the file the `source` names (the false-high decoy bug is fixed), and `*_test.sh` files are test files. Extraction (bash.rs) is unchanged since 0.11.0. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The Bash plugin (`BashPlugin`, `crates/cgg-lang/src/plugins/bash.rs`, 291 lines including 4 inline tests) parses shell scripts with the crates.io grammar `tree-sitter-bash` (workspace pin `"0.25"` at Cargo.toml:95, resolved to 0.25.1 in Cargo.lock:1418-1419; `tree_sitter_bash::LANGUAGE`, bash.rs:21-23). Nothing is vendored. A single recursive `BashWalker` (bash.rs:43-212) does three things:
 
 - It records every `function_definition` as a `FreeFunction` named by its bare name.
@@ -15,16 +17,10 @@ Fixtures cited below live under `<scratch>/parity/bash/` (f1 … f12). Each was 
 - **Extensions `.sh` and `.bash`** (bash.rs:15-17). Evidence:
   - f2: `lib/a.sh` reports `detected_via: extension:.sh`.
   - f7: `x.bash` reports `extension:.bash`.
-- **Shebang needles `bash`, `sh`, `zsh`** (bash.rs:18-20). Detection runs `word.contains(needle)` over the whole first line, iterating plugins in registration order (detect.rs:63-75, `read_shebang` detect.rs:209-223). Bash is registered 12th (plugins.rs:135). Fixtures:
-  - f1: `#!/bin/bash` → `shebang:bash`.
-  - f2: `#!/bin/sh` → `shebang:sh`.
-  - f7: `#!/bin/dash`, `#!/bin/ksh` and `#!/bin/zsh` all → `shebang:sh`. The `zsh` needle can never win, because `sh` is checked first and is a substring of `zsh`.
-- **Shebang beats extension, and the `sh` substring over-matches** (partial / bug). Rule 1 (shebang) runs before Rule 2 (extension), so these files are routed to Bash (f7):
-  - `#!/usr/bin/env pwsh` in `ps.ps1` → bash. PowerShell is registered after Bash (plugins.rs:155), and `pwsh` contains `sh`.
-  - `#!/home/shared/bin/perl` in `perlscript.pl` → bash (`shared` contains `sh`).
-  - `#!/usr/bin/env fish` → bash, with `parse_status: error` and 0 callables.
-
-  Interpreters registered *before* Bash are safe: `#!/usr/bin/env python3` in `py.sh` → python (f7).
+- **Shebang keywords `bash`, `sh`, `zsh`, `dash`, `ksh`, `mksh`, `ash`** (bash.rs:18-20). Since WS25 (0.11.1) the interpreter is the program's basename, or the first operand after `env` (options and `NAME=value` skipped), and must equal a keyword or be a keyword followed by a version; it is no longer a substring test. Fixtures:
+  - f1: `#!/bin/bash` → `shebang:bash`; f2: `#!/bin/sh` → `shebang:sh`.
+  - Fixture `lang-docs/bash/a` (0.13.3): `#!/bin/dash` → `shebang:dash`, `#!/bin/zsh` → `shebang:zsh`.
+- **Shebang beats extension.** On 0.11.0 the `sh` substring over-matched (f7: `pwsh`, `/home/shared/bin/perl` and `fish` scripts were routed to Bash). Fixed in WS25: fixture `lang-docs/bash/a` (0.13.3) gives `ps.ps1` with `#!/usr/bin/env pwsh` → powershell (`shebang:pwsh`), `#!/home/shared/bin/perl` → perl, and an extensionless `fish` script is skipped (`unknown-extension`).
 - **Not detected** (all f7, `file_skipped … unknown-extension`):
   - `.zsh`, `.ksh` and `.bats` extensions;
   - dotfiles such as `.bashrc`;
@@ -121,8 +117,8 @@ Not recorded (lost edges):
   - `source b.sh` (bare relative name) and `source ../lib/c.sh` (parent-relative) both resolve (f12).
   - Integration test `bash_source_resolves` (crates/cgg/tests/resolve.rs:1500-1543).
   - CHANGELOG ~1944-1952 notes that `..` normalisation also serves Bash `source`.
-- **Partial: sourcing is not transitive.** The recursive follow in `collect_include_defs` only descends into imports of kind `include`/`system-include` (cross_file.rs:3507-3521), never `source`. The `depth 4` budget is therefore never consumed past one level. In f3, `main.sh` sources `lib/a.sh`, which sources `./c.sh`. A call to `c_fn` is not scoped to `lib/c.sh`: it falls to the global fallback and binds **both** `lib/c.sh` and `other/c2.sh` at medium.
-- **Bug: a sourced name binds to an arbitrary copy at `high`.** Step 1 looks up each `direct_imports` qualified name through `by_qn` (cross_file.rs:5710-5755). Only the C family gets `c_include_copies` scoping (cross_file.rs:5711-5744). Bash QNs are bare names, so `by_qn` returns whichever same-named callable it kept, not the one in the sourced file. Evidence:
+- **Partial: sourcing is not transitive** (re-run on 0.13.3, fixture `lang-docs/bash/a`: `m3.sh` sources `lib/a.sh`, which sources `./c.sh`; `c_fn` binds `lib/c.sh` and `other/c2.sh` both at medium). The recursive follow in `collect_include_defs` only descends into imports of kind `include`/`system-include` (cross_file.rs:3507-3521), never `source`. The `depth 4` budget is therefore never consumed past one level. In f3, `main.sh` sources `lib/a.sh`, which sources `./c.sh`. A call to `c_fn` is not scoped to `lib/c.sh`: it falls to the global fallback and binds **both** `lib/c.sh` and `other/c2.sh` at medium.
+- **Fixed in 0.11.1: a sourced name bound an arbitrary copy at `high`.** Since the include-style import fix (CHANGELOG 0.11.1: Bash `source`, Ruby `require`, R `source()`, …) a call binds the copy in the file the `source` names (`included_copies`); a source path several files share expands to each at `medium`, and an imported name another file also carries is `high` only when the copy is in the caller's closure (`import_binding_certain`). Fixture `lang-docs/bash/a` (0.13.3): `source ./lib/l.sh` + `shared` → `lib/l.sh:shared` high, the `zz/decoy.sh` copy untouched. The 0.11.0 evidence was:
   - f10: `source ./lib/l.sh` plus `shared` → edge to **`zz/decoy.sh`**, high.
   - f12: `source b.sh`, which resolves exactly to `lib/b.sh`, still binds `x/b.sh` at high. `source ../lib/c.sh` likewise binds `x/c.sh` at high.
   - f8/f9: two sourced copies bind to one (`lib/l2.sh`) at high regardless of `source` order.
@@ -202,7 +198,7 @@ None.
 - `.bats` files are not even detected (§01, f7).
 - No `TestRole` is assigned: `test_defs` is false and there is no `go_test_role` analogue.
 - Bash is not in `TEST_CLASS_MEMBERS_ARE_ROOTS`.
-- **Test-file gating**: `classify_test_file` has no Bash filename convention (testfile.rs:76-119; for example `*_test.sh` is not recognised). Only the generic directory rule applies: a path under `test/`, `tests/`, `__tests__/` … (`TEST_DIRS`, testfile.rs:36, applied at testfile.rs:125-131).
+- **Test-file gating**: since 0.11.1 `*_test.sh` is a test file by name (`testfile.rs:159`; fixture `lang-docs/bash/a/foo_test.sh` → `test_role: file-name`), plus the generic directory rule (`test/`, `tests/`, `__tests__/` …, `TEST_DIRS`). `.bats` files are still not detected.
 
 ## 12. Dead-code analysis
 
@@ -222,7 +218,7 @@ None.
   - dynamic dispatch `"cmd_$1"` (`cmd_x`; the site is recorded as an external named `"cmd_$1"`, and nothing matches it by prefix);
   - functions only called inside `$(…)` arguments or `local x=$(…)` (§03).
 - **No `BLIND_SPOTS` entry for Bash** (caps.rs:44 onward lists rust, python, javascript, typescript, kivy …). The report therefore does not name the lost-argument and `trap` blind spots.
-- **No dynuse doubt**: `eval` and dynamic names do not cap same-named findings, because dynuse covers only Python/JS/Java/C#/Ruby/PHP.
+- **No dynuse doubt**: `eval` and dynamic names do not cap same-named findings, because dynuse covers only Python, Java, C#, Ruby, PHP and Go (plus JS/TS module loads).
 
 ## 13. Builtins & stdlib tables
 
@@ -236,6 +232,7 @@ None.
 - **Second, separate builtin filter**: the plugin's hard-coded skip list (bash.rs:164-198, §03) drops 29 names before resolution. Those never appear in any bucket, even with `--include-stdlib`. The two lists overlap but are maintained separately.
 - **Not in the stdlib list**, so classified **external**: `curl`, `git`, `docker`, `jq`, `make`, `python`, `bash`, `wget` (f6 `curl`/`git` → `external_calls`; `--include-external` gives `<external>::curl`, f8).
 - **Tuning history**: CHANGELOG ~5971 lists bash among the 21 stdlib lists tuned against corpus external-bucket noise.
+- **`--externals`** (0.12.0): a bare command that leaves the tree is attributed as a `process` (the program is the command; `externals.rs`, `"bash" | "powershell"` arm), shell builtins (`SHELL_BUILTINS`) as stdlib. Fixture `lang-docs/bash/c` (0.13.3, `--externals=all`): `curl`, `git` and `cat` each a `process` library, high.
 - **Not applicable**: `rust_types` tables, `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, implicit packages.
 - **User functions with stdlib names still bind**:
   - in-file `cp()` → intra-file high (f6);
@@ -246,17 +243,17 @@ None.
 | Path | Confidence | Evidence |
 | --- | --- | --- |
 | Intra-file unique name | high | f1, every `intra-file` edge |
-| Sourced-file name via `direct_imports` | high | f2 `a_fn`, f6 `install` |
+| Sourced-file name via `direct_imports` (the copy in the sourced file) | high | f2 `a_fn`, f6 `install`; `lang-docs/bash/a` `shared` |
 | Same name defined twice | medium (all copies) | f2 `dup`, f8 `plat` |
 | Step-1d global by-name fallback | medium | f5a `lone_fn`, f3 `c_fn`, f12 `a1` |
 
-- **Sourced-file high is not structurally certain.** The `by_qn` collision (§04) makes it a false high when another file defines the same name: f10 binds a decoy at high, and f12 binds the wrong `b.sh`/`c.sh` at high. CLAUDE.md's `CertainCtx` rule ("one callable carries the name: no vendored copies") is evidently not enforced on this path for Bash.
+- **Sourced-file high** was a false high on 0.11.0 when another file defined the same name (f10, f12); since 0.11.1 the sourced file's own copy is bound and `high` requires the copy to be in the caller's include closure (§04).
 - **Mermaid** prefixes a label with `?` when the arrow has no high site. f8: `N4 -->|?2x| N2`.
 - **Never produced**: `low` (`--guess-unique-names` is Rust-only) and `Via::Reference` edges (no value refs).
 
 ## 15. Dynamic use & reflection
 
-None. Bash is not covered by dynuse (Python/JS/Java/C#/Ruby/PHP only, per CLAUDE.md), and `dyn_uses` is false. In detail:
+None. Bash is not covered by dynuse (Python, Java, C#, Ruby, PHP and Go, plus JS/TS module loads, per CLAUDE.md), and `dyn_uses` is false. In detail:
 
 - `eval …` is dropped by the skip list (bash.rs:184).
 - `"$fn" args`, `$fn args` and `"prefix_$1"` are recorded as literal external names (f1 L26-27, f11). They create no doubt, no reflection screen and no prefix match.
@@ -264,13 +261,13 @@ None. Bash is not covered by dynuse (Python/JS/Java/C#/Ruby/PHP only, per CLAUDE
 
 ## 16. Known gaps & limitations
 
-1. **False-high binding of sourced functions** to an arbitrary same-named copy in an unrelated file (`by_qn` collision; only the C family gets `c_include_copies`, cross_file.rs:5711-5744). Fixtures f10 and f12. Most severe.
-2. **Shebang detection misroutes other languages to Bash.** The `sh` substring match runs before the extension rule (detect.rs:63-75, bash.rs:19). Affected: `pwsh` scripts (even `.ps1`), any interpreter path containing `sh` (`/home/shared/…/perl`), and `fish`/`csh`/`tcsh`. The `zsh` needle is dead (f7).
+1. ~~False-high binding of sourced functions to an arbitrary same-named copy~~ — fixed in 0.11.1 (§04).
+2. ~~Shebang detection misroutes other languages to Bash~~ — fixed by WS25 in 0.11.1 (§01).
 3. **Calls inside command arguments and declaration values are lost**: `echo "$(f)"`, `local x=$(f)`, `export X=$(f)`, `sudo f`, `xargs f`, `time f`, `trap f EXIT` (bash.rs:60-69; f1 L21-23, L29-31, L42-43).
 4. **`source` is not transitive** (cross_file.rs:3507-3521 follows only `include`/`system-include`; f3). Variable paths (`"$DIR/x.sh"`, `"$(dirname "$0")/x.sh"`) never resolve (f2, f12).
 5. **The cross-file gate is all-or-nothing.** A file with no resolved `source` gets zero cross-file edges, even to a unique name (f4, f5b, f5c). A file with one resolved `source` gets by-name edges to anything with ≤3 copies (f5a; cross_file.rs:6018).
 6. **Backtick substitution** is recorded with the backticks in the name, so the edge is lost (f1 L41).
-7. **No `.zsh`, `.ksh` or `.bats` extensions**, no dotfile (`.bashrc`) detection, and no bats/shunit2 test harness rules (f7; §11).
+7. **No `.zsh`, `.ksh` or `.bats` extensions**, no dotfile (`.bashrc`) detection, and no bats/shunit2 test harness rules (f7; §11; `.bats` and a `bats` shebang still skipped on 0.13.3).
 8. **Entry mechanisms are invisible** (rules.rs:6557 gap text): argv `case` dispatch (partly covered only when at top level, via the `toplevel:invocation` root), `trap` handlers, `eval`/dynamic names, and script-to-script invocation.
 9. **Dead code is suppressed wholesale**: script-driven, so every finding is low and withheld (deadcode.rs:314-316, mod.rs:811-812). There is no Bash `BLIND_SPOTS` entry.
 10. **Redefinition and conditional definition** bind every copy at medium. There is no last-definition-wins rule (f2, f8).
@@ -283,19 +280,19 @@ None. Bash is not covered by dynuse (Python/JS/Java/C#/Ruby/PHP only, per CLAUDE
 
 | section | support | note |
 | --- | --- | --- |
-| 01. Detection & parsing | partial | `.sh`/`.bash` and shebangs work, but the `sh` substring steals `pwsh`/perl paths/fish files; no `.zsh`/`.ksh`/`.bats`/dotfiles |
+| 01. Detection & parsing | partial | `.sh`/`.bash` and exact-interpreter shebangs (bash/sh/zsh/dash/ksh/mksh/ash); no `.zsh`/`.ksh`/`.bats`/dotfiles |
 | 02. Callables extracted | partial | Every function form is captured; names are bare and flat (no owner, nesting or file), aliases are ignored |
 | 03. Call-site forms | partial | Bare commands everywhere except inside command arguments/declarations; backticks are mangled; wrappers lose their target |
-| 04. Imports & module resolution | partial | `source`/`.` with literal paths resolves, but is non-transitive, variable paths fail, and copies are false-high via `by_qn` |
+| 04. Imports & module resolution | partial | `source`/`.` with literal paths binds the sourced file's copy; non-transitive, variable paths fail |
 | 05. Type inference & receiver typing | n/a | Untyped language; nothing recorded |
 | 06. Inheritance, dispatch & overloading | n/a | No classes or overloads; redefinitions bind all copies at medium |
 | 07. Scoping & shadowing | minimal | No locals or lexical narrowing; same-file definitions win over sourced ones |
 | 08. Macros, preprocessor & codegen | n/a | No macros; aliases are not expanded |
 | 09. FFI & cross-language links | none | Script-to-program/script invocations are not linked |
 | 10. Frameworks & entry points | minimal | One detect-only rule (`bash-dispatch`) that mints no nodes |
-| 11. Test harness entries | none | No bats/shunit2 rules, `.bats` is undetected, only the generic test-dir rule |
+| 11. Test harness entries | none | No bats/shunit2 rules, `.bats` is undetected; `_test.sh` and test dirs are test files |
 | 12. Dead-code analysis | minimal | Script-driven: every finding is low and withheld; only the `toplevel:invocation` root |
 | 13. Builtins & stdlib tables | full | 170-name `bash.txt` plus a 29-name plugin skip list; `--include-stdlib` works |
-| 14. Confidence & certainty | partial | High for intra-file and sourced names, but sourced high can be false when copies exist |
+| 14. Confidence & certainty | partial | High for intra-file and sourced names (the sourced file's own copy); medium for copies and by-name fallback |
 | 15. Dynamic use & reflection | none | `eval`, `"$fn"` and `${!x}` are not modelled; dynamic names become literal externals |
-| 16. Known gaps & limitations | n/a | 14 gaps listed; false-high sourcing and shebang misrouting are the most severe |
+| 16. Known gaps & limitations | n/a | 14 gaps listed (2 fixed in 0.11.1); lost argument-position calls and non-transitive `source` are now the most severe |

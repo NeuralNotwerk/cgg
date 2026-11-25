@@ -22,8 +22,8 @@ All five produce a byte-identical graph from the same input.
 ```bash
 apt-get install -y --no-install-recommends ca-certificates curl
 curl -fsSL -o cgg.tar.gz \
-  https://github.com/NeuralNotwerk/cgg/releases/download/v0.7.0/cgg-v0.7.0-linux-x86_64.tar.gz
-tar xzf cgg.tar.gz -C /opt/cgg
+  https://github.com/NeuralNotwerk/cgg/releases/download/v0.13.3/cgg-v0.13.3-linux-x86_64.tar.gz
+mkdir -p /opt/cgg && tar xzf cgg.tar.gz -C /opt/cgg
 install -m755 /opt/cgg/cgg /usr/local/bin/cgg
 ```
 
@@ -31,6 +31,10 @@ install -m755 /opt/cgg/cgg /usr/local/bin/cgg
 `libgcc_s` and the loader — verified with `ldd` — so there is nothing else
 to install. The tarball also carries `cgg.h`, `libcgg.so` and `libcgg.a`
 for the C ABI.
+
+Each release publishes `linux-x86_64`, `linux-aarch64`, `macos-arm64` and
+`windows-x64` tarballs (`cgg-v<version>-<platform>.tar.gz`). There is no
+Intel-macOS binary; use pip, npm or cargo there.
 
 ## npm
 
@@ -80,9 +84,9 @@ Two requirements that are easy to get wrong:
   edition 2024. `apt install cargo` cannot build it — rustup is required.
   `--profile minimal` is enough.
 * **A C compiler is required**, and the failure is opaque if it is
-  missing: `error: linker 'cc' not found`. cgg compiles C — blake3 and the
-  vendored Smithy grammar — so `gcc` and `libc6-dev` are needed even
-  though cgg is a Rust program.
+  missing: `error: linker 'cc' not found`. cgg compiles C — every
+  tree-sitter grammar, blake3 and mimalloc — so `gcc` and `libc6-dev` are
+  needed even though cgg is a Rust program.
 
 ## GitHub source
 
@@ -90,12 +94,13 @@ Two requirements that are easy to get wrong:
 apt-get install -y --no-install-recommends ca-certificates curl git gcc libc6-dev
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 . "$HOME/.cargo/env"
-git clone --depth 1 --branch v0.7.0 https://github.com/NeuralNotwerk/cgg
+git clone --depth 1 --branch v0.13.3 https://github.com/NeuralNotwerk/cgg
 cd cgg && cargo build --release -p cgg
 ```
 
-Same as crates.io plus `git`. A shallow clone is ~200 KB — every grammar
-except Smithy comes from crates.io rather than being vendored.
+Same as crates.io plus `git`. A shallow clone of v0.13.3 transfers about
+6.5 MB (66 MB checked out); most grammars come from crates.io, and the
+Smithy, Kivy, Groovy and Lean 4 grammars are vendored.
 
 Use `-p cgg`, not a bare `cargo build`: the workspace root is a virtual
 manifest, and building everything also builds the Python, C and Node

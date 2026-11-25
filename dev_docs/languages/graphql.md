@@ -1,10 +1,12 @@
 # graphql
 
+> Revised 2026-11-25 against cgg 0.13.3: re-verified the extraction, resolution and descriptor-link claims by fixture (all still hold), recorded GraphQL's `EXTERNALS_NA` status for `--externals` (0.12.0), and refreshed `cross_file.rs`, `graph.rs`, README and benchmark citations. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
 The GraphQL plugin (`GraphqlPlugin`, id `"graphql"`, `crates/cgg-lang/src/plugins/graphql.rs`, 235 lines including tests) reads GraphQL **SDL** (schema definition language) only. It uses the crates.io grammar `tree-sitter-graphql` 0.1.0 (`Cargo.toml:126` declares `"0.1"`; `Cargo.lock:1538-1541` resolves 0.1.0; `crates/cgg-lang/Cargo.toml:63`; upstream is `joowani/tree-sitter-graphql`). Nothing is vendored. The plugin is registered at `crates/cgg-lang/src/plugins.rs:166` (module declared at `plugins.rs:19`).
 
 The walker is a single pass. Six type-definition node kinds become `DefVariant::FreeFunction` definitions whose qualified name is the bare type name (`graphql.rs:25-33`, `96-126`). Every `named_type` inside such a definition becomes an owner-less bare reference, except the five built-in scalars (`graphql.rs:23`, `128-154`).
 
-- **Resolver kind**: the `LanguagePlugin` trait has no `resolver_kind` method in this tree (`crates/cgg-lang/src/lib.rs:296-326`), so there is none to report. Resolution goes through the generic intra-file linker and then the descriptor-language arm of `cross_file::resolve`: a global by-simple-name match bounded to ≤4 candidates (`crates/cgg-resolve/src/cross_file.rs:5223-5243`).
+- **Resolver kind**: the `LanguagePlugin` trait has no `resolver_kind` method in this tree (`crates/cgg-lang/src/lib.rs:296-326`), so there is none to report. Resolution goes through the generic intra-file linker and then the descriptor-language arm of `cross_file::resolve`: a global by-simple-name match bounded to ≤4 candidates (`crates/cgg-resolve/src/cross_file.rs:5930-5941`).
 - **Descriptor membership**: GraphQL is listed as a descriptor language in `crates/cgg-resolve/src/descriptor.rs:47` and in the dead-code `DESCRIPTOR` class (`crates/cgg-resolve/src/deadcode/caps.rs:41`).
 - **Trait defaults**: the plugin declares no `signals()`, `max_line_bytes()` or `ts_language_for()` override, so all three take the defaults (`lib.rs:304-324`).
 
@@ -87,12 +89,13 @@ The only "call" is a type reference: a `named_type` node inside a recorded defin
 
 - **No import forms**: GraphQL SDL has no import statement, so the plugin emits no import records. Grep of `graphql.rs` finds no `imports` push.
   - Tool-specific `# import "x.graphql"` comments (graphql-import) are comments in the grammar and are not read. This follows from the code: comments are extras (grammar.js:4).
-- **Cross-file linking**: global by-simple-name match within the language (`cross_file.rs:5223-5243`, the `"smithy" | "proto" | "graphql" | "openapi" | "asyncapi"` arm).
+- **Cross-file linking**: global by-simple-name match within the language (`cross_file.rs:5930-5941`, the `"smithy" | "proto" | "graphql" | "openapi" | "asyncapi"` arm).
   - At 1–4 same-named candidates, binds every one of them, all at **medium**, with resolver `cross-file:imports`. Fixture `t1`: `Ext -> Person` and `Person -> City` are medium. Fixture `t5`: 4 copies of `P` give 4 medium edges; mermaid draws each as `-->|?|`.
   - At more than 4 candidates, binds nothing. The audit records `candidates-in-other-files {candidates: 5}` in `unresolved_calls`, not `fanout-cap-exceeded` (fixture `t5`).
   - The cap of 4 is hard-coded. `--fanout-cap 0` does not disable this binding: fixture `t5` still emitted 4 edges. This differs from the documented meaning of `--fanout-cap 0` for other languages ("never guess").
   - **No candidate anywhere**: `ghost: Missing` is recorded in the per-file `external_calls` bucket with stage `no-candidate-in-file` and `name_screen_applied: external` (fixture `t1`, audit for `other.gql`). With `--include-external` this renders as `<external>::Missing`.
 - **Not applicable**: `FileFacts::packages`, manifest reading, `heads.rs` external-module refusal, `modules.rs` `not-in-imported-module` and workspace vocab. GraphQL appears in none of them (grep of `crates/cgg-resolve/src/{heads,modules,libscope}.rs` for `graphql` finds nothing).
+- **`--externals` (0.12.0)**: not applicable by declaration. GraphQL is the one plugin listed in `EXTERNALS_NA` (`crates/cgg/tests/externals.rs`, "SDL has no import mechanism; a schema names only its own types"), so the externals scan records nothing for it; a reference with no candidate still lands in the external bucket and shows as `unattributed`.
 - **No scoping by schema project**: the match is global per language, so two unrelated schemas in one tree that share a type name cross-link (fixture `t5`).
 
 ## 05. Type inference & receiver typing
@@ -127,7 +130,7 @@ The only "call" is a type reference: a `named_type` node inside a recorded defin
   - An operation must have an owner: `owner_from_qn(&op.qualified_name)` must return `Some` (`descriptor.rs:105-107`).
   - Every GraphQL qualified name is a bare type name with no owner (`graphql.rs:111-113`), and fields are not extracted at all.
   - Fixture `t2`: an SDL `type Query { city: City }` next to Go `func (r *queryResolver) City(...)`, Go `QueryResolver.Query` and TS `class CityResolver { city() }` produced only `Query -> City`. There is no `Via::Descriptor` edge.
-  - `crates/cgg-core/src/graph.rs:86-88` documents `Via::Descriptor` as linking "a GraphQL field to its resolver", and README:1005-1006 lists GraphQL under descriptor linking. Both describe behaviour the GraphQL plugin cannot produce today.
+  - `crates/cgg-core/src/graph.rs:94` documents `Via::Descriptor` as linking "a GraphQL field to its resolver", and README:1063-1064 lists GraphQL under descriptor linking. Both describe behaviour the GraphQL plugin cannot produce today.
 - **Markup code-behind**: not applicable.
 - **Host-language GraphQL frameworks** are covered on the host side only (see 10). Nothing links a Rust `#[Object] impl Query { fn city }` or an Apollo resolver map to the SDL `Query` type.
 
@@ -176,7 +179,7 @@ None of the following applies to graphql: `member_sources_for`, `signature_metho
 ## 14. Confidence & certainty
 
 - **high**: a same-file type reference bound by the intra-file linker (fixture `t1`: 15 high edges, resolver `intra-file`). Self-references are high too.
-- **medium**: every cross-file reference, even with exactly one candidate. Fixture `t1`: `Ext -> Person` (one `Person` in the tree) is medium with resolver `cross-file:imports`. The descriptor arm returns the candidate set without setting `module_certain` (`cross_file.rs:5232-5241`), so `CertainCtx`/`OwnerFacts` never lift it.
+- **medium**: every cross-file reference, even with exactly one candidate. Fixture `t1`: `Ext -> Person` (one `Person` in the tree) is medium with resolver `cross-file:imports`. The descriptor arm returns the candidate set without setting `module_certain` (`cross_file.rs:5930-5941`), so `CertainCtx`/`OwnerFacts` never lift it.
 - **low**: would be `Via::Descriptor` edges (`descriptor.rs:141`), but those never occur for GraphQL (see 09).
 - **Mermaid `?` marker**: present on every cross-file edge (fixture `t5`: `N4 -->|?| N0`).
 
@@ -187,7 +190,7 @@ None of the following applies to graphql: `member_sources_for`, `signature_metho
 
 ## 16. Known gaps & limitations
 
-- **Descriptor link is structurally dead for GraphQL**: there are no field nodes and no owners, so `link_descriptors` never produces an SDL → resolver edge (`descriptor.rs:105-107`; fixture `t2`). This contradicts `graph.rs:86-88` ("a GraphQL field to its resolver") and README:1005.
+- **Descriptor link is structurally dead for GraphQL**: there are no field nodes and no owners, so `link_descriptors` never produces an SDL → resolver edge (`descriptor.rs:105-107`; fixture `t2`). This contradicts `graph.rs:94` ("a GraphQL field to its resolver") and README:1063-1064.
 - **Fields are not callables**: the resolver-facing unit (`Query.city`) does not exist in the graph, so per-field liveness and resolver mapping are impossible.
 - **Type-system extensions are ignored**: references inside `extend type/interface/union/input/enum/schema` are lost (fixture `t1`: no `City -> Person`). This matters for federated and modular schemas, which use `extend` heavily.
 - **`schema { ... }` root operation types are not references**, and directive definitions and applications are not modelled (fixture `t1`).
@@ -200,8 +203,8 @@ None of the following applies to graphql: `member_sources_for`, `signature_metho
 - **No error-recovery hardening**: a missing `}` swallows the next type definition and misattributes its references (fixture `t3`). The legacy `implements A, B` comma syntax drops every interface after the first (fixture `t4`).
 - **Duplicate type names**: the same type defined in several files gives several identically named nodes with no file qualifier (fixture `t1`: `Ext` ×2).
 - **`--report-unreferenced` lists descriptor nodes** that `--dead-code` withholds (fixture `t1`).
-- **License metadata**: `tree-sitter-graphql` declares no `license` field and ships a plain MIT `LICENSE` file (README:1551-1553).
-- **Tests**: four inline unit tests (`graphql.rs:187`, `193`, `214`, `225`). No integration fixture under `crates/*/tests` is GraphQL-specific (grep finds only the `detect_prefixes.rs` exclusion), and no ignored tests. The benchmark entry is `graphql-github` (octokit/graphql-schema, `scripts/benchmark.sh:104`; README:1356 shows 1,623 nodes / 5,722 edges).
+- **License metadata**: `tree-sitter-graphql` declares no `license` field and ships a plain MIT `LICENSE` file (README:1741-1742).
+- **Tests**: four inline unit tests (`graphql.rs:187`, `193`, `214`, `225`). No integration fixture under `crates/*/tests` is GraphQL-specific (grep finds only the `detect_prefixes.rs` exclusion), and no ignored tests. The benchmark entry is `graphql-github` (octokit/graphql-schema, `scripts/benchmark.sh:104`; README:1533 shows 1,623 nodes / 5,722 edges).
 
 ## Summary scorecard
 

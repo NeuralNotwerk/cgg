@@ -2,21 +2,22 @@
 
 Offline, deterministic call graphs for 46 languages, in-process.
 
-> **Not on npm yet.** `npm install cgg-callgraphgenerator` does **not**
-> work today — the name is reserved for this package but nothing has been
-> published under it. Until it is, build the module from the repository:
->
-> ```bash
-> git clone https://github.com/NeuralNotwerk/cgg && cd cgg/crates/cgg-node
-> npm install && npm run build      # writes index.js, index.d.ts, cgg.<platform>.node
-> ```
->
-> Then `require("./index.js")` — or `require("<path>/cgg-node")` — wherever
-> the samples below say `require("cgg-callgraphgenerator")`. Everything
-> else on this page is what that build gives you.
->
-> The Rust CLI (`cargo install cgg`) and the Python module
-> (`pip install cgg-callgraphgenerator`) are published and usable now.
+```bash
+npm install cgg-callgraphgenerator
+```
+
+The native addon comes as `optionalDependencies`, one package per platform
+— `linux-x64-gnu`, `linux-arm64-gnu`, `darwin-x64`, `darwin-arm64`,
+`win32-x64-msvc` — so an install pulls the root plus only the binary the
+host needs, with no compiler. To build from a clone instead:
+
+```bash
+git clone https://github.com/NeuralNotwerk/cgg && cd cgg/crates/cgg-node
+npm install && npm run build      # writes index.js, index.d.ts, cgg.<platform>.node
+```
+
+and `require("./index.js")` wherever the samples below say
+`require("cgg-callgraphgenerator")`.
 
 ```js
 const cgg = require("cgg-callgraphgenerator");
@@ -50,9 +51,12 @@ const near = await cgg.analyze("./src", { filter: ["handleRequest$"], hops: 2 })
 const both = await cgg.analyze(["./api", "./worker"], { lang: ["typescript", "go"] });
 
 g.toMermaid();   // -> string, byte-identical to `cgg -t mermaid`
+g.toMermaid("hash", true);   // `--node-ids hash --locations`
 g.toJson();      // -> string, `cgg.graph.v2`
-g.toDot();
+g.toDot();       // toDot(true) / toGraphml(true) add call-site locations
 g.toGraphml();
+g.externalsJson();   // `cgg.externals.v1` string, or null without `externals`
+g.externalsText();   // the ranked text report, or null
 
 g.callableCount;         // without materializing anything
 g.callables;             // [{ id, qualifiedName, kind, language, file, startLine, … }]
@@ -65,7 +69,7 @@ g.jobs;                  // worker threads actually used
 
 `analyze` returns a promise and runs the pipeline on a background thread
 (`tokio::task::spawn_blocking`, via napi's `tokio_rt`), so the event loop
-stays responsive for the ~130 ms a tree the size of cgg's own `crates/`
+stays responsive for the ~0.5 s a tree the size of cgg's own `crates/`
 costs. `analyzeSync` is there for scripts, where blocking is the point —
 it blocks the loop for the whole analysis.
 
@@ -74,21 +78,24 @@ Rust, so they cannot drift from what the module actually exposes.
 
 ## Options
 
-Every option that changes the graph is a key on the second argument, with
-two renames from the CLI — `entryNodes: true` rather than
-`--no-entry-nodes`, and `testEntries: true` rather than
-`--no-test-entries`. Same defaults; a keyword has no reason to be a double
-negative.
+Every option that changes the graph, apart from the two named under *Not
+in this release*, is a key on the second argument, with three renames from
+the CLI — `entryNodes: true` rather than `--no-entry-nodes`,
+`testEntries: true` rather than `--no-test-entries`, and `allowDirs: […]`
+for the repeatable `--allow-dir`. Same defaults; a keyword has no reason to
+be a double negative.
 
 ```js
 {
   filter, hops, maxPaths,
   excludePartial, excludeGlob, excludeRegex,
-  lang, jobs, ignoreFile, since, roots,
+  lang, jobs, ignoreFile, allowDirs, since, roots,
   skipMinified, includeExternal, includeStdlib, dynamicDispatch, referenceEdges,
-  guessUniqueNames,
-  entryNodes, includeTests,
+  guessUniqueNames, moduleScopeCalls, propertyEdges,
+  entryNodes, testEntries, includeTests,
   deadCode, deadCodeConfidence, ignoreNames, ignoreAttributes,
+  rollup, rollupBy, rollupFormat, nodeIds, locations,
+  fromGraph, externals,
 }
 ```
 
@@ -104,8 +111,8 @@ outright; this binding cannot yet.)
 
 ## Concurrency
 
-`analyze` takes no locks and keeps no process-global state, so concurrent
-calls do not interfere — each gets its own worker pool sized by `jobs`.
+`analyze` shares no run state between calls, so concurrent calls do not
+interfere — each gets its own worker pool sized by `jobs`.
 
 ## Findings are hypotheses
 
@@ -117,8 +124,10 @@ frameworks cgg recognised and which it saw but could not enumerate.
 
 ## Not in this release
 
-`--why-live` proofs, the `--write-roots` baseline and the audit event
-stream are reachable from the Rust API but have no option key and no
+`--why-live` proofs, the `--write-roots` baseline, the ranked dead-code
+report (each callable's `unreferenced` band is here; the report with its
+evidence is not), `--report-unreferenced`, `--fanout-cap` and the audit
+event stream are reachable from the Rust API but have no option key and no
 `Graph` getter here. Use the CLI for those.
 
 The framework-coverage table is *not* missing — as the section above says,

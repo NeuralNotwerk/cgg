@@ -1,6 +1,8 @@
 # lean
 
-The Lean 4 plugin (`LeanPlugin`, id `"lean"`, `crates/cgg-lang/src/plugins/lean.rs`, 909 lines) is a best-effort *syntactic* extractor for Lean 4 sources. It produces declarations (`def`/`theorem`/`lemma`/`abbrev`/`instance`/`axiom`/`opaque`/`constant`/`example`), structures/classes with their fields, and inductives with their constructors. It records function application, dot-projection references, and the lemma references inside tactic blocks (`exact`/`apply`/`simp [..]`/`simp only [..]`/`rw [..]`/`rewrite [..]`/`unfold`), plus `import`/`open` records. The grammar is vendored rather than taken from crates.io: `crates/cgg-lang/vendor/lean4/{parser.c,scanner.c,tree_sitter/}` from `wvhulle/tree-sitter-lean` rev `79a84684…` via Nathan Howell's fork (`vendor/lean4/PROVENANCE.md`). It is compiled in `crates/cgg-lang/build.rs:40-49` and bound through `tree_sitter_language::LanguageFn::from_raw(tree_sitter_lean)` (`lean.rs:43-50`), because the published `tree-sitter-lean4` crate has `links = "tree-sitter"` and cannot coexist with the workspace runtime. Registered at `crates/cgg-lang/src/plugins.rs:169`. The trait has no `resolver_kind` method. Lean declares **no** `signals()`, so it gets `PluginSignals::default()` with every bit false (`crates/cgg-lang/src/lib.rs:304-306`). On the resolver side it uses the generic "dotted module, unqualified import" branch of `cross_file` (`crates/cgg-resolve/src/cross_file.rs:2064-2080`) and no language-specific resolver. The module docs list what the plugin does not attempt: typeclass-method dispatch, macro/`notation` expansion, and type-directed dot resolution, all of which need the Lean elaborator (`lean.rs:22-26`). It came in with the 0.10.0 Lean contribution (CHANGELOG.md:1835-1849).
+> Revised 2026-11-25 against cgg 0.13.3: the untyped-lambda receiver is now a weak (medium) binding rather than a false high, and Lean has `--externals` rows (stdlib roots, process-spawn and library-load APIs, `@[extern]` scan); the plugin itself is unchanged since 0.11.0. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Lean 4 plugin (`LeanPlugin`, id `"lean"`, `crates/cgg-lang/src/plugins/lean.rs`, 909 lines) is a best-effort *syntactic* extractor for Lean 4 sources. It produces declarations (`def`/`theorem`/`lemma`/`abbrev`/`instance`/`axiom`/`opaque`/`constant`/`example`), structures/classes with their fields, and inductives with their constructors. It records function application, dot-projection references, and the lemma references inside tactic blocks (`exact`/`apply`/`simp [..]`/`simp only [..]`/`rw [..]`/`rewrite [..]`/`unfold`), plus `import`/`open` records. The grammar is vendored rather than taken from crates.io: `crates/cgg-lang/vendor/lean4/{parser.c,scanner.c,tree_sitter/}` from `wvhulle/tree-sitter-lean` rev `79a84684…` via Nathan Howell's fork (`vendor/lean4/PROVENANCE.md`). It is compiled in `crates/cgg-lang/build.rs:40-49` and bound through `tree_sitter_language::LanguageFn::from_raw(tree_sitter_lean)` (`lean.rs:43-50`), because the published `tree-sitter-lean4` crate has `links = "tree-sitter"` and cannot coexist with the workspace runtime. Registered at `crates/cgg-lang/src/plugins.rs:173`. The trait has no `resolver_kind` method. Lean declares **no** `signals()`, so it gets `PluginSignals::default()` with every bit false (`crates/cgg-lang/src/lib.rs:304-306`). On the resolver side it uses the generic "dotted module, unqualified import" branch of `cross_file` (`crates/cgg-resolve/src/cross_file.rs:2188`) and no language-specific resolver. The module docs list what the plugin does not attempt: typeclass-method dispatch, macro/`notation` expansion, and type-directed dot resolution, all of which need the Lean elaborator (`lean.rs:22-26`). It came in with the 0.10.0 Lean contribution (CHANGELOG.md:1835-1849).
 
 ## 01. Detection & parsing
 
@@ -102,7 +104,7 @@ References are recorded only by `record()` (`lean.rs:497-572`). In term mode (`b
 
 - **`import A.B.C`**: an `ImportRecord{kind:"import", path:"A.B.C"}` (`lean.rs:230, 281-296`). Test `imports_and_opens`.
 - **`open Nat List`**: one record per opened namespace (`kind:"open"`), split on whitespace gaps (`lean.rs:179-219, 231`). Test `imports_and_opens`.
-- **Resolver use**: in `cross_file`, Lean shares the Haskell/Erlang/Elixir/F#/OCaml/Julia branch (`cross_file.rs:2064-2080`).
+- **Resolver use**: in `cross_file`, Lean shares the Haskell/Erlang/Elixir/F#/OCaml/Julia branch (`cross_file.rs:2188`).
   - Each import/open path goes into `unqualified_prefixes`, and its last segment becomes a `module_aliases` key.
   - These feed `module_files` / `path_fragments` for the scoped same-name narrowing (`cross_file.rs:2175-2214`). CHANGELOG.md:1301 lists Lean among the languages where a call now reaches the copy in the module it imports.
 - Fixture results (`imp/*`; `A/Lib.lean` defines `A.go` and `B/Lib.lean` defines `B.go`):
@@ -127,14 +129,14 @@ References are recorded only by `record()` (`lean.rs:497-572`). In term mode (`b
 
 ## 05. Type inference & receiver typing
 
-- **Parameter typing from `(name : Type)`**: the generic colon-parameter parser types Lean binders. A cons pattern `x :: xs : List α` is explicitly refused (`crates/cgg-resolve/src/type_hints.rs:2021-2024`, test assertion at `type_hints.rs:2996`).
+- **Parameter typing from `(name : Type)`**: the generic colon-parameter parser types Lean binders. A cons pattern `x :: xs : List α` is explicitly refused (test assertion at `crates/cgg-resolve/src/type_hints.rs:4452`).
 
   ```lean
   def useP (p : P) : Nat := p.x   -- binds P.x high (fixture iso/typed)
   def useQ (q : Q) : Nat := q.x   -- binds Q.x high, not P.x
   ```
 
-- **File-wide locals, last write wins (false `high`)**: Lean is not one of the scoped-local languages. In `iso/typed`, `def useU := fun p => p.x` (untyped `p`) bound **`P.x` at `high`**, using the type `p` received in `useP`, although `Q.x` is an equally valid candidate.
+- **File-wide locals, last write wins (weak guess)**: Lean is not one of the scoped-local languages. `def useU := fun p => p.x` (untyped `p`) still binds `P.x` only, using the type `p` received in `useP`, although `Q.x` is an equally valid candidate; since 0.11.1 the guessed type is weak, so the edge is **`medium`** (fixture `lang-docs/lean/p1` line 13, 0.13.3; it was `high` at 0.11.0).
 - **Applied types are not reduced**: a receiver typed `List Nat` keeps the whole string as its type.
   - `def List.sumIt …` + `(xs : List Nat) … xs.sumIt` is **unresolved** (receiver_hint `List Nat`, fixture `iso/gen` g1, `p2` genField).
   - `(xs : List)` binds high (g2), and an untyped `fun xs => xs.sumIt` binds medium (g3).
@@ -154,7 +156,7 @@ References are recorded only by `record()` (`lean.rs:497-572`). In term mode (`b
 - **Typeclass methods**: `Shape.area p` binds to the class field `Shape.area` (a property) at high (fixture `proj`, `iso/classm`). The instance's implementation (`area p := …`) is not a callable, so there is no class → instance edge.
 - **Not in `INHERITANCE_LANGS`** (`crates/cgg-resolve/src/dispatch.rs:110-123`), so `inheritance_fanout` does not run for Lean.
 - **`--dynamic-dispatch`**: no effect. The plugin never sets `trait_impl_target` (not in `lean.rs`), and the dead-code capability table shows `disp no` (fixture `proj` `--dead-code`).
-- **Not in `OVERLOAD_ARITY_LANGS`** (`type_hints.rs:1583` = java/scala/cpp), `binds_same_name_set` (`intra_file.rs:835-850`) or `is_clause_language` (`intra_file.rs:857-859`).
+- **Not in `OVERLOAD_ARITY_LANGS`** (`type_hints.rs:2357-2366`), `binds_same_name_set` or `is_clause_language` (`intra_file.rs:1169`).
 - **Same-name candidates**: three namespaces each defining `go`, with a bare `go` and no open → `ambiguous-in-file`, refused (fixture `iso/fan`). Nothing is fanned out.
 - **`super` / `member_of_calling_class` / `overrides_below` / extension methods / mixins**: not applicable. There are no such Lean constructs in the model.
 
@@ -164,7 +166,7 @@ References are recorded only by `record()` (`lean.rs:497-572`). In term mode (`b
 - **`FileFacts::locals`**: not populated (no `locals` in `lean.rs`, no Lean in `cgg-lang/src/locals.rs`).
   - `let f := fun k => …; f n` therefore records `f` as a call. It goes to the external bucket rather than being dropped as `shadowed-by-local` (fixture `proj` line 32).
   - `fun x =>`, `match … with | k+1 =>` and `have h :=` binders are not tracked. Only declaration-signature binders are.
-- **Lexical narrowing**: Lean is **not** in `lexically_scoped` (`crates/cgg-resolve/src/intra_file.rs:119-136`). This mostly does not matter, because nested defs (`where`, `let rec`) are not extracted at all.
+- **Lexical narrowing**: Lean is **not** in `lexically_scoped` (`crates/cgg-resolve/src/intra_file.rs:144`). This mostly does not matter, because nested defs (`where`, `let rec`) are not extracted at all.
 - **Positional shadowing**: none (only OCaml/F#/Lua have it).
 - **Conditional definitions**: not applicable. Lean has no preprocessor, and `DefRecord::conditional` is not set.
 - **Namespace / section scoping**: names are prefixed by the namespace stack (`lean.rs:161-177`). `section` scoping of `variable` declarations is not modelled. `variable (m : Nat)` + `def inSec := foo m`: `m` is not a binder of `inSec`, but because bare identifiers are not recorded in term mode no false reference appears (fixture `p2`: `inSec -> A.foo` only).
@@ -228,9 +230,10 @@ References are recorded only by `record()` (`lean.rs:497-572`). In term mode (`b
 
 ## 13. Builtins & stdlib tables
 
-- **No `stdlib/lean.txt`**: `crates/cgg-core/src/stdlib/` has 30 tables and none for Lean. `stdlib_names("lean")` returns `None` (`crates/cgg-core/src/stdlib.rs:221-260`).
+- **No `stdlib/lean.txt`**: `crates/cgg-core/src/stdlib/` has 31 tables and none for Lean. `stdlib_names("lean")` returns `None` (`crates/cgg-core/src/stdlib.rs:221-260`).
 - **Consequence**: `--include-stdlib` has nothing to classify for Lean. `Nat.add_zero`, `List.map`, `IO.println`, `rfl`, `Inhabited`, `omega` and the like all land in the generic **external** bucket (fixture `proj` audit `external_calls`, run summary `0 stdlib, 18 external`).
-- **No `rust_types`-like wrapper tables, no `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` / `MAYBE_TYPE_WRAPPERS` / `UNION_TYPE_CONSTRUCTORS` / `NULL_TYPE_MEMBERS` entries, and no implicit packages** (no `lean` in `stdlib.rs` or `annotation.rs`). `Option`/`Except` are not stripped as maybe-wrappers.
+- **No `rust_types`-like wrapper tables, no `CAST_INTRINSICS` / `CONSTRUCTING_METHODS` / `MAYBE_TYPE_WRAPPERS` / `UNION_TYPE_CONSTRUCTORS` / `NULL_TYPE_MEMBERS` entries, and no implicit packages.** `Option`/`Except` are not stripped as maybe-wrappers.
+- **`--externals` rows** (0.12.0+, read only by the externals inventory, never by resolution): `STDLIB_ROOTS` `Init`, `Lean`, `Std` (`crates/cgg-core/src/stdlib.rs:873`), a `STDLIB_LIBRARY_NAMES` row (`stdlib.rs:1254`), `PROCESS_SPAWN_APIS` `IO.Process.spawn`/`output`/`run` (`stdlib.rs:1574-1575`), `LIBRARY_LOAD_APIS` `Lean.loadDynlib` (`stdlib.rs:1765`), and a line scan for `@[extern "…"]` declarations (`crates/cgg-lang/src/externals.rs:852`). Fixture `lang-docs/lean/p1`: the coverage row reads `lean … import, open`; calls like `IO.println` with no import evidence are `unattributed`.
 - **Tactic keywords**: the tactic name itself is excluded structurally (the first identifier of `tactic_apply`, `lean.rs:557-562`), plus the 6 modifiers in `is_tactic_modifier` (`lean.rs:100-105`). Bare tactics such as `omega`/`rfl`/`decide` record nothing when they are not inside an application. `rfl` as a term-mode proof is recorded only when it is an operand.
 
 ## 14. Confidence & certainty
@@ -240,12 +243,11 @@ References are recorded only by `record()` (`lean.rs:497-572`). In term mode (`b
   - `cross-file:imports` with an `open` of the namespace, or a fully qualified projection: `useIt -> Demo.double`, `callB -> B.foo`, `c -> A.go`.
   - All fixtures `proj`, `p2`, `imp/*`.
 - **False / over-confident `high`**:
-  - An untyped `fun p => p.x` bound `P.x` at high through file-wide parameter typing (fixture `iso/typed`).
   - Type-annotation "calls" `useIt -> Demo.Point` and `instSh -> Sh` are emitted at high (fixtures `proj`, `iso/classm`).
   - A qualified `B.foo` with no `import` of B binds high (fixture `p2`). It is structurally right, but nothing checks that the module is imported.
 - **`medium`**:
   - Import without open: `imp/importonly`.
-  - Untyped receivers: `instAddPoint -> Point.x` from `a.x` with untyped `a`, and `g3 -> List.sumIt`.
+  - Untyped receivers: `instAddPoint -> Point.x` from `a.x` with untyped `a`, `g3 -> List.sumIt`, and an untyped `fun p => p.x` typed by file-wide parameter typing (weak; fixture `p1`).
   - The CHANGELOG known limitation: dot-projections and names bound inside tactic proofs are resolved by name and are `medium` guesses (CHANGELOG.md:1964-1967).
 - **`low`**: only via `--guess-unique-names`, which is Rust-only, so no low edges are produced for Lean (unverified by fixture).
 - **Mermaid `?` marker**: generic. An arrow with no high site gets a leading `?` (CLAUDE.md; not Lean-specific).
@@ -268,7 +270,7 @@ The items below were found in source comments, the CHANGELOG, or fixtures run fo
 - **Callables not extracted**: `where` auxiliaries, `let rec`, instance-method bodies, anonymous instances, `instance (priority := …)`, `open … in def`, `macro`/`syntax`/`notation`/`elab` (§02).
 - **Call forms silently dropped** (no edge and no audit record): `<|`, `|>`, `$`, `@f`, a function passed as a value, `#eval` bodies (§03).
 - **False call references from type annotations** (`List`, `Add`, `IO`, and in-workspace `Demo.Point` / `Sh` edges at high) and from intermediate path segments (`Foo.Bar.baz` → `Bar`) (§03).
-- **Applied receiver types** (`List Nat`) break typed method lookup. File-wide parameter typing gives a false `high` to untyped lambdas (§05).
+- **Applied receiver types** (`List Nat`) break typed method lookup. File-wide parameter typing still guesses an untyped lambda's receiver, now at `medium` (§05).
 - **No base records for `extends`**, and the current namespace is not implicitly opened (§04, §06).
 - **Leading-dot constructors `.red` are never bound** (§03).
 - **No stdlib table**, so every Lean core/Mathlib call is reported external rather than stdlib (§13).
@@ -285,7 +287,7 @@ The items below were found in source comments, the CHANGELOG, or fixtures run fo
 | 02. Callables extracted | partial | defs/theorems/axioms/structures/inductives/named instances; no `where`/`let rec`/lambdas/anonymous instances/`open … in` defs |
 | 03. Call-site forms | partial | application, projection, tactic lemma lists; `<\|`/`\|>`/`$`/`@f`/value refs dropped silently; type annotations recorded as calls |
 | 04. Imports & module resolution | partial | `import`/`open` feed unqualified prefixes; no manifest/packages/heads/modules; current namespace not auto-opened |
-| 05. Type inference & receiver typing | minimal | `(x : T)` binders typed file-wide; applied types (`List Nat`) unusable; false high from file-wide typing |
+| 05. Type inference & receiver typing | minimal | `(x : T)` binders typed file-wide; applied types (`List Nat`) unusable; file-wide typing guesses untyped lambdas at medium |
 | 06. Inheritance, dispatch & overloading | none | no `extends` bases, no instance dispatch, not in any dispatch/overload list |
 | 07. Scoping & shadowing | minimal | declaration binders only; no `FileFacts::locals`, not lexically scoped |
 | 08. Macros, preprocessor & codegen | none | no macro/notation/deriving expansion; `attribute [..]` command ignored |
@@ -293,7 +295,7 @@ The items below were found in source comments, the CHANGELOG, or fixtures run fo
 | 10. Frameworks & entry points | minimal | no rules; only universal `main` and top-level-invocation roots |
 | 11. Test harness entries | none | no test rules; generic test-directory classification only |
 | 12. Dead-code analysis | minimal | class degraded; visibility never captured; `@[simp]`/`instance` markers unused; theorems reported dead |
-| 13. Builtins & stdlib tables | none | no `stdlib/lean.txt`; every core call is external |
-| 14. Confidence & certainty | partial | high via intra-file/open/qualified; false highs from file-wide typing and type-annotation edges |
+| 13. Builtins & stdlib tables | minimal | no `stdlib/lean.txt`, so every core call is external; `--externals` roots/process/library-load rows only |
+| 14. Confidence & certainty | partial | high via intra-file/open/qualified; false highs from type-annotation edges |
 | 15. Dynamic use & reflection | none | no dynuse; quoted names/`evalConst` not modelled |
 | 16. Known gaps & limitations | n/a | documented above; only inline unit tests, one corpus repo |

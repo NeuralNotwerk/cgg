@@ -1,6 +1,8 @@
 # go
 
-The Go plugin (`GoPlugin`, `crates/cgg-lang/src/plugins/go.rs`, 1,234 lines including inline tests) parses `.go` files with the crates.io grammar `tree-sitter-go` (`tree_sitter_go::LANGUAGE`, go.rs:50-52). Nothing is vendored. A single recursive `Walker` (go.rs:135-923) does the following:
+> Revised 2026-11-25 against cgg 0.13.3: Go now has a locals table, name-first parameter and receiver typing, call-result typing, value references outside registrars, embedded-field and embedded-interface bases, `abstract` interface specs, interface method-set dispatch (`go_iface`) and consumed unreachable regions; the sections below are corrected accordingly. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The Go plugin (`GoPlugin`, `crates/cgg-lang/src/plugins/go.rs`, 1,796 lines including inline tests) parses `.go` files with the crates.io grammar `tree-sitter-go` (`tree_sitter_go::LANGUAGE`, go.rs:50-52). Nothing is vendored. A single recursive `Walker` (go.rs:135-923) does the following:
 
 - Records free functions, methods (owner = receiver type), interface method specs, `:=`-bound func literals and synthetic `handler_at_<line>` closures for inline route handlers.
 - Records call sites: bare, selector, explicit generic instantiation, and receiver shapes peeled by `crate::receiver::peel`.
@@ -8,7 +10,9 @@ The Go plugin (`GoPlugin`, `crates/cgg-lang/src/plugins/go.rs`, 1,234 lines incl
   - `package-root`: the `package` clause.
   - `package-path`: the file's import path under `go.mod`.
   - `go.mod` module paths into `FileFacts::packages`.
-- Records a small set of local types.
+- Records a small set of local types, and records embedded struct fields and embedded interfaces as `ClassDecl` bases (go.rs:708-764).
+- Records function and method values in value positions as `value_ref` sites (go.rs:363-470) when reference sites are on.
+- Parameters, receivers and locals are collected by the shared locals table (`GO_SPEC`, locals.rs:391).
 
 The plugin declares the signals `test_defs`, `unreachable`, `value_refs` and `visibility` (go.rs:40-48). It does **not** declare `attributes`, `exports`, `impls` or `dyn_uses`, even though it does extract `dyn_uses` (go.rs:114-116). No `resolver_kind` override is declared; resolution uses the generic pipeline. Go-specific branches exist in:
 
@@ -17,6 +21,9 @@ The plugin declares the signals `test_defs`, `unreachable`, `value_refs` and `vi
 - `cross_file.rs`: step 0c, the bare-call reach rule, and `unique_owner_names` keyed per directory.
 - `type_hints.rs`: `go_package_param_types` and scoped package-made locals.
 - `intra_file.rs`: `bare_call_is_never_a_method`.
+- `type_hints.rs`: `go_param_types` (type_hints.rs:2211), the name-first reader for receivers and parameters.
+- `modules.rs`: `go_call_result` (modules.rs:2211), the declared result of a same-package call.
+- `go_iface.rs`: Go method sets, `go_interface_fanout` and `go_interface_site_edges` (§06).
 
 Fixtures cited below live under `<scratch>/parity/go/` (f1 … f15). Each was run with `target/release/cgg` 0.11.0 using `-t json -o out.json`, and dumped with `show.py` in the same directory. Unless a fixture says otherwise, it has a `go.mod` (module mode).
 
@@ -31,7 +38,7 @@ Fixtures cited below live under `<scratch>/parity/go/` (f1 … f15). Each was ru
 - **Grammar**: a single grammar. No dialects, so there is no `ts_language_for` override.
 - **Re-parse/fallback**: none. Unlike C#, there is no `#if` blanking. A file with syntax errors is extracted with `parse_status = "error"`, as for every language (cgg/src/lib.rs).
 - **Depth skip**: a tree deeper than `MAX_TREE_DEPTH` = 4000 is skipped as `SkipReason::TooDeep`. This is shared by every language (cgg/src/lib.rs, `cgg_lang::exceeds_depth`).
-- **Minified handling**: not applicable. Go has no `locals.rs` spec, so the "no locals on a line over 2,000 bytes" rule has nothing to drop. `max_line_bytes` is not overridden (default `None`).
+- **Minified handling**: Go now has a locals spec (`GO_SPEC`), so the generic "no locals on a line over 2,000 bytes" rule applies. `max_line_bytes` is not overridden (default `None`).
 - **Package name fallback**: when there is no `package` clause, the package name is the file stem (go.rs:65-71).
 - **Generated code** (`*.pb.go`, `// Code generated … DO NOT EDIT.`) gets no special handling. A grep over the crates for `pb.go|DO NOT EDIT|Code generated` finds only rule gap prose. Such files are parsed like any other.
 - **`vendor/` is skipped** by the walker's built-in deny list (cgg-walk/src/lib.rs:54). Vendored packages are therefore never analyzed. An import of one is judged by `go.mod`/directory rules (§04).
@@ -51,7 +58,7 @@ Supported shapes:
 - **Receiver with no name** `func (Foo) Quux()` → `z.Foo.Quux`. Fixture f15.
 - **Method on a function type** `type HandlerFunc func(int); func (f HandlerFunc) Serve(x int)` → `w.HandlerFunc.Serve`. Fixture f13.
 - **Interface method specs** `type Doer interface { Do() error }` → `InherentMethod` `jobs.Doer.Do`, with `signature_hint` = the spec text (extract_interface_methods, go.rs:405-456). Fixture f1 `jobs.Doer.Do`, `jobs.Doer.Name`.
-  - **Partial**: these are **not tagged `abstract`**. Duck-typed fan-out therefore does not drop them in favour of concrete methods. Fixture f6: `s.Area()` fans out to `lib.Shape.Area`, `lib.Sq.Area` **and** `lib.Circ.Area`.
+  - Since WS22 they are tagged `abstract` (test `interface_method_specs_are_tagged_abstract`, go.rs:1683), so duck-typed fan-out drops them when a concrete method survives. 0.13.3 fixture `lang-docs/go/f1`: `lib.Shape.Area` carries `abstract`, and `iface(s lib.Shape) { s.Area() }` binds `lib.Shape.Area` at high (typed parameter).
 - **Func literal bound with `:=`** `add := func(a int) int {…}` → `FreeFunction` named after the variable, QN `pkg.add` (go.rs:576-606). Calls inside it are attributed to it. Fixture f1 `main.add`. Fixture f9: `inner := func() { shared() }` gives node `a.inner` with edge `a.inner -> a.shared`.
 - **Inline route handler** `r.POST("/inline", func(c *gin.Context) {…})` → `NamedClosure` `pkg.handler_at_<line>` with attribute `synthetic`, plus a value-ref from the call (extract_inline_handler, go.rs:234-271). It is gated on a registrar verb and on the registration shape. Test `inline_route_handler_gets_a_node` (go.rs:1096). Fixture f5: `svc.handler_at_32` with edge `handler_at_32 -> svc.unexported`.
 - **Visibility**: `Vis::Public` when the first character is uppercase, otherwise `Vis::Internal` (go_vis, go.rs:940-945). This applies to functions, methods, interface members and `:=` literals.
@@ -64,8 +71,9 @@ Not supported or partial:
 - **Multi-assigned literals** `a, b := func(){}, func(){}` mint **one bogus node named `a, b`**. The var name is the left side's full text (go.rs:517, 585). Fixture f13: node `w.a, b`.
 - **Anonymous func literals** passed to non-registrar calls (`go func(){}()`, `defer func(){}()`, `sort.Slice(x, func…)`, `t.Run("x", func…)`) get **no node**. Their calls are attributed to the enclosing function (go.rs:163-167 only records parameter shadows). This is also disclosed in the `go-runtime` rule gap (rules.rs:7702). Fixture f1: `defer func() { local() }()` gives the edge `main.main -> main.local`.
 - **Nested `:=` literals get package-level QNs**. `inner := func(){}` inside `outer` is `pkg.inner`, not `pkg.outer.inner`. A local literal named like a package function produces two nodes with the same QN. Fixture f10: two `t.handler` nodes.
-- **Embedded interfaces** (`type ReadWriter interface { Reader; Write(…) }`) record only the explicit `Write`. The embedded `Reader` is not recorded as a base (fixture f13).
-- **Struct types, fields and type declarations** are not callables. Struct embedding is not recorded (no `base_types`; go.rs never sets it).
+  - Since WS27 a call through the local binds the closure its own declaration defines: 0.13.3 fixture `lang-docs/go/f3` has two `a.check` nodes (`t1`, `t2` each declare `check := func(){}`), and each `check()` binds only its own at high.
+- **Embedded interfaces** (`type ReadWriter interface { Reader; Write(…) }`) record only the explicit `Write` as a callable; since WS23 the embedded `Reader` is recorded as a `ClassDecl` base (go.rs:708-764). 0.13.3 fixture `lang-docs/go/f2`: `r.Fetch()` on `r lib.RW` (RW embeds `Reader`) binds `lib.Reader.Fetch` at medium.
+- **Struct types, fields and type declarations** are not callables. Struct embedding is recorded as `ClassDecl` bases (same code), so promoted methods resolve through the base chain (§06).
 - **Overloads/clauses**: not applicable (Go has no overloading).
 - **Operators**: Go has no operator overloading. `x.Add(y)` is an ordinary method (fixture f13 `w.Vec.Add`).
 
@@ -82,7 +90,7 @@ All are recorded by `ref_from_call` (go.rs:809-847) and `ref_from_generic_conver
   - `(*p).M()` → `p` (deref).
   - These set `RefRecord::typed_receiver` for the literal and assertion forms. Test `go_literals_assertions_and_derefs` (receiver.rs:485-500); integration test `shaped_go_receivers_name_their_type` (crates/cgg/tests/resolve.rs:3155). Fixture f1: `(&Server{}).Handle()`, `Server{}.helper()` and `i.(*Server).Handle()` are all high.
 - **Chained call through a package function's result** `jobs.NewRunner().Run()` → receiver `jobs.NewRunner()`, resolved by the callee's declared result type (`go_result_type`, modules.rs). Fixture f1: high to `jobs.Runner.Run`.
-  - **Partial**: a same-package chain `build().Handle()` is unresolved (fixture f3, `candidates-in-other-files`). In that fixture the method name `Handle` is also on the stdlib screen (§13).
+  - Since WS27 a same-package chain `build().Handle()` resolves through `build`'s declared result (`go_call_result`, modules.rs:2211), when some Go function of that name declares one. 0.13.3 fixture `lang-docs/go/f1`: `build().Handle()` binds `a.Server.Handle` at high.
 - **Method expression** `(*l2.Derived).Own(d)` → high to `lib.Derived.Own` (fixture f6).
 - **Explicit generic instantiation**:
   - `jobs.Generic[int](3)` (parsed as `type_conversion_expression`) and `jobs.Pair[int, string](1, "a")` (an `index_expression` callee) are recorded under the bare function name. A selector head qualifies only when it is an imported package (go.rs:184-190, 832, 855-923).
@@ -95,15 +103,15 @@ All are recorded by `ref_from_call` (go.rs:809-847) and `ref_from_generic_conver
   - later string arguments as string refs;
   - the route.
   - Fixture f5: `r.GET("/users", listUsers)` gives `Wire -> listUsers [medium reference]` plus the gin entry.
-- **Arity**: not recorded. The Go plugin never sets `RefRecord::arity`, and Go is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- **Arity**: not recorded. The Go plugin never sets `RefRecord::arity`, and Go is not in `OVERLOAD_ARITY_LANGS`.
 - **Keyword args / paren-less / implicit receiver / invocant**: not applicable, never set.
+
+- **Function and method values** (WS26): under `--reference-edges` or `--dead-code`, a function or method value in an argument outside registrar verbs, a composite-literal value (struct field values, map and slice elements), an `=`/`:=`/`var` right-hand side or a `return` is a `value_ref` site, bare, through the package or through a variable (go.rs:363-470). A name a parameter or local in scope binds is pruned through the locals table. A method value through an untyped variable never fans out by name. 0.13.3 fixtures `lang-docs/go/f1` and `f3`: `sortSlice(nil, less)` gives `UseLess -> lib.less [high reference]`, and `map[string]func(){"k": mk}` gives `vals -> a.mk [high reference]`.
+- **Member-read aliases**: `f := s.Load; f()` is rewritten to `s.Load()` (`cgg_lang::member_aliases`). 0.13.3 fixture `lang-docs/go/f3`: with `s *S`, `f()` binds `a.S.Load` at high.
 
 Not supported:
 
-- **Functions passed as values to ordinary calls** (`sortSlice(xs, less)`, `register(s.Method)`) are not captured. The plugin calls only the registrar-gated `capture`, never `capture_value_refs`/`capture_value_position` (go.rs:202-205 vs registrar.rs:517, 563).
-  - Fixture f6: `lib.less` is reported dead (`--dead-code`), although it is passed to `sortSlice`.
-  - The README "Function-as-value capture now covers … go" (README.md:1517) therefore holds only for registrar verbs.
-- **Func values assigned then called**: `fn := l2.Helper; fn()` and `m := d.Own; m()` produce no edge (fixture f6, external bucket `fn`, `m`).
+- **Package-level `var F = f` aliases** are not followed: in fixture `lang-docs/go/f3`, `var New = mk` at top level is a value reference with no enclosing callable (`no-enclosing-callable`), and `New()` binds nothing.
 - **Callee shapes other than identifier, selector or index** are dropped: `func(){}()`, `getF()()`, `(f)()`, `fns[i]()` with a non-type index (go.rs:833 `_ => return None`; go.rs:897-911).
 - **Calls through struct fields of func type** (`s.cb()`) are read as method calls named `cb` (from the selector shape). They never bind to the function stored in the field.
 
@@ -142,11 +150,11 @@ Resolver side:
 - **GOPATH mode** (no `go.mod`): the import is resolved by directory name (fixture f8: `src/cmd/m.go` `util.Do2()` and `weird.W()` both high, the latter with package clause `notweird`).
 - **Package clause ≠ directory**: handled; the lookup uses the file's `package-root` (fixture f8 `weird.W()` → `notweird.W`).
 - **Aliased import** `j2 "…/jobs"; j2.SpawnJob()` → high (fixture f1). Test `go_aliased_import_resolves` (resolve.rs:360).
-- **Dot import** `. "ex.com/x/lib"; Helper()` → **medium** by-name. The Go bare-call reach rule allows any directory when the file has a `.` alias (cross_file.rs:4154-4158). Fixture f6.
+- **Dot import** `. "ex.com/x/lib"; Helper()` → **medium** by-name. The Go bare-call reach rule allows any directory when the file has a `.` alias. Fixture f6.
 - **Blank import** `_ "embed"` binds nothing (heads.rs:493-498, modules.rs `go_import_names`).
 - **Re-exports**: not applicable. Go has none; type aliases (`type A = b.T`) are not followed.
 - **Not covered: package-variable function aliases**. `var New = sdk.New` is called as `pkg.New()`, defines no callable, and is refused or bucketed (CHANGELOG.md:1320-1321).
-- **Partial: an external dot import leaks.** `import . "github.com/onsi/ginkgo"; Describe()` binds to a workspace `b.Describe` in another directory at medium (fixture f14). The dot alias opens the any-directory rule without checking that the dot-imported package is the workspace's.
+- **Partial: an external dot import leaks.** `import . "github.com/onsi/ginkgo"; Describe()` binds to a workspace `b.Describe` in another directory at medium (fixture f14; still so in 0.13.3 fixture `lang-docs/go/f2`). The dot alias opens the any-directory rule without checking that the dot-imported package is the workspace's.
 - **cgo `import "C"`**: `C` is treated as an external module (fixture f7: `C.add` gives `external_calls`, receiver `C`).
 
 ## 05. Type inference & receiver typing
@@ -164,6 +172,8 @@ Plugin-recorded local types (`FileFacts::local_types`):
   - Fixture f1: `r.Run()`, `o.Do()` and `w.Run()` are high.
 - **Package-qualified parameters** `func f(r *jobs.Runner, d jobs.Doer)` → `r: jobs.Runner`, `d: jobs.Doer`. Grouped names `a, b T` take the next type (`go_package_param_types`, type_hints.rs:1489-1530). Fixture f1: `useParam` gives `r.Run()` → `jobs.Runner.Run` (high) and `d.Do()` → `jobs.Doer.Do` (high).
 - **Typed receiver shapes** from peel (§03): composite literals and type assertions.
+- **Receivers and same-package parameters** (WS23): `go_param_types` (type_hints.rs:2211) reads the receiver and every parameter name-first, skipping predeclared types (`GO_PREDECLARED_TYPES`), type parameters and composite types. A bare type binds within the caller's package (directory). A `:=` in an inner block, an `if`/`for`/`switch` header or a func literal's own parameter hides the parameter there. 0.13.3 fixture `lang-docs/go/f1`: `func viaParam(q *Server) { q.Zap() }` binds `a.Server.Zap` at high, and `func (s *Server) Zap() { s.zip() }` binds `a.Server.zip` at high. Func-literal parameters are typed the same way (fixture `lang-docs/go/f2`: `f := func(a A) { a.Zork() }` binds `a.A.Zork` at high).
+- **Same-package call results** (WS27 follow-up): `x := f(…)`, `x, err := f(…)` and `f(…).M()` take the result type `f` declares (`go_call_result`, modules.rs:2211), only when some Go function `f` declares one, and never for builtins, a parameter or local called as a function value, or a single-name `v := NewFoo()`, which keeps its `Foo` reading. 0.13.3 fixture `lang-docs/go/f1`: `x := build(); x.Zap()` binds `a.Server.Zap` at high.
 
 Resolver handling (`propagate_types_with_returns`, type_hints.rs:405-483, 772-783):
 
@@ -172,45 +182,43 @@ Resolver handling (`propagate_types_with_returns`, type_hints.rs:405-483, 772-78
 
 Not supported or partial:
 
-- **Same-package parameters are untyped.** `func viaParam(q *Server) { q.Zap() }` fans out by name to `Server.Zap` and `Other.Zap` (medium). The generic type-first parser reads `q *Server` as name `*Server`, type `q`, and rejects the lowercase type (type_hints.rs:2181, 2200). Only `go_package_param_types` handles Go's name-first order, and it requires a package qualifier. Fixture f4. The limitation is acknowledged in CHANGELOG.md:1479-1480 ("Go same-package parameters are not typed"). README.md:489 lists "params" without this caveat.
-- **Method receivers are untyped.** `func (s *Server) Zap() { s.zip() }`: `s` gets no type, and the call is duck-typed or screened. Fixture f4: `s.zip()` is unresolved. Fixture f1: `s.helper()` is medium by name.
-- **Same-package composite literals and `new(T)` in `:=`**: `q := &Server{}`, `t := Server{}` and `z := new(Server)` are untyped (fixture f2, f4). `package_made_type` requires a `qualified_type` (go.rs:762-771).
-- **Package-qualified `var`**: `var x jobs.Runner` is not typed, because the uppercase-first check fails on `jobs.` (go.rs:499-501). Fixture f1: `x.Run()` is unresolved.
-- **Grouped `var ( a Foo )`** is not typed (only direct `var_spec` children are read, go.rs:483-485). **`var p, q Foo`** types only the first name. Fixture f15.
-- **File-wide last-write-wins gives a wrong `high`**. In fixture f9, `one(){ var x A; x.Zork() }` binds to **`B.Zork` at high**, because `two` declares `var x B` later in the file.
-- **Struct fields** are not typed: `s.r.Run()` and `h.srv.Handle()` are unresolved (fixture f1, f3). The plugin records no `class_fields`.
-- **Same-package function results** (`build().Handle()`) are not typed (fixture f3). `go_result_type` runs only through an imported package.
-- **Type switches / `x, ok := y.(T)`** bindings are not recorded. Only the inline `y.(T).M()` shape is read. This is from code reading of go.rs; there is no `type_switch` handling.
-- **Range variables, channel receives, closures' parameters**: untyped (no `closure_types` support for Go; closure_types.rs has no Go entry).
+- **Same-package composite literals and `new(T)` in `:=`**: `q := &Server{}`, `t := Server{}` and `z := new(Server)` are untyped (fixture f2, f4; still so in 0.13.3 fixture `lang-docs/go/f1`, where `z.Zap()` fans out to `Server.Zap` and `Other.Zap` at medium). `package_made_type` requires a `qualified_type`.
+- **Package-qualified `var`**: `var x jobs.Runner` is not typed, because the uppercase-first check fails on `jobs.`. 0.13.3 fixture `lang-docs/go/f2`: `var x lib.Runner; x.Zork()` fans out to three `Zork` methods at medium.
+- **Grouped `var ( a Foo )`** is not typed, and **`var p, q Foo`** types only the first name (fixture f15; 0.13.3 fixture `lang-docs/go/f2`: `p.Zork()` high, `q.Zork()` fans out).
+- **File-wide last-write-wins still gives a wrong edge, now at medium**. In fixture f9, `one(){ var x A; x.Zork() }` bound to `B.Zork` at high. In 0.13.3 fixture `lang-docs/go/f1`, `one(){ var x Server; x.Zap() }` binds only `a.Other.Zap` at medium, because `two` declares `var x Other` later in the file.
+- **Struct fields** are not typed: `s.r.Run()` and `h.srv.Handle()` are unresolved (fixture f1, f3; still so in 0.13.3 fixture `lang-docs/go/f1`, `candidates-in-other-files`). The plugin records no `class_fields`.
+- **Type switches / `x, ok := y.(T)`** bindings are not typed (they are locals, §07). Only the inline `y.(T).M()` shape is read. 0.13.3 fixture `lang-docs/go/f2`: `switch t := v.(type) { case A: t.Zork() }` and `if t, ok := v.(B); ok { t.Zork() }` both fan out at medium.
+- **Range variables and channel receives**: untyped. 0.13.3 fixture `lang-docs/go/f2`: `for _, x := range xs { x.Zork() }` with `xs []A` fans out at medium.
 - **`declared_type` tables**: no Go entries in `MAYBE_TYPE_WRAPPERS`, `UNION_TYPE_CONSTRUCTORS`, `NULL_TYPE_MEMBERS`, `TOP_TYPES` or `CALLBACK_TYPE_CONSTRUCTORS` (stdlib.rs:104-160). `any`/`interface{}` are not treated as top types.
 - **Weak receiver types**: never set. The `New*` naming guess is treated as a firm type and yields `high` (fixture f4).
 - **Implicit receivers**: not applicable.
 
 ## 06. Inheritance, dispatch & overloading
 
-- **Base records**: none. The Go plugin never sets `DefRecord::base_types` or `FileFacts::classes`. Struct embedding and interface embedding are not modeled; the plugin header says so (go.rs:19-21).
-- **Promoted methods via embedding**: `d := &l2.Derived{}; d.Hello()` (`Hello` on embedded `Base`) gives **medium** by-name fan-out. The typed lookup misses, and `bases()` has nothing to walk (fixture f6). `resolve_go` deliberately keeps "other readings" on a typed miss, because "a method an embedded field promotes is not provably absent" (modules.rs comment in the `[t]` arm).
-- **Interface → implementation**: Go is **not** in `INHERITANCE_LANGS` (dispatch.rs:110-123), and the plugin sets no `trait_impl_target`. `--dynamic-dispatch` adds no Go edges (fixture f6: the same 14 edges with and without `--dynamic-dispatch --reference-edges`).
-  - A call through a typed interface binds to the interface declaration only (fixture f1: `d.Do()` → `jobs.Doer.Do`, high).
-  - An untyped call fans out to the declaration and every same-named method (fixture f6).
+- **Base records** (WS23): embedded struct fields and embedded interfaces are recorded as `ClassDecl` bases (go.rs:708-764). The plugin header comment (go.rs:19-21) still says embedding is not modeled; it is stale.
+- **Promoted methods via embedding**: `d := &l2.Derived{}; d.Hello()` (`Hello` on embedded `Base`) now reaches `Base.Hello` through the base chain. 0.13.3 fixture `lang-docs/go/f1`: `promo -> lib.Base.Hello` at medium (a base-chain lookup is never `high`).
+- **Interface → implementation** (WS31, `cgg_resolve::go_iface`): Go is still **not** in `INHERITANCE_LANGS`; instead `go_iface` reads Go method sets (an interface's declared methods plus those of embedded interfaces; a named type's value- and pointer-receiver methods plus those promoted through embedded fields), keyed by package directory, with qualified embeds found through the file's imports and standard-library interfaces in `cgg_core::stdlib::GO_STDLIB_INTERFACES` (stdlib.rs:573).
+  - Under `--dynamic-dispatch` (and `--dead-code`), `go_interface_fanout` (go_iface.rs:381) adds a `low` `dyn` edge, resolver `dispatch:go-interface`, from each interface method declaration to the same-named method of every satisfying type (by name and, where both signatures show it, parameter count). 0.13.3 fixture `lang-docs/go/f1`: `lib.Shape.Area -> lib.Sq.Area` and `-> lib.Circ.Area`; fixture `lang-docs/go/f2`: `RW.Store -> T.Store` and the embedded `Reader.Fetch -> T.Fetch`.
+  - An interface that only repeats a standard-library one fans out to nothing (in fixture `lang-docs/go/f2`, a local `Reader { Read() }` got no `dyn` edges until renamed).
+  - Under `--dead-code` only, `go_interface_site_edges` (go_iface.rs:424) links an unresolved method call (cap-exceeded or candidates elsewhere) to the declarations of that method in in-tree interfaces of the calling package or a package it imports.
+  - The default graph is unchanged: a call through a typed interface binds to the interface declaration only (fixture f1: `d.Do()` → `jobs.Doer.Do`, high).
 - **super/base calls, `member_of_calling_class`, `overrides_below`**: not applicable. Go has no inheritance, and a bare call never reaches a method (`bare_call_is_never_a_method` includes `"go"`, intra_file.rs:49-54; cross_file.rs:4154-4158 `!member`).
 - **Extension methods / mixins / traits**: not applicable.
-- **Overloading / arity narrowing**: not applicable; Go is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- **Overloading / arity narrowing**: not applicable; Go is not in `OVERLOAD_ARITY_LANGS`.
 - **Generic specialization narrowing** (`narrow_specializations`): not exercised. Go owners are recorded without type arguments.
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`**: **not supported**. `locals::spec` has no Go entry (locals.rs:380-394), so `shadowed-by-local` never fires for Go.
-  - Fixture f10: `func run(cb func()) { cb() }` binds **`run -> t.cb` at high**, to a package function of the same name.
-  - Fixture f10: `for _, step := range fs { step() }` binds `t.step` at high.
+- **`FileFacts::locals`** (WS27): Go has a locals spec (`GO_SPEC`, locals.rs:391). Parameters, receivers, named results, `:=`, `var`/`const`, `for`/`range`, `if`/`switch` initializers, type-switch and `select` bindings are locals, each in scope from the end of its own statement to the end of its block, case clause or `if`/`for`/`switch` (so `x := x()` still calls the function). The parameters of a `func(x T)` type are not bindings. A bare call through one is `shadowed-by-local`.
+  - 0.13.3 fixture `lang-docs/go/f1`: `func run(cb func()) { cb() }` and `for _, step := range fs { step() }` are both `shadowed-by-local`; fixture f10 had bound them to package functions at high.
 - **Go's own import-shadowing model** (a substitute for locals that covers only names an import binds):
   - A parameter or receiver named like an import binding shadows it for the function body. It is typed when the parameter type is package-qualified, else `<local>` (record_param_shadows, go.rs:647-691).
   - A `:=` local named like an import shadows it to the end of its block (go.rs:553-575).
   - `FileModules` turns these into `go_shadow` spans (modules.rs:1561-1590), and `resolve_go` defers inside them (modules.rs:2005-2012).
   - Tests `a_parameter_shadowing_an_import_is_scoped_to_the_body` (go.rs:1005), `go_local_shadowing_an_import_alias_is_not_refused` (cross_file.rs tests).
-- **Lexical narrowing of nested definitions**: not applied to Go. It is not in the intra-file lexical list (CLAUDE.md, intra_file.rs). A local `handler := func(){}` and a package `func handler()` share the QN `t.handler`, and `handler()` binds both at medium (fixture f10).
+- **Lexical narrowing of nested definitions**: a `name := func(…){…}` closure is visible by name only inside its function, and a call through the local binds the closure its own declaration defines (§02; 0.13.3 fixture `lang-docs/go/f3`). From another file such a closure is never a bare-name candidate (`cross_file::nested_function_ids`, WS33).
 - **Positional shadowing**: not applicable or not implemented.
-- **Block scope**: tracked only for package-made values (CHANGELOG.md:1326-1327, "Go block scope is tracked only for values made through a package").
+- **Block scope**: tracked for every local through the locals table (above). Receiver *types* remain file-wide for `var`/`New*` readings (§05).
 - **Conditional definitions**: build-tag twins are not distinguished (fixture f12, §01). `DefRecord::conditional` is never set.
 
 ## 08. Macros, preprocessor & codegen
@@ -296,13 +304,12 @@ None of these rules sets `attributes`, `base_types` or `string_targets` (all `fa
 - **Test file classification**: `*_test.go` (testfile.rs:78; test at testfile.rs:147).
 - **Plugin `TestRole`**: `Case` needs an uppercase letter after the prefix; `TestMain` is a `Fixture` (go.rs:950-963).
   - `Test_under` gets **no** `TestRole`, although `go test` runs it. It is still entered by the harness rule's `Test*` pattern (fixture f5).
-- **Dead-code name roots** (`is_test_name`, roots.rs:975-983): any name starting `Test|Benchmark|Fuzz|Example` that is longer than 4 characters. There is **no file gating and no uppercase check**.
-  - Fixture f5: `Example` and **`Testing`** become `test-entry` roots (`builtin:test-name`).
-  - Fixture f11: `TestThing`/`BenchmarkThing` in a non-test file without a `testing` import are rooted.
-  - `init` and `TestMain` are program-entry names (`LANG_ENTRY`, roots.rs:24).
+- **Dead-code name roots** (`is_test_name`, roots.rs:1134-1151): Go follows `go test`'s rule: `Test`, `Benchmark`, `Fuzz` or `Example` followed by anything but a lowercase letter, or a bare `Example`. There is **no file gating**.
+  - 0.13.3 fixture `lang-docs/go/f2`: `Example` is a `builtin:test-name` root; `Testing` and `Fuzzy` are not roots; `Test_under` is entered by the harness.
+  - `init` and `TestMain` are program-entry names (`LANG_ENTRY`).
 - **Testify suites**: methods `func (s *Suite) TestX()` match `Test*` by simple name (match_methods reads `simple_name` regardless of receiver; frameworks/mod.rs:1020). This is by code reading only and was not fixture-tested.
 - **Sub-tests and closures**: `t.Run("x", func(t *testing.T){…})`, `f.Fuzz(func…)` and `b.RunParallel(func…)` get no node. Their calls are attributed to the enclosing test (fixture f5: `TestA -> helperT`, high).
-- **Stale gap text**: the `go-testing` gap (rules.rs:7631ff) still says `is_test_name` "only recognises `Test*`" and that Benchmark/Fuzz/Example "are not root-marked". The code (roots.rs:977-983) and fixture f5 contradict this.
+- **Stale gap text**: the `go-testing` gap (rules.rs:8187) still says `is_test_name` "only recognises `Test*`" and that Benchmark/Fuzz/Example "are not root-marked". The code (roots.rs:1145-1151) contradicts this.
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: Go is not listed (rules.rs; `["python","php","ruby"]`), which is not applicable anyway.
 - **`--no-test-entries`**: generic; it turns the harness node into root marks.
 
@@ -313,7 +320,7 @@ Fixture f5 dead-code JSON `capabilities` for Go:
 - `class: degraded`, `max_confidence: medium`;
 - visibility `full`, attributes `none`, value_references `full`, dispatch `none`, exports `none`, test_tagging `full`;
 - active root rules: `builtin:main`, `builtin:test-name`, `framework:entry-node`, `framework:rule`, `framework:test-harness`.
-- **Every Go finding is therefore capped at medium**, with the risks `language-lacks-attributes` and `language-lacks-dispatch-model` (fixture f5 report).
+- **Every Go finding is therefore capped at medium**, with the risks `language-lacks-attributes` and `language-lacks-dispatch-model` (fixture f5 report; unchanged in 0.13.3 fixture `lang-docs/go/f2`, whose capability row is the same).
 
 Roots:
 
@@ -328,14 +335,13 @@ Signals:
 
 - **`dyn_uses`**: literal names passed to `MethodByName`/`FieldByName` (dynuse.rs:55). Fixture f5: `svc.reflected` carries `name-collides-with-screened-site:reflection`.
   - The plugin's `signals()` does not declare `dyn_uses` (go.rs:40-48), although it extracts them.
-- **`unreachable`**: computed with `cfg::GO` (cfg.rs:92-102; terminators `return`, `break`, `continue`, `goto`, but **not `panic(...)`, `os.Exit`, `log.Fatal`**).
-  - A grep finds no consumer of `FileFacts::unreachable` outside the capability table (cgg/src/lib.rs:1935 copies only the signal bool).
-  - Calls after `return` still produce edges (fixture f5 L39: `Wire -> unexported`; fixture f10 L18 after `panic`).
-- **Value refs**: registrar arguments only (§03). Fixture f6: `lib.less` passed to an ordinary function is reported dead.
+- **`unreachable`**: terminators `return`, `break`, `continue`, `goto`, but **not `panic(...)`, `os.Exit`, `log.Fatal`**. Since 0.11.1 the regions are consumed under `--dead-code` (`cgg_resolve::unreachable`; Go regions had never been found because tree-sitter-go nests a block's statements in a `statement_list`): an edge from a site inside one is capped at `medium` and keeps nothing alive. 0.13.3 fixture `lang-docs/go/f2` under `--dead-code`: `return; two()` gives `after -> two` at medium, while `panic("x"); grp()` still gives `pan -> grp` at high.
+- **Value refs**: every value position listed in §03, not only registrar arguments. 0.13.3 fixture `lang-docs/go/f1`: `lib.less`, passed to `sortSlice`, has an incoming reference edge.
+- **Interface implementations**: under `--dead-code` the `go_iface` edges (§06) keep a satisfying type's methods live, and a method whose type satisfies a standard-library interface (`fmt.Stringer`, `sort.Interface`, …) carries `implements-external-contract`.
 
 Caps:
 
-- `implements-external-contract`: not produced for Go. There are no override markers or bases.
+- `implements-external-contract`: produced for a method whose type satisfies a `GO_STDLIB_INTERFACES` interface (§06).
 - `macro-generated`: not applicable.
 - Reflection caps at medium, as for every `dynuse` language.
 
@@ -349,10 +355,10 @@ Doubt from unresolved same-name sites (`no-unresolved-site-with-name` evidence) 
   - a very broad set of exported stdlib identifiers, including common method names: `Do`, `Handle`, `New`, `Run`, `Add`, `Close` …
 - **The table is used as a name screen in two places**:
   1. Unresolved calls whose receiver is a stdlib package go to the stdlib bucket (fixture f1: `fmt.Println`, `os.Exit` → `stdlib_calls`).
-  2. **Duck-typed fan-out on an untyped receiver is skipped entirely when the method name is in the table** (cross_file.rs:6853-6870). Because Go method receivers and same-package parameters are untyped (§05), workspace methods named `Run`, `Do`, `Handle`, `New` … called through them are **unresolved**:
+  2. **Duck-typed fan-out on an untyped receiver is skipped entirely when the method name is in the table**. Receivers and parameters are typed since WS23, but composite-literal `:=` locals, fields and range variables are not (§05), so workspace methods named `Run`, `Do`, `Handle`, `New` … called through them are **unresolved**:
      - fixture f2/f3: `s.Handle()`, `q.Handle()` → `candidates-in-other-files`;
-     - fixture f4: `s.zip()` → unresolved;
-     - whereas the non-stdlib names `Zap`, `helper` fan out at medium.
+     - whereas the non-stdlib names `Zap`, `helper` fan out at medium;
+     - 0.13.3 fixture `lang-docs/go/f1`: `q := &Server{}; q.Handle()` is `candidates-in-other-files`, while `z.Zap()` fans out at medium.
 - **`--include-stdlib`** mints `<stdlib>::fmt::Println` style exit nodes (fixture f1 `stdx.json`).
 - **`--include-external`** mints `<external>::…` nodes for every external-bucket site. This includes workspace-internal misses such as `<external>::s::Handle`, `<external>::jobs::Missing` and `<external>::f` (fixture f1), which is misleading.
 - **Other tables**: no Go entries in `CAST_INTRINSICS`, `CONSTRUCTING_METHODS` (`new(T)` is not a construction), `MAYBE_TYPE_WRAPPERS`, `NULL_TYPE_MEMBERS`, `TOP_TYPES` or `CALLBACK_TYPE_CONSTRUCTORS` (stdlib.rs:35-160). There is no `rust_types`-like wrapper table for Go.
@@ -383,11 +389,13 @@ What forces `medium`:
 - generic composite-literal receivers (fixture f1 `m.Put` medium);
 - build-tag twins (fixture f12).
 
-**False `high` observed**:
+**False `high` observed** (0.11.0):
 
-- file-wide `var` last-write-wins (fixture f9 `one -> B.Zork`);
-- parameter/range-variable shadowing of a same-named package function (fixture f10 `run -> cb`, `loop -> step`);
-- the `New*` naming heuristic (a firm type from a naming convention; go.rs:608-639).
+- file-wide `var` last-write-wins (fixture f9 `one -> B.Zork`); in 0.13.3 the wrong edge remains but at medium (§05);
+- parameter/range-variable shadowing of a same-named package function (fixture f10 `run -> cb`, `loop -> step`); fixed by the WS27 locals table (§07);
+- the `New*` naming heuristic (a firm type from a naming convention). Still so in 0.13.3 and it beats the declared result: fixture `lang-docs/go/f4`, `n := NewServer(); n.Zap()` with `func NewServer() *Other` binds `Server.Zap` at high.
+
+Since 0.11.1 also `high`: receiver and same-package parameter types, same-package call results, member-read aliases through a typed variable (§05, §03).
 
 Framework entry edges are `low`; descriptor edges are `low`. The mermaid `?` marker applies generically, on arrows with no `high` site.
 
@@ -399,14 +407,14 @@ Framework entry edges are `low`; descriptor edges are `low`. The mermaid `?` mar
   - `Call` on method sets;
   - `plugin.Open`/`Lookup("Sym")` (Go's module-load analogue; `DYN_MODULE_LOADERS` is `require`, `importScripts`, `import_module` only, facts.rs:165);
   - `//go:linkname`;
-  - string-keyed dispatch maps (`map[string]func(){…}`): composite-literal values are not captured as value refs.
+  - string-keyed dispatch maps (`map[string]func(){…}`) produce reference edges to each value (§03) but no call edge from the dispatch site.
 - **The `signals()` manifest under-declares `dyn_uses`** (§12).
 
 ## 16. Known gaps & limitations
 
 From code comments and rule gaps:
 
-- The plugin header says "embedded-struct method promotion, interface method dispatch, and generics are not modeled" (go.rs:19-21). Generics are now partly handled (§03); embedding and interfaces are still not.
+- The plugin header says "embedded-struct method promotion, interface method dispatch, and generics are not modeled" (go.rs:19-21). The comment is stale: generics are partly handled (§03), embedding is recorded as bases and interface dispatch is modeled by `go_iface` (§06).
 - `go-runtime` gap (rules.rs:7702): no nodes for anonymous func literals outside registrars, func values in fields/maps/slices, and implicit interfaces.
 - Gap-only frameworks:
   - CLI: `cobra`, `urfave-cli`;
@@ -418,26 +426,24 @@ From code comments and rule gaps:
 
 From the CHANGELOG:
 
-- Same-package parameters are untyped (CHANGELOG.md:1479-1480).
-- Package-variable function aliases (`var New = sdk.New`) are refused rather than followed (CHANGELOG.md:1320-1321).
-- Go block scope is tracked only for package-made values (CHANGELOG.md:1326-1327).
+- Package-variable function aliases (`var New = sdk.New`) are refused rather than followed (CHANGELOG.md:1320-1321; still so in 0.13.3, §03).
 
-Found while cataloguing (fixtures):
+Found while cataloguing (fixtures; status as of 0.13.3):
 
-1. Method receivers, same-package params, same-package composite literals / `new(T)`, package-qualified and grouped `var`s, and struct fields are all untyped (f2, f3, f4, f15).
-2. A file-wide last-write-wins `var` typing produces a **wrong `high`** edge (f9).
-3. There is no `locals` spec, so parameters and range variables do not shadow package functions. This produces **wrong `high`** edges (f10).
-4. The stdlib name screen (986 names incl. `Run`, `Do`, `Handle`, `New`) silently blocks fan-out for untyped receivers. Workspace methods with those names are unresolved (f2, f3).
-5. Interface members are not tagged abstract and so are not dropped from fan-out (f6). There is no interface→impl dispatch, even with `--dynamic-dispatch` (f6).
-6. Functions passed as values to non-registrar calls are not captured, so they appear dead (f6 `less`).
-7. `a, b := func(){}, func(){}` mints a node named `a, b` (f13). Package-level and `var`-declared func literals are not extracted (f1, f13).
-8. An external dot import lets bare calls reach any workspace directory (f14).
-9. cgo is not linked in either direction (f7).
-10. Build-tag twins are both bound (f12).
-11. `--include-external` labels workspace misses as `<external>` (f1).
-12. `FileFacts::unreachable` has no consumer; `panic` is not a terminator.
-13. `is_test_name` roots `Testing` and test-shaped names in non-test files. `go_test_role` misses `Test_x`.
-14. The proto descriptor link needs a service-named owner; a lowercase `server` impl is not linked (f7).
+1. Same-package composite literals / `new(T)` in `:=`, package-qualified and grouped `var`s, multi-name `var`s past the first, type-switch and range bindings, and struct fields are untyped (f2, f15; `lang-docs/go/f1`, `f2`). Receivers and same-package parameters are typed since WS23.
+2. A file-wide last-write-wins `var` typing produces a **wrong** edge, now at medium (f9; `lang-docs/go/f1`).
+3. Fixed (WS27): parameters and range variables shadow package functions through the locals table.
+4. The stdlib name screen (986 names incl. `Run`, `Do`, `Handle`, `New`) silently blocks fan-out for untyped receivers. Workspace methods with those names are unresolved (f2, f3; `lang-docs/go/f1`).
+5. Fixed (WS22, WS31): interface members are tagged abstract, and `--dynamic-dispatch` adds interface→impl edges through Go method sets.
+6. Fixed (WS26): functions passed as values are value references.
+7. `a, b := func(){}, func(){}` mints a node named `a, b` (f13; still so in `lang-docs/go/f1`). Package-level and `var`-declared func literals are not extracted (f1, f13; `lang-docs/go/f1` `vlit`).
+8. An external dot import lets bare calls reach any workspace directory (f14; `lang-docs/go/f2`).
+9. cgo is not linked in either direction (f7; not re-checked).
+10. Build-tag twins are both bound (f12; not re-checked).
+11. `--include-external` labels workspace misses as `<external>` (f1; not re-checked).
+12. `FileFacts::unreachable` is consumed under `--dead-code` since 0.11.1; `panic` is still not a terminator (`lang-docs/go/f2`).
+13. Fixed: `is_test_name` follows `go test`'s rule (`Testing`, `Fuzzy` are not roots). It still has no file gating.
+14. The proto descriptor link needs a service-named owner; a lowercase `server` impl is not linked (f7; not re-checked).
 
 - **Ignored tests**: none found for Go. A grep of `#[ignore]` near Go tests in go.rs, modules.rs and cross_file.rs found none.
 
@@ -446,18 +452,18 @@ Found while cataloguing (fixtures):
 | section | support | one-line note |
 |---|---|---|
 | 01 Detection & parsing | full | `.go` only, one grammar, `go.mod` read for module/replace; no build-tag awareness |
-| 02 Callables extracted | partial | funcs, methods (generic owners), interface specs, `:=` literals, inline handlers; no package-level/`var` literals, bogus multi-assign node, no nested QNs |
-| 03 Call-site forms | partial | bare/selector/peeled shapes/generic instantiation/method expressions; no value-ref capture outside registrars, no func-value calls |
+| 02 Callables extracted | partial | funcs, methods (generic owners), `abstract` interface specs, `:=` literals, inline handlers; no package-level/`var` literals, bogus multi-assign node, no nested QNs |
+| 03 Call-site forms | full | bare/selector/peeled shapes/generic instantiation/method expressions/same-package chains; value refs in every value position; member-read aliases; package-var aliases not followed |
 | 04 Imports & module resolution | full | go.mod + GOPATH, aliases, dot/blank, `_test` exclusion, external + not-in-imported-module refusals; dot-import of external leaks |
-| 05 Type inference & receiver typing | partial | package-qualified params and package-made locals scoped; same-package params, receivers, fields, composite `:=` untyped; file-wide `var` gives wrong highs |
-| 06 Inheritance, dispatch & overloading | minimal | no embedding, no interface→impl, not in INHERITANCE_LANGS, `--dynamic-dispatch` adds nothing |
-| 07 Scoping & shadowing | minimal | only import-name shadowing; no `locals` spec, so params and range vars bind package functions at high |
+| 05 Type inference & receiver typing | partial | receivers, all params and call results typed; fields, composite `:=`, qualified/grouped `var`, type switches, range vars untyped; file-wide `var` gives wrong medium edges |
+| 06 Inheritance, dispatch & overloading | partial | embedded fields/interfaces as bases; `go_iface` method-set dispatch under `--dynamic-dispatch`/`--dead-code`; not in INHERITANCE_LANGS |
+| 07 Scoping & shadowing | full | locals table (params, receivers, `:=`, `var`, range, switch/select bindings) plus import-name shadowing; closures bind their own declaration |
 | 08 Macros, preprocessor & codegen | n/a | Go has no macros; directives ignored |
 | 09 FFI & cross-language links | minimal | proto rpc → service-named Go owner only; no cgo / `//export` |
 | 10 Frameworks & entry points | partial | 29 rules: 15 enumerate (gin/echo/fiber/chi/net-http/gorilla/martini/hertz/asynq/temporal/cron/lambda/gcp/testing/encoding), 14 gap-only |
-| 11 Test harness entries | full | go-testing harness node for Test/Benchmark/Fuzz/Example/TestMain; name roots over-broad, gap text stale |
-| 12 Dead-code analysis | partial | class degraded, max medium; exported not rooted; reflection screen works; unreachable unused |
+| 11 Test harness entries | full | go-testing harness node for Test/Benchmark/Fuzz/Example/TestMain; name roots follow `go test` but are not file-gated; gap text stale |
+| 12 Dead-code analysis | partial | class degraded, max medium; exported not rooted; reflection screen, value refs, interface implementers and unreachable regions work; `panic` not a terminator |
 | 13 Builtins & stdlib tables | partial | 986-name go.txt; broad screen blocks fan-out of common method names; no cast/wrapper tables |
-| 14 Confidence & certainty | partial | many high paths; false highs from file-wide `var`, missing locals, `New*` heuristic |
+| 14 Confidence & certainty | partial | many high paths; file-wide `var` wrong edges now medium; `New*` heuristic still firm |
 | 15 Dynamic use & reflection | minimal | MethodByName/FieldByName only; signal under-declared |
-| 16 Known gaps & limitations | n/a | 14 fixture-confirmed gaps plus rule/CHANGELOG gaps listed |
+| 16 Known gaps & limitations | n/a | 14 fixture-confirmed gaps (4 fixed since 0.11.0) plus rule/CHANGELOG gaps listed |

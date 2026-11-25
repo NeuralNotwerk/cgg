@@ -1,25 +1,23 @@
 # fsharp
 
-The F# plugin (`FsharpPlugin`, `crates/cgg-lang/src/plugins/fsharp.rs`) is 384 lines, inline tests included. It parses `.fs`, `.fsi` and `.fsx` with the crates.io grammar `tree-sitter-fsharp` 0.3.0 (`Cargo.toml:116` pins `"0.3"`; `Cargo.lock:1518-1519` resolves 0.3.0). It always uses `LANGUAGE_FSHARP` (fsharp.rs:18-20). Nothing is vendored. The crate also ships a `LANGUAGE_SIGNATURE` grammar for signature files (`tree-sitter-fsharp-0.3.0/bindings/rust/lib.rs:32`), and the plugin does not use it.
+> Revised 2026-11-25 against cgg 0.13.3: module paths in qualified names, module-qualified call resolution and module abbreviations, constructors and `inherit`, every `let`/`and` binding, operator-folded calls, value references and the locals table now exist, so the stale gaps, fixture results and scorecard were corrected. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
 
-One recursive `FsharpWalker` (fsharp.rs:41-291) handles five node kinds:
+The F# plugin (`FsharpPlugin`, `crates/cgg-lang/src/plugins/fsharp.rs`) is 955 lines at 0.13.3, inline tests included. It parses `.fs`, `.fsi` and `.fsx` with the crates.io grammar `tree-sitter-fsharp` 0.3.0 (`Cargo.toml:116` pins `"0.3"`; `Cargo.lock:1518-1519` resolves 0.3.0). It always uses `LANGUAGE_FSHARP` (fsharp.rs:18-20). Nothing is vendored. The crate also ships a `LANGUAGE_SIGNATURE` grammar for signature files (`tree-sitter-fsharp-0.3.0/bindings/rust/lib.rs:32`), and the plugin does not use it.
 
-- `anon_type_defn` pushes a scope.
-- `function_or_value_defn` becomes a definition, but only when it has a `function_declaration_left`.
-- `member_defn` becomes a method.
+One recursive `FsharpWalker` (`walk`, fsharp.rs:124-216) handles these node kinds:
+
+- `anon_type_defn` pushes a type scope, records the `inherit` base and the primary constructor (`record_primary_constructor`, fsharp.rs:351).
+- `function_or_value_defn` becomes one definition per binding (`record_let`, fsharp.rs:230).
+- `member_defn` becomes a method or an additional constructor (`record_member`, fsharp.rs:281).
+- `module_defn`/`module_abbrev` holding one long identifier becomes a `module-abbrev` import (`record_module_abbrev`, fsharp.rs:80).
+- `namespace`, `named_module` and nested `module_defn` push a module path (`FsharpWalker::modules`); the file-level ones are recorded in `FileFacts::packages`.
 - `import_decl` becomes an `open` import.
-- `application_expression` becomes a call site.
+- `application_expression` becomes a call site (`record_call`, fsharp.rs:404).
+- Under `reference_sites`, every node is also checked for value positions (`capture_value_positions`, fsharp.rs:550).
 
-Everything else is only descended into. The plugin overrides none of these: `signals()` (the default is all `false`, lib.rs:304-306), `shebangs`, `resolver_kind`, `ts_language_for`, `max_line_bytes`. It does not use the shared `locals`, `registrar`, `dynuse`, `closure_types`, `receiver::peel`, `cfg` or `markup` helpers (grep for `fsharp` in those files returns nothing). There is no resolver code of its own. F# appears by name in only these places:
+The plugin overrides none of `shebangs`, `ts_language_for`, `max_line_bytes`. The F# locals table is `locals::collect_fsharp` (shared with the plugin's `let` reader, `locals::fsharp_let_bindings`). Resolution adds `LibIndex::resolve_fsharp` (module-qualified calls) to the generic pipeline, and F# is in `lexically_scoped`, ML-style positional shadowing and `binds_same_name_set` in `intra_file.rs`. Seven `RuleSpec`s in `rules.rs` name F#.
 
-- `intra_file.rs:127`: `lexically_scoped`.
-- `intra_file.rs:405`: ML-style positional shadowing.
-- `intra_file.rs:846`: `binds_same_name_set`.
-- `cross_file.rs:1916` and `2064`: `open` handling.
-- `cross_file.rs:4137`: R15, a bare call never reaches a member.
-- Seven `RuleSpec`s in `rules.rs`.
-
-Fixtures cited below are under `<scratch>/parity/fsharp/` (f1 … f11). Each was run with `target/release/cgg` 0.11.0 as `-t json -o out.json` and read with `show.py`/`aud.py` in that directory. The `--dead-code` runs used `--dead-code-format json --dead-code-confidence low -o dc.json`.
+Fixtures cited below are under `<scratch>/parity/fsharp/` (f1 … f11). Each was run with `target/release/cgg` 0.11.0 as `-t json -o out.json` and read with `show.py`/`aud.py` in that directory. The `--dead-code` runs used `--dead-code-format json --dead-code-confidence low -o dc.json`. Claims marked 0.13.3 were re-checked on new fixtures under `<scratch>/lang-docs/fsharp/` (n1 = `f1/`, n2 = `f2/`, n3 = `f3/`), run with `target/release/cgg` 0.13.3.
 
 ## 01. Detection & parsing
 
@@ -28,22 +26,23 @@ Fixtures cited below are under `<scratch>/parity/fsharp/` (f1 … f11). Each was
   - Test `detect_prefixes.rs:68` generates F# fixtures as `open {prefix}` in `.fs`.
 - **Shebangs: none.** Fixture f7: an extensionless `runme` beginning `#!/usr/bin/env -S dotnet fsi` → `file_skipped` `unknown-extension`.
 - **Content detection: none.** `detect.rs` has no F# entry (grep).
-- **One grammar for every extension.** `.fsi` signature files are parsed with the implementation grammar and not with `LANGUAGE_SIGNATURE`. Fixture f7 `W.fsi`:
+- **One grammar for every extension.** `.fsi` signature files are parsed with the implementation grammar and not with `LANGUAGE_SIGNATURE`. Fixture f7 `W.fsi` (re-confirmed 0.13.3 n1 `Sig.fsi`):
   - `val mk : unit -> Widget` yields no callable.
   - It yields a false call site named `val` (an external record, `src: null`, line 2).
 - **No re-parse or fallback.** `#if/#else` is not blanked: both branches are parsed and extracted (§08).
 - **Depth skip**: shared. A file deeper than `MAX_TREE_DEPTH` (4,000) is skipped as `TooDeep` (`cgg/src/lib.rs`, `cgg_lang::exceeds_depth`). Not exercised for F# (unverified for this language).
-- **Minified / long line**: `max_line_bytes` is not overridden, and there is no locals table, so the 2,000-byte locals rule has nothing to skip. Not exercised.
+- **Minified / long line**: `max_line_bytes` is not overridden; the generic 2,000-byte rule skips locals collection on such files. Not exercised.
 - **Parse status**: every fixture parsed `ok`. F# files with syntax errors are still extracted (generic behaviour, unverified for F#).
 
 ## 02. Callables extracted
 
-There are only two variants:
+Three variants:
 
 - `FreeFunction` (kind `function`), for a `let` with arguments outside any type scope.
-- `InherentMethod` (kind `method`), for a `let` inside a type, or any `member_defn` (fsharp.rs:157-161, 211).
+- `InherentMethod` (kind `method`), for a `let` inside a type, or any `member_defn`.
+- `Constructor`, for a class's primary constructor and each `new(…) =` (`record_primary_constructor`, `push_constructor`, fsharp.rs:351-403; test `constructors_are_recorded`).
 
-The qualified name is `scope.join(".") + "." + name`. The scope stack is pushed **only** by `anon_type_defn`, which is a `type T(...) =` class (fsharp.rs:75-89, 51-57).
+A member's qualified name is `Type.name`. A module-level function's qualified name is its module path then its name (`module_qn`, fsharp.rs:62): the file's `namespace` or `module A.B.Mod`, then each nested `module Inner =`. 0.13.3 n1: `Main.helper`, `Acme.Core.Util.format`, `Acme.Core.Util.Nested.deep`.
 
 Supported:
 
@@ -51,7 +50,9 @@ Supported:
   - Node `helper` (FreeFunction).
   - Test `let_binding_with_args`. Fixture f1.
 - **`let inline`, `let rec`**: `let inline twice f x = …` and `let rec fact n = …` → nodes `twice` and `fact`. Fixture f1.
-- **Nested `let` functions**: `let outer y = let inner z = … in inner y` → separate node `inner`, unqualified. The edge `outer → inner` is `high`. Fixture f1.
+- **Nested `let` functions**: `let outer y = let inner z = … in inner y` → separate node `inner`. The edge `outer → inner` is `high`. Fixture f1.
+- **Every binding of a `let`** (each `and` of `let rec … and …`) is its own callable, and a value pattern that is a lowercase name applied to arguments (`let f (x: T) : R = …`, the shape a return-type annotation produces) is a function (`locals::fsharp_let_bindings`; test `every_function_binding_is_a_callable`). 0.13.3 n1: `let rec even … and odd …` → `Main.even`, `Main.odd`, linked both ways `high`; `let mk () : Service = …` → `Main.mk`.
+- **Constructors**: `type Service(name)` → `Service.Service` (primary), `new() = Service("x")` → a second `Service.Service`; `type Base()` → `Base.Base` (0.13.3 n1).
 - **Class members**: `type Service(name) = member this.Run() = …` → `Service.Run`.
   - The last identifier of `property_or_ident` is the name (fsharp.rs:182-199).
   - Test `type_members`. Fixture f1.
@@ -69,11 +70,7 @@ Supported:
 
 Not supported or partial:
 
-- **Module and namespace scope is not part of the qualified name.**
-  - `module Lib.A`, `namespace Acme.Core`, `module Util = …` and nested `module Nested = …` push no scope.
-  - Fixture f1: `Nested.deep` is node `deep`. Fixture f2: `Acme.Core.Util.format` is node `format`.
-  - Two modules' same-named functions therefore get identical QNs (fixture f3: `Util.only` and `Other.only` are both `only`).
-- **Record, union and type-extension members have no owner.** `record_type_defn`, `union_type_defn` and `type_extension` do not push scope.
+- **Record, union and type-extension members have no owner** (re-confirmed 0.13.3 n1: `{ X: int } with member this.Double()` → `Double`). `record_type_defn`, `union_type_defn` and `type_extension` do not push scope.
   - Fixture f1: `{ X: int } with member this.Double()` → `Double`; the union member `Tag` → `Tag`.
   - Fixture f4: `type System.String with member this.Shout()` → `Shout`.
 - **Value bindings are never callables.** This includes:
@@ -82,30 +79,28 @@ Not supported or partial:
   - Expecto `let tests = testList …`.
 
   A `let` with no `function_declaration_left` is skipped (fsharp.rs:138-141). Fixtures f1, f4, f10.
-- **Operator definitions**: `let (|>>) a b = b a` → no node, because the plugin requires an `identifier` child (fsharp.rs:142-144). Its body's call `b` is then recorded with `src: null`. Fixture f1.
+- **Operator definitions**: `let (|>>) a b = b a` → no node (re-confirmed 0.13.3 n1). Fixture f1.
 - **Active patterns**: `let (|Even|Odd|) n = …` → no node. Fixture f4.
 - **Lambdas**: `fun q -> …` → no node. Their calls are attributed to the enclosing function. Fixture f1, line 26.
-- **Constructors**: there are no constructor nodes.
-  - Neither the primary constructor of `type Service(name)` nor `new() = Service("x")` (`additional_constr_defn`, grammar.js:1868) produces a node.
-  - The `new()` body's call is recorded with `src: null`. Fixture f1, line 45.
-- **Auto-properties**: `member val Name = … with get, set` → no node. Fixture f1.
+- **Auto-properties**: `member val Name = … with get, set` → no node. Fixture f1; re-confirmed 0.13.3 n1.
 - **Abstract slots and interface declarations**: `abstract member Virt : unit -> int` and `type IShape = abstract member Area : …` → no node.
   - `member_signature` is not handled.
-  - Fixture f1: `IShape` declares nothing, and `Service.Virt` exists only through its `default`.
+  - Fixture f1: `IShape` declares nothing, and `Service.Virt` exists only through its `default` (re-confirmed 0.13.3 n1: `Base.Virt` from `default` only).
 - **Signature-file `val` declarations**: no node. Fixture f7.
 - **`extern` declarations** (`[<DllImport>] extern int native_add(…)`, `extern_binding`, grammar.js:183): no node. Fixture f8.
 - **Top-level script code** in `.fsx` and `do` blocks: no node. Calls there get `no-enclosing-callable`. Fixture f7.
-- **Visibility is not recorded**: `let private hidden` and `let internal inner` have empty `visibility` (fsharp.rs:167, 217). Fixture f6.
+- **Visibility is not recorded**: `let private hidden` and `let internal inner` have empty `visibility`. Fixture f6; the 0.13.3 dead-code capability row still reports `visibility none`.
 - **Generated code**: none (§08).
 
 ## 03. Call-site forms
 
-Only `application_expression` produces a site (fsharp.rs:115-119, 228-290). The walker descends leftward through nested applications to the callee. It records the callee in one of two ways:
+Only `application_expression` produces a call site (`record_call`, fsharp.rs:404-548). The walker descends leftward through nested applications to the callee. When the head is an `infix_expression` (the grammar reads `xs |> f a` as `(xs |> f) a`), the callee is the operator's right operand, unless the application is a folded block (`applies_to_block`, fsharp.rs:684). It records the callee in one of three ways:
 
 - A `long_identifier` is split on identifiers: the last one is the name and the prefix, joined with `.`, is `receiver_hint`.
-- A plain `identifier` is recorded as is.
+- A `dot_expression` whose text is a plain dotted path (`A.B` dot `f`) is the same dotted call.
+- A plain `identifier` is recorded as is (with `not_def` for a `new()` delegating to its own type).
 
-No `arity`, `dot_call`, `value_ref`, `typed_receiver`, `path_receiver`, `paren_less` or `implicit_receiver` field is ever set.
+Under `reference_sites`, value positions are recorded with `RefRecord::value_ref` (below). No `arity`, `typed_receiver`, `path_receiver`, `paren_less` or `implicit_receiver` field is set.
 
 Supported:
 
@@ -118,52 +113,36 @@ Supported:
 - **Calls inside computation expressions**: `async { let! x = fetch () … }` → `ce → fetch` (high). Fixture f4.
 - **Calls inside quotations**: `<@ handler () @>` → recorded as a real call (an edge to `Other.handler`). Fixture f8.
 - **Calls inside lambdas**: `fun q -> helper q` → attributed to the enclosing `let`. Fixture f1.
+- **Multi-segment module paths**: `X.Y.zed 1` → `X.Y.zed` `high` (0.13.3 n4 = `f4/`). `System.Activator.CreateInstance(…)` is recorded and goes external.
+- **Calls folded into an operator expression** (since WS26b): `[1] |> X.Y.f 2` → call of `X.Y.f` `high` (0.13.3 n4; test `a_call_folded_into_an_operator_is_recorded`).
+- **Value references** (only under `--reference-edges` or `--dead-code`): `f`/`M.f` as application arguments, operands of `fsharp::FUNCTION_OPERATORS` (pipelines, composition, monadic/applicative; fsharp.rs:676), record and object-expression values, list/array/tuple elements and a `let`'s or member's value; never a capitalized bare name or a member through a variable (test `function_values_are_reference_sites`). 0.13.3 n1 with `--reference-edges`: `1 |> helper`, `List.map helper` and `List.map classify` each give a `reference` edge `high`.
 
 Not supported or partial:
 
-- **A receiver of two or more segments drops the site with no audit record.**
-  - Affected calls, all in fixtures f1, f8 and f9: `X.Y.zed 1`, `X.Y.zed(1)`, `x.y.zed 1`, `Nested.Deeper.deeper ()`, `S2.M.Over(1)`, `System.Activator.CreateInstance(t)`, `w.Value.Render()`.
-  - None produces an edge, an unresolved record or an external record, even with `--include-external --include-stdlib` (fixture f8 `ext.json`).
-  - Probable cause: the grammar parses these as `dot_expression` (grammar.js:931), which `record_call`'s `match` drops in its `_ => {}` arm (fsharp.rs:250-285). The exact parse is unverified.
 - **Chained calls** `o.ToString().Trim()` and `d.Use().ToString().Length` record only the first call. Fixtures f9 and f4.
-- **Calls on a parenthesised receiver**: `(makeIt ()).Go()` and `(a :> Animal).Speak()` record no `Go`/`Speak` site. Fixtures f9 and f5.
+- **Calls on a parenthesised receiver**: `(makeIt ()).Go()` and `(a :> Animal).Speak()` record no `Go`/`Speak` site. Fixtures f9 and f5; re-confirmed 0.13.3 n4 `(Widget()).Render()`.
 - **Calls on a record expression**: `{ X = 1 }.Double()` is not recorded. Fixture f1.
-- **Pipelines and composition are not calls**:
-  - `1 |> zed`, `zed <| 1`, `zed >> zed` and `x |> ignore` record nothing for `zed`/`ignore` (`infix_expression` is not handled). Fixture f9.
-  - Only an application on either side is recorded, for example `List.iter (fun …)` in `[1;2] |> List.iter (fun …)`.
-  - This is the dominant F# call style, so the loss is large.
+- **Pipelines and composition are not call edges**: `1 |> zed`, `zed >> zed` record `zed` only as a value reference, so the default graph (without `--reference-edges`) has no edge for them (0.13.3 n1: `1 |> helper` → no `direct` edge).
 - **User-defined operator calls**: `3 |>> helper` → nothing. Fixture f1.
-- **Constructor calls** `Service("a")`, `Widget(3)` and `Circle(1.0)` are recorded as calls of the type name. They never bind, because no constructor node exists; they end as `no-candidate-in-file`. Fixtures f1, f2, f7.
-- **Functions passed as values**: `List.map helper […]`, `List.map classify`, `routef "/x/%s" handleGet`.
-  - No value reference is recorded, even with `--reference-edges`. Fixtures f1, f4, f10.
-  - In f10 `handleGet` is reported dead with evidence `no-unresolved-site-with-name`.
-- **Duplicate sites for curried applications.** In `List.map helper [1;2;3]` and `printfn "%d" x`, each nested `application_expression` records its own site, and the leftward descent reaches the same callee every time (fsharp.rs:115-118 calls `record_call` and then `walk_children`). Fixture f1: two `map` and two `printfn` external records at the same byte.
+- **Constructor calls** `Service("a")` bind the type's constructors; with no arity narrowing (F# is not in `OVERLOAD_ARITY_LANGS`) both `Service.Service` nodes are reached at `medium` (0.13.3 n1).
+- **Duplicate sites for curried applications.** In `printfn "%d" x`, each nested `application_expression` records its own site at the same byte (re-confirmed 0.13.3 n4: two `printfn` external records at byte 301).
 - **Registrar arguments**: not captured. The plugin never calls `registrar::*` (grep), and no F# rule declares registrars.
-- **Arity**: never recorded (`RefRecord::arity` is not set; fsharp.rs:267-283).
+- **Arity**: never recorded (`RefRecord::arity` is not set).
 
 ## 04. Imports & module resolution
 
 - **`open A.B`** → `ImportRecord { kind: "open", path: "A.B" }` (fsharp.rs:100-113). Test `open_is_import`.
-- **Cross-file handling** (cross_file.rs:1914-1925 and the generic branch at 2064-2079):
-  - The path is pushed as an unqualified prefix.
-  - Its last segment becomes a module alias (`Util` → `Acme.Core.Util`).
-  - Step 1b tries `<prefix>.<name>` (cross_file.rs:5943-5970). It is certain only when exactly one opened prefix declares the name.
-  - Because F# qualified names never carry the module (§02), this `<prefix>.<name>` lookup cannot match a module-level function.
-- **What resolves in practice** (observed; exact mechanism unverified):
-  - **Bare call after `open M`, where `M` matches a file stem.** Fixture f3: `open Other` + `only ()` binds only `Other.fs`'s `only` (medium). Without the `open`, `only ()` is `candidates-in-other-files` (2).
-  - **Module-qualified call whose module was opened and matches a file stem.** Fixture f2: `open Acme.Core.Util` + `Util.format 1`, with the module in `Util.fs` → `high`.
-- **What fails**:
-  - **Module-qualified call without an `open`**: `Util.format 1`, `Other.render ()` and `Y.zed 1` → `candidates-in-other-files`, never bound. Fixtures f3 and f9.
-  - **Opened module in a file with a different stem**: `module Util` inside `Helpers.fs`, opened as `open Acme.Core.Util`. `Util.format 1` is unresolved, and the bare `format 2` fans out to both `Helpers.fs` and an unrelated `Dup.fs` (medium). Fixture f11.
-  - **Bare call with several opens**: in fixture f2, `parse "x"` bound both `Util.parse` and the never-opened `Other.parse` (medium).
+- **Module-qualified calls (WS34, 0.11.2).** A call through a capitalized path binds the `f` of the module that path names, written whole or relative to the file's own namespaces and modules or its `open`s, nearest first (`LibIndex::resolve_fsharp`). One target is `high`, copies in several files `medium`; a path no in-tree module declares (`List.map`) falls through and stays external. 0.13.3 n1: `Util.format 1` (after `open Acme.Core`) → `Acme.Core.Util.format` `high`; `Acme.Core.Util.Nested.deep ()` and `Util.Nested.deep ()` → `Acme.Core.Util.Nested.deep` `high`. This works independently of file stems.
+- **Module abbreviations** (`module L = A.B`, a `module-abbrev` import record, fsharp.rs:80-107): the alias heading a path is read as its target. 0.13.3 n2: `module L = Llm_v2` then `L.classify x` → `Llm_v2.classify` `high`; `module V = Util` (with `open Acme.Core`) then `V.format 3` → `Acme.Core.Util.format` `high`.
+  - **Bug at 0.13.3**: an abbreviation whose target is a dotted path does not resolve. n2/n3: `module U = Acme.Core.Util` then `U.format 2`, and `module M = A.B.Mod` then `M.h 1`, are both `candidates-in-other-files` (1 candidate), while the same call written in full binds `high`.
+- **Bare calls after `open`**: still name-based. 0.13.3 n1: with only `open Acme.Core`, `only ()` fans out at `medium` to both `Acme.Core.Util.only` and the never-opened top-level module `Other.only`, a wrong edge.
 - **`open type X`** is accepted by the grammar (grammar.js:284). The plugin reads only the `long_identifier`, so it is recorded like a plain `open` (unverified by fixture).
-- **Module abbreviations** `module U = Acme.Core.Util` (`module_abbrev`) are not recorded. `U.format 2` → unresolved `candidates-in-other-files`. Fixture f2.
 - **`#load "x.fsx"` / `#r "nuget: …"`** (`fsi_directive_decl`): not recorded (no handler).
-- **Namespace / package records**: `FileFacts::packages` is never filled. `namespace`/`module` declarations are ignored.
+- **Namespace / package records**: `FileFacts::packages` holds the file's `namespace`/`module` names (fsharp.rs:170-191).
 - **Manifest reading**: none. `.fsproj` compile order and `paket.dependencies` are not read; `manifest.rs` has no F# entry.
 - **External-module refusal (`heads.rs`)**: F# is not covered. The `match lang` arms are Python, JS/TS, Go, Java/Kotlin, C#, Scala, Solidity and C++ (heads.rs:413-625).
   - Calls like `List.map` and `printfn` reach the external bucket only through the generic name screen (`name_screen_applied: "external"`, stage `no-candidate-in-file`). Fixture f1.
-- **`not-in-imported-module` (`modules.rs`)**: not covered. `modules.rs:190` lists only JS, TS, Python, Go and Lua.
+- **`not-in-imported-module` (`modules.rs`)**: not covered. A module path no in-tree module declares falls through to the ordinary steps instead.
 - **Language family**: C#/F# family sharing is commented out (lang_family.rs:34), so there is no C# ↔ F# resolution.
 - **Test**: `fsharp_bare_call_never_reaches_a_member` (cross_file.rs:13535-13563, R15). With `open Paket.Domain`, a bare `PackageName` does not bind a type's member `PackageTypes.PackageName`.
 
@@ -177,22 +156,22 @@ Supported:
   - The receiver is typed and the edge is `high`.
   - Mechanism: the generic `name: Type` parse (`parse_colon_param`, type_hints.rs:1446-1462).
   - Fixtures f2 and f7. In f9, `o.ToString()` was rewritten to receiver `obj`.
-- **`this.` receivers**: `this.Run()` and `this.Helper()` bind to the enclosing type (or the single same-named method) at `high`. Fixtures f1 and f4.
+- **`this.` receivers**: `this.Run()` and `this.Helper()` bind to the enclosing type (or the single same-named method) at `high`. Fixtures f1 and f4; 0.13.3 n1 `this.Virt()` → inherited `Base.Virt` `high`.
 
 Not supported or partial:
 
-- **Curried parameters after the first group**: in `let curried (g: Gadget) (w: Widget) = w.Render()`, `w` is untyped, and `Render` fans out to `Widget.Render` and `Gadget.Render` (medium). Fixture f7.
-- **Locals from construction**: `let w = Widget(3)` then `w.Render()` → medium by name. Fixture f2. Fixture f1: `s.Run()` → medium.
+- **Curried parameters after the first group**: in `let curried (g: Gadget) (w: Widget) = w.Render()`, `w` is untyped, and `Render` fans out to `Widget.Render` and `Gadget.Render` (medium). Fixture f7; re-confirmed 0.13.3 n4.
+- **Locals from construction**: `let w = Widget(3)` then `w.Render()` → medium by name. Fixture f2. 0.13.3 n1: `let s = Service("a")` then `s.Run()` → `medium` even with one `Run` in the tree.
 - **Pattern-annotated locals**: `let (w3: Widget) = Widget.Make()` → `w3.Render()` medium. Fixture f2.
-- **Return-type annotations**: `let mk () : Widget = …` then `let w = mk ()` → `w.Render()` fans out to both owners (medium). Fixture f7. `extract_return_type` has no F# `) : T` shape (type_hints.rs:2632-2671).
+- **Return-type annotations**: `let mk () : Widget = …` then `let w = mk ()` → `w.Render()` fans out to both owners (medium). Fixture f7; 0.13.3 n1 `w.Run()` after `let w = mk ()` → `medium`.
 - **Lambda parameter annotations**: `fun (x: Widget) -> x.Render()` → medium fan-out. Fixture f7. `closure_types.rs` has no F# entry.
 - **Upcasts and downcasts** `(a :> Animal)` and `:?>`: not peeled, because `receiver::peel` is not used and the site is dropped (§03). Fixture f5.
-- **Option wrappers**: in `(w: Widget option)` → `w.Value.Render()` the site is dropped (multi-segment receiver). F#'s postfix `option` is not exercised through `declared_type` (unverified).
+- **Option wrappers**: in `(w: Widget option)`, `w.Value.Render()` is recorded with an untyped receiver and fans out to every `Render` at `medium` (0.13.3 n4).
 - **Implicit receivers** (Kotlin-style) and **weak receiver types**: not applicable; nothing is recorded.
 
 ## 06. Inheritance, dispatch & overloading
 
-- **Base records**: none. `inherit Base()` and `interface I with` are not recorded as bases. The plugin never fills `base_types` or `classes` (fsharp.rs).
+- **Base records**: `inherit Base(…)` is recorded on the type's scope (fsharp.rs:136-141) and its constructor call reaches `Base`'s constructor (0.13.3 n1: `Service.Service -> Base.Base` `high`). `interface I with` is not a base.
 - **`base.M()`** is resolved by name.
   - Fixture f5: inside `Dog.Speak`, `base.Speak()` → `Animal.Speak` **and** `Cat.Speak` (medium, `cross-file:imports`). Cat is a sibling, so this is a wrong edge.
   - Fixture f4 got the single right answer (`high`) only because the base was literally named `Base`. That matches the receiver text `base` case-insensitively (coincidence; unverified mechanism).
@@ -200,26 +179,25 @@ Not supported or partial:
 - **Untyped receiver fan-out**: `x.Speak()` → all three `Speak` (medium; `?` in mermaid). Fixture f5.
 - **`member_of_calling_class` / `overrides_below`**: F# is not wired into either path. `bare_call_reaches` treats F# like Python/Rust: a bare name never reaches a member (cross_file.rs:4067-4069, 4137-4139).
 - **Interface → implementation**: abstract members are not nodes (§02), so no declaration exists to dispatch from.
-- **`--dynamic-dispatch` / `inheritance_fanout`**: F# is not in `INHERITANCE_LANGS` (dispatch.rs:110-123). Fixture f5 with `--dynamic-dispatch`: no `dyn` edges.
+- **`--dynamic-dispatch` / `inheritance_fanout`**: F# is not in `INHERITANCE_LANGS`. Fixture f5 with `--dynamic-dispatch`: no `dyn` edges (0.13.3 n1: none either).
 - **Type extensions / extension members**: `type System.String with member this.Shout()` → owner-less `Shout`. `s.Shout()` on `(s: string)` binds by name (medium). Fixture f4.
 - **Overload sets**: same-file, same-QN overloads are one callee (`binds_same_name_set` includes `fsharp`, intra_file.rs:829-850).
   - Fixture f1: `Service.Create("b")` → both `Service.Create` overloads, medium.
   - CHANGELOG.md:258-262 (overload sets past the cap bind in F#, +242 edges).
-- **Arity narrowing**: F# is not in `OVERLOAD_ARITY_LANGS` (`["java", "scala", "cpp"]`, type_hints.rs:1583), and no arity is recorded.
+- **Arity narrowing**: F# is not in `OVERLOAD_ARITY_LANGS`, and no arity is recorded (0.13.3 n1: `Service.Create(1)` and `Service.Create(1, 2)` each bind both overloads at `medium`).
 - **Mixins and traits**: not applicable.
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`**: not populated. `locals::spec` has no F# arm (locals.rs:380-393).
-  - Consequence: no `shadowed-by-local`. A call through a parameter binds to another file's same-named function.
-  - Fixture f8: `let apply g = g 1` → `Other.g` (medium). `let shadowParam handler = handler ()` → `Other.handler` (medium). Both are wrong edges.
+- **`FileFacts::locals`** (WS27, `locals::collect_fsharp`): `let`-function and member parameters (curried, tupled, typed, `?opt`, patterns) and a member's self identifier over the definition, `fun` patterns over the lambda, `match`/`function`/`try … with` rule patterns over their rule (guard included), local `let`/`let!`/`use`/`use!` from the end of the binding to the end of its `in` body (`let rec` from its own start) and `for` variables. Module-level and class `let`s are not locals; a capitalized pattern head is a union case; a qualified call is never shadowed.
+  - 0.13.3 n1: `let apply handler = handler ()` and a local `let helper = fun x -> x` then `helper 2` are both `shadowed-by-local` (the 0.11.0 wrong edges are gone).
 - **Lexical narrowing of nested definitions**: supported (`lexically_scoped` includes `fsharp`, intra_file.rs:118-135; CHANGELOG.md:576-582).
   - Fixture f4: in `let shadow () = let fetch () = 2 in fetch ()`, the call binds the inner `fetch` (high), not the module-level one.
   - Fixture f1: `outer → inner`.
 - **Positional (ML-style) shadowing**: supported. A later same-scope binding before the site wins (intra_file.rs:400-416, `"ocaml" | "fsharp" | "lua"`).
   - Fixture f8: with two `cond` definitions in `#if/#else`, `useCond` binds the second (line 16) at high.
 - **Conditional definitions**: no `DefRecord::conditional` (§08).
-- **Module scope**: since modules are not scopes (§02), nested-module functions are lexically top-level for narrowing purposes.
+- **Module scope**: modules name functions (§02) but are not lexical scopes for narrowing; nested-module functions are lexically top-level. A function nested in another is never a bare-name candidate from another file (`cross_file::nested_function_ids`).
 
 ## 08. Macros, preprocessor & codegen
 
@@ -245,13 +223,13 @@ Every `RuleSpec` with `language: "fsharp"` is listed below. Each spec has a sing
 
 | rule id | kind | detect | trigger | effective? |
 | --- | --- | --- | --- | --- |
-| `azure-functions` (rules.rs:2518-2541) | network | `Microsoft.Azure.Functions.Worker`, `Microsoft.Azure.WebJobs` | attributes `Function`, `FunctionName` | **Yes** |
-| `fsharp-entrypoint` (rules.rs:6097-6113) | cli | `System`, `Argu`, `CommandLine` | none | No, detect-only gap |
-| `giraffe` (rules.rs:6114-6130) | network | `Giraffe` | none | No, gap |
-| `saturn` (rules.rs:6131-6147) | network | `Saturn` | none | No, gap |
-| `suave` (rules.rs:6148-6164) | network | `Suave` | none | No, gap |
-| `expecto` (rules.rs:6165-6181) | test | `Expecto` | none | No, gap |
-| `fsharp-nunit` (rules.rs:6182-6207) | test | `NUnit.Framework`, `FsUnit`, `NUnitLite` | attributes `Test`, `TestCase`, `TestCaseSource`, `SetUp`, `TearDown`, `OneTimeSetUp`, `OneTimeTearDown`, `Fact`, `Theory` | **Yes** (§11) |
+| `azure-functions` (rules.rs:2746) | network | `Microsoft.Azure.Functions.Worker`, `Microsoft.Azure.WebJobs` | attributes `Function`, `FunctionName` | **Yes** |
+| `fsharp-entrypoint` (rules.rs:6422) | cli | `System`, `Argu`, `CommandLine` | none | No, detect-only gap |
+| `giraffe` (rules.rs:6439) | network | `Giraffe` | none | No, gap |
+| `saturn` (rules.rs:6456) | network | `Saturn` | none | No, gap |
+| `suave` (rules.rs:6473) | network | `Suave` | none | No, gap |
+| `expecto` (rules.rs:6490) | test | `Expecto` | none | No, gap |
+| `fsharp-nunit` (rules.rs:6507) | test | `NUnit.Framework`, `FsUnit`, `NUnitLite` | attributes `Test`, `TestCase`, `TestCaseSource`, `SetUp`, `TearDown`, `OneTimeSetUp`, `OneTimeTearDown`, `Fact`, `Theory` | **Yes** (§11) |
 
 Notes on each rule:
 
@@ -259,7 +237,7 @@ Notes on each rule:
   - Test `azure-functions/fsharp` (crates/cgg/tests/frameworks.rs:1278-1282). Fixture f10.
   - The trigger kind on the first parameter is not read (gap text).
 - **`fsharp-entrypoint`**: it detects the framework but has no matchers. `[<EntryPoint>]` is not a matcher, and `main` is rooted only by name (§12).
-- **`giraffe` and `suave`**: `route … >=> handler` and `choose […]` live in operator and list position, which is not recorded. Fixture f10 prints "seen, no rules giraffe — entries NOT enumerated".
+- **`giraffe` and `suave`**: `route … >=> handler` and `choose […]` live in operator and list position; since WS26b those handlers are value references under `--dead-code`/`--reference-edges`, but no rule enumerates them as entries. Fixture f10 prints "seen, no rules giraffe — entries NOT enumerated".
 - **`saturn`**: computation-expression `router { … }` operations are not recorded.
 - **`expecto`**: `[<Tests>]` values are not callables, and argument-position lambdas are not recorded. Fixture f10 prints "seen, no rules expecto".
 - **`fsharp-nunit`**: matches attributes on `let` functions and members.
@@ -267,7 +245,7 @@ Notes on each rule:
   - The `expecto` gap says "the fsharp plugin populates no attributes".
   - The `fsharp-nunit` gap says the plugin "hardcodes `attributes: Vec::new()`".
 
-  Both have been false since 0.6.8 (fsharp.rs:168-173), and fixtures f6 and f10 show attributes recorded and `fsharp-nunit` matching.
+  Both have been false since 0.6.8, and fixtures f6 and f10 show attributes recorded and `fsharp-nunit` matching. Both texts are still unchanged at 0.13.3 (rules.rs:6502, 6529); 0.13.3 n1 records `['EntryPoint']` on `Main.start`.
 - **`member_sources_for`**: no F# arm. `TestCaseSource` data members named by string are not rooted. Only `nunit-runner`/`xunit-data` for C# exist (rules.rs:11719-11760).
 - **`signature_methods_for`**, **`container_attributes_for`**, **`markup_kinds_for`**, **`visibility_entries_for`** and **`self_module_markers_for`**: no F# arm (rules.rs:11666-11866).
 - **Registrar verbs**: no F# rule declares `registrars`, so `registrar_verbs_for("fsharp")` is `None` (rules.rs:11929-11955), and the plugin does no capture.
@@ -296,41 +274,39 @@ Notes on each rule:
 
 ## 12. Dead-code analysis
 
-- **Capability class: `degraded`**, with `"max_confidence": "medium"`. Fixture f6 `capabilities`:
+- **Capability class: `degraded`**, with `"max_confidence": "medium"`. 0.13.3 n1 `capabilities`:
   - visibility `none`
-  - attributes `full`, measured from the run even though `signals().attributes` is false
-  - value_references `none`
+  - attributes `full`
+  - value_references `full` (was `none` in the 0.11.0 fixture f6)
   - dispatch `none`
   - exports `none`
   - test_tagging `none`
 
-  `signals_complete` needs both visibility and attributes (caps.rs:88-96, 166-172), so **no F# finding can be `high`**.
-- **Evidence on every finding** (fixture f6): `language-lacks-dispatch-model`, `language-lacks-value-references`, `language-lacks-visibility`, `no-incoming-edges`, `no-unresolved-site-with-name`.
+  `signals_complete` needs both visibility and attributes, so **no F# finding can be `high`**.
+- **Evidence on every finding** (0.13.3 n1): `language-lacks-dispatch-model`, `language-lacks-visibility`, `no-incoming-edges`, and `no-unresolved-site-with-name` or `name-matches-unresolved-site`.
 - **Roots**:
   - `main` by name (`UNIVERSAL_ENTRY`, roots.rs:20). F# has no `LANG_ENTRY` row (roots.rs:23-32).
   - Framework entries and test harnesses (§10, §11).
   - `cgg-deadcode.toml` user roots (generic).
-- **`[<EntryPoint>]` with a name other than `main` is reported dead.** Fixture f10: `[<EntryPoint>] let start argv = 0` → finding `start` (medium).
+- **`[<EntryPoint>]` with a name other than `main` is reported dead.** Fixture f10: `[<EntryPoint>] let start argv = 0` → finding `start` (medium); re-confirmed 0.13.3 n1 (`Main.start`).
 - **Visibility**: `private` and `internal` are not recorded, so `hidden`/`inner` are judged the same as public functions (fixture f6). There are no public/exported roots.
 - **Caps**:
   - `implements-external-contract`: never applied. `override` members are not recognised as overriding anything, and there are no base records.
   - `macro-generated`: not applicable.
   - `reflection`: not applicable (§15).
 - **False positives the gaps cause**:
-  - functions used only as values (`handleGet` in f10, `classify` passed to `List.map`);
-  - functions called only via `|>`/`<|`/`>>`;
-  - functions called through a multi-segment path (§03);
-  - Giraffe/Suave/Saturn handlers;
-  - Expecto tests.
+  - Giraffe/Suave/Saturn handlers reached only through routing values with no entry rule;
+  - Expecto tests;
+  - functions reached only through user-defined operators or a parenthesised receiver (§03).
 
-  The `no-unresolved-site-with-name` evidence is then misleading, because those sites were never recorded.
+  Functions used as values or through pipelines, and multi-segment calls, are credited since WS26b/WS34.
 - **Unreachable code** (`unreachable`): not declared, so there are no statements-after-terminator findings.
 
 ## 13. Builtins & stdlib tables
 
-- **There is no `stdlib/fsharp.txt`.**
-  - The `include_str!` list (stdlib.rs:184-213) has no F# entry, and `crates/cgg-core/src/stdlib/` has no such file.
-  - `printfn`, `List.map`, `string`, `ignore` and the like go to the external bucket through the generic name screen. With `--include-stdlib` they never become `std` exit nodes. Fixtures f1 and f8: `0 stdlib`.
+- **There is no `stdlib/fsharp.txt`** (still absent at 0.13.3).
+  - `printfn`, `List.map`, `string`, `ignore` and the like go to the external bucket through the generic name screen. With `--include-stdlib` they never become `std` exit nodes. Fixtures f1 and f8: `0 stdlib`; 0.13.3 n4: `printfn` and `System.Activator::CreateInstance` external.
+  - `--externals` has F# rows (stdlib.rs): `STDLIB_ROOTS` (`System`, `FSharp.Core`, `Microsoft.FSharp`), `STDLIB_LIBRARY_NAMES` (`FSharp.Core`), `PROCESS_SPAWN_APIS` and `LIBRARY_LOAD_APIS`. They affect only the externals report.
 - **`rust_types`-like wrapper tables**: none for F# (`option`, `list`, `Async<T>`, `Task<T>`).
 - **`CAST_INTRINSICS` / `CONSTRUCTING_METHODS`**: unused, because the plugin does not call `receiver::peel`.
 - **Implicit packages** (like `SCALA_IMPLICIT_PACKAGES`): none. F#'s auto-opened `FSharp.Core` modules are not modelled.
@@ -341,12 +317,12 @@ Notes on each rule:
 - **`high` is reached through these paths**:
   - **Intra-file single candidate**: a bare call to a same-file `let` (`usesThings → helper`), the innermost nested definition, positional shadowing, and `this.M()` with one candidate. Fixtures f1, f4, f8.
   - **Annotated first-group parameter receiver naming exactly one type** (`typed → Widget.Render`, `tupled → Widget.Render`). Fixtures f2 and f7.
-  - **Module-qualified call through an opened module whose file stem matches** (`Util.format`, `Widget.Make`, `cross-file:imports`). Fixture f2.
+  - **Module-qualified call naming one in-tree module function** (`LibIndex::resolve_fsharp`; 0.13.3 n1 `Util.format`, `X.Y.zed`), including through a single-segment module abbreviation (n2).
 - **`medium` is forced by**:
   - by-name fan-out on untyped receivers (`s.Run()`, `x.Speak()`, `base.Speak()`);
   - same-QN overload sets (`Service.Create`);
   - bare calls after `open` (fixture f3: `run2 → Other.only` medium);
-  - a parameter shadow bound to another file's function (fixture f8).
+  - constructions of a type with several constructors (0.13.3 n1 `Service("a")`).
 - **Framework entries** are `low` (fixtures f6 and f10).
 - **`low` through `--guess-unique-names`**: Rust only; not applicable.
 - **The mermaid `?` marker** prefixes every non-high arrow label (fixture f5: `N1 -->|?| N0`).
@@ -357,7 +333,7 @@ Notes on each rule:
 - **Not covered.** `dyn_uses` is not declared, and `dynuse.rs` covers Python, JS, Java, C#, Ruby and PHP only (CLAUDE.md, step 7; grep shows no F# entry).
 - `t.GetMethod("Length")`, `Activator.CreateInstance(t)`, `typeof<…>` and `nameof` do not cap any finding.
   - Fixture f8: `GetMethod` is an external call with receiver `t`.
-  - `CreateInstance` is dropped entirely, because it is reached through a multi-segment receiver.
+  - `System.Activator.CreateInstance` is recorded as an external call (0.13.3 n4), with no reflection screen.
 - **Dynamic operator `?`** and **`Assembly.Load`** module loads: not recognised (no handler).
 
 ## 16. Known gaps & limitations
@@ -366,46 +342,46 @@ From code, rule gap texts and CHANGELOG:
 
 - `gap_for("fsharp-entrypoint" | "giraffe" | "saturn" | "suave" | "expecto", "fsharp")`: entries are not enumerated (rules.rs:6110, 6127, 6144, 6161, 6178).
 - The `fsharp-nunit` and `expecto` gap texts are **stale**: they claim attributes are never populated (rules.rs:6178, 6205; contradicted by fsharp.rs:168-173 and fixture f6).
-- CHANGELOG.md:1349: "Not covered (WS14): … F# `open`". F# has no module-scoped lookup.
 - F#/C# family sharing is disabled (lang_family.rs:34).
-- No `#[ignore]`d F# tests. The plugin has five inline tests (fsharp.rs:314-383) and one cross-file test (`fsharp_bare_call_never_reaches_a_member`), plus the cloud-framework case and the detection-prefix generator.
+- No `#[ignore]`d F# tests.
 
-Found while cataloguing (fixtures f1–f11):
+Fixed since the 0.11.0 audit (re-checked with 0.13.3 fixtures): multi-segment module paths, operator-folded calls, module paths in qualified names and module-qualified resolution, module abbreviations (single-segment targets), the locals table, constructors and `inherit`, every `let`/`and` binding and return-annotated functions, value references.
 
-1. **Multi-segment receivers are silently dropped** (`A.B.f x`, `x.y.m()`, `System.Activator.CreateInstance`), with no audit record (§03).
-2. **Pipelines, composition and operator calls are not call sites** (`x |> f`, `f <| x`, `f >> g`) (§03).
-3. **Modules and namespaces are absent from qualified names**, so module-qualified calls resolve only by file-stem coincidence, and opens do not narrow reliably (§02, §04).
-4. **No locals**: calls through parameters bind to other files' functions (§07).
-5. **No base or interface records**: `base.M()` fans out to siblings, and `--dynamic-dispatch` does nothing (§06).
-6. **Missing callables**: operators, active patterns, constructors, `member val`, abstract slots, `.fsi` `val`s, `extern` (P/Invoke), and point-free value bindings (§02).
-7. **Record, union and type-extension members are owner-less** (§02).
-8. **No visibility**, so dead code is capped at medium; **`[<EntryPoint>]` is not a root** (§12).
-9. **No value references**: higher-order arguments look dead (§03, §12).
-10. **Duplicate call sites** for curried applications (§03).
-11. **`.fsi` parsed with the implementation grammar** produces a false `val` call site; `LANGUAGE_SIGNATURE` is unused (§01).
-12. **`.fsx` shebang scripts without an extension** are not detected; top-level script calls are `no-enclosing-callable` (§01, §02).
-13. **Return types, curried-parameter types, pattern annotations, lambda annotations and casts** are not used for receiver typing (§05).
-14. **No stdlib table**, so `--include-stdlib` produces no F# `std` nodes (§13).
-15. **`#if` branches are both extracted**, and the later one wins (§08).
-16. **Quotations are treated as executed code** (§08).
+Still open at 0.13.3:
+
+1. **Pipelines, composition and operator operands are value references, not call edges** (`x |> f`, `f >> g`); user-defined operator calls record nothing (§03).
+2. **Bare calls after `open` fan out by name**, reaching never-opened modules (§04).
+3. **Module abbreviations with a dotted target** (`module U = A.B.C`) do not resolve (§04).
+4. **No interface records**: `base.M()` fans out to siblings, and `--dynamic-dispatch` does nothing (§06).
+5. **Missing callables**: operators, active patterns, `member val`, abstract slots, `.fsi` `val`s, `extern` (P/Invoke), and point-free value bindings (§02).
+6. **Record, union and type-extension members are owner-less** (§02).
+7. **No visibility**, so dead code is capped at medium; **`[<EntryPoint>]` is not a root** (§12).
+8. **Duplicate call sites** for curried applications (§03).
+9. **`.fsi` parsed with the implementation grammar** produces a false `val` call site; `LANGUAGE_SIGNATURE` is unused (§01).
+10. **`.fsx` shebang scripts without an extension** are not detected; top-level script calls are `no-enclosing-callable` (§01, §02).
+11. **Return types, curried-parameter types, pattern annotations, lambda annotations and casts** are not used for receiver typing (§05).
+12. **No stdlib table**, so `--include-stdlib` produces no F# `std` nodes (§13).
+13. **`#if` branches are both extracted**, and the later one wins (§08).
+14. **Quotations are treated as executed code** (§08).
+15. **No arity narrowing** for overloads and constructors (§06).
 
 ## Summary scorecard
 
 | section | support | note |
 | --- | --- | --- |
 | 01. Detection & parsing | partial | `.fs/.fsi/.fsx` by extension; no shebang; `.fsi` uses the implementation grammar and yields a false `val` site |
-| 02. Callables extracted | partial | `let` functions and class members; no module/namespace in QNs; no operators, active patterns, constructors, abstract slots, auto-properties; record/union/extension members owner-less |
-| 03. Call-site forms | partial | bare, one-dot and type-applied applications; multi-segment receivers silently dropped; no pipelines/operators, chains, value refs or arity; duplicate curried sites |
-| 04. Imports & module resolution | minimal | `open` recorded; resolution only by file-stem coincidence; no module abbreviations, packages, manifests, heads.rs or modules.rs |
+| 02. Callables extracted | partial | every `let`/`and` function and class member, constructors; module paths in QNs; no operators, active patterns, abstract slots, auto-properties; record/union/extension members owner-less |
+| 03. Call-site forms | partial | bare, dotted (any depth), type-applied and operator-folded applications; value refs under `--reference-edges`; pipelines are values not calls; no chains or arity; duplicate curried sites |
+| 04. Imports & module resolution | partial | module-qualified calls via `resolve_fsharp` (high); module abbreviations (single-segment targets only); packages recorded; bare calls after `open` still by name |
 | 05. Type inference & receiver typing | minimal | first parenthesised parameter annotations only; no locals, return types, curried params, lambdas or casts |
-| 06. Inheritance, dispatch & overloading | minimal | same-QN overload sets bind at medium; no base records, `base.` fans to siblings, not in INHERITANCE_LANGS or arity langs |
-| 07. Scoping & shadowing | partial | lexical narrowing and ML positional shadowing work; no locals, so parameters do not shadow |
+| 06. Inheritance, dispatch & overloading | minimal | same-QN overload sets bind at medium; `inherit` reaches the base constructor; `base.` fans to siblings, not in INHERITANCE_LANGS or arity langs |
+| 07. Scoping & shadowing | good | locals table (parameters, patterns, local lets); lexical narrowing and ML positional shadowing |
 | 08. Macros, preprocessor & codegen | n/a | no macros; `#if` not handled (both branches kept); quotations walked as code |
 | 09. FFI & cross-language links | none | `extern`/DllImport not extracted; no C# family link; no markup code-behind |
 | 10. Frameworks & entry points | partial | 7 rules: azure-functions works; giraffe/saturn/suave/fsharp-entrypoint/expecto are gaps; stale gap texts |
 | 11. Test harness entries | partial | fsharp-nunit attributes mint a harness node; Expecto invisible; fixture members not rooted |
-| 12. Dead-code analysis | partial | class `degraded`, max medium; no visibility; `[<EntryPoint>]` non-`main` reported dead; value-use false positives |
+| 12. Dead-code analysis | partial | class `degraded`, max medium; no visibility; value refs credited; `[<EntryPoint>]` non-`main` reported dead |
 | 13. Builtins & stdlib tables | none | no `stdlib/fsharp.txt`, no wrapper or cast tables |
-| 14. Confidence & certainty | partial | high for intra-file single candidate, typed first param, stem-matched module calls; most cross-file is medium |
-| 15. Dynamic use & reflection | none | no dynuse coverage; reflection calls neither cap nor (for multi-segment) record |
-| 16. Known gaps & limitations | n/a | 16 catalogued gaps; stale rule gap texts; WS14 "F# open not covered" |
+| 14. Confidence & certainty | partial | high for intra-file single candidate, typed first param, module-qualified calls; receiver calls and bare calls after `open` are medium |
+| 15. Dynamic use & reflection | none | no dynuse coverage; reflection calls neither cap nor screen |
+| 16. Known gaps & limitations | n/a | 15 gaps open at 0.13.3; stale rule gap texts |

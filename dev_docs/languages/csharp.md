@@ -1,6 +1,8 @@
 # csharp
 
-The C# plugin is `CSharpPlugin` in `crates/cgg-lang/src/plugins/csharp.rs` (1,261 lines, about 440 of them inline tests). It is one recursive tree walker, `Walker::walk` (csharp.rs:131-288), with a scope stack of namespaces and types. It records:
+> Revised 2026-11-25 against cgg 0.13.3: constructions and `: this(…)`/`: base(…)` are constructor edges (WS21), declared return types type `var x = F()` and `F().M()` (WS23), calls carry arity and overloads narrow by it (WS28), a locals table now drives `shadowed-by-local` (the parameter-delegate false `high` is gone), bodiless members are tagged `abstract` (WS22), method groups through a type are registrar-captured (WS24), and reflection screening is wider. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The C# plugin is `CSharpPlugin` in `crates/cgg-lang/src/plugins/csharp.rs` (1,569 lines including inline tests). It is one recursive tree walker, `Walker::walk` (csharp.rs:131-288), with a scope stack of namespaces and types. It records:
 
 - namespaces, as `FileFacts::packages`
 - `using` directives
@@ -42,7 +44,7 @@ Fixtures used below live in `<scratch>/parity/csharp/f1` … `f11`. They were ru
   - Fixture f2 `Cond`: a `#if DEBUG void F() { #else void F(int x) { #endif` header split gave one callable `Web.Cond.F`, and its call `G()` bound `high`.
   - CHANGELOG.md:848 records the fix. It used to produce callables named `if` in Newtonsoft.Json (CHANGELOG.md:813-814).
 - **Depth skip**: a tree deeper than `MAX_TREE_DEPTH` = 4000 is skipped as `TooDeep` (crates/cgg/src/lib.rs:155, 451). This applies to every language.
-- **Minified skip**: `MINIFIED_LINE_BYTES` = 2000 (lib.rs:159) gates only `locals::collect`. C# has no locals table, so it does not apply (section 07).
+- **Minified skip**: `MINIFIED_LINE_BYTES` = 2000 (lib.rs:159) gates `locals::collect`, which C# now uses (`CSHARP_SPEC`, section 07).
 - **Test-file classification** (`cgg_core::classify_test_file`):
   - File names `*Test.cs` and `*Tests.cs` count (testfile.rs:104).
   - So does the generic directory rule, which matches exact components `test`, `tests`, `Tests`, `Test`, `spec` and others (testfile.rs:35-46, 126-133).
@@ -73,7 +75,7 @@ Qualified names join the scope stack with `.`. The stack holds every enclosing b
 - **Property, indexer and event accessors** (`accessor_declaration`) become `DefVariant::Property`, named after their **keyword** (`get`, `set`, `init`), not after the property (csharp.rs:230-240).
   - Fixture f1: `public int Count { get {…} set {…} }` gave `Acme.Lib.Svc.get` and `Acme.Lib.Svc.set`. The indexer `this[int i] { get … }` gave a second `Acme.Lib.Svc.get`.
   - Interface property `int Count { get; }` gave `Acme.Lib.IRunner.get`.
-  - So all accessors of one type share a QN, and dispatch deliberately skips them (dispatch.rs:393-397).
+  - So all accessors of one type share a QN, and dispatch deliberately skips them (dispatch.rs:393-397). Only under `--property-edges` (0.12.0+) are accessors named by their property (`A.Size.get`) and reached by `property` edges from a member read through a declared receiver type (`cgg_lang::property_reads`).
   - Test: `an_accessor_takes_its_property_accessibility_unless_it_has_its_own` (csharp.rs:1191).
 - **Expression-bodied properties** `int Expr => Calc();`, arrow accessors without an accessor list and **field initializers** are not callables.
   - Their calls get `no-enclosing-callable`. Fixture f1: L20 `Calc`. Fixture f9: `System.Func<int> f = () => X();` (L2) and `int Field = X();` (L4).
@@ -86,13 +88,13 @@ Qualified names join the scope stack with `.`. The stack holds every enclosing b
   - Bodiless and default-implemented members are extracted, with Public visibility unless a modifier says otherwise (csharp.rs:799-807).
   - Test: `interface_members_without_a_modifier_are_public` (csharp.rs:1149).
   - Fixture f9: default method `P.IDef.D` and its call `X()` bound high.
-- **Abstract members** `public abstract void Abs();` are extracted bodiless (fixture f1: `Acme.Lib.Base.Abs`). They are not tagged `abstract`; CLAUDE.md lists the `abstract` tag only for TS/Swift/Scala/Dart.
+- **Abstract members** `public abstract void Abs();` are extracted bodiless (fixture f1: `Acme.Lib.Base.Abs`). Since WS22 a bodiless interface or abstract member is tagged `abstract`, so duck-typed fan-out prefers a concrete candidate (0.13.3 `<scratch>/lang-docs/csharp/f1`: `Acme.Lib.Base.Abs ['abstract']`).
 - **Structs, records, record structs** contribute scope (csharp.rs:165-169).
   - Fixture f1: `Acme.Lib.Pt.Move`, `Acme.Lib.Rec.R`, `Acme.Lib.RS.S`.
   - **Not extracted**: the positional record's synthesized constructor, properties and `Deconstruct`, because no declaration node exists for them.
 - **Nested types** are scoped under the outer type (fixture f3: `Alpha.Util.Nested.Deep`; fixture f9: `P.Inner.K`).
 - **Enums** produce no callables (fixture f1: `enum Color` gave nothing).
-- **Operators and conversion operators are NOT extracted**. `operator_declaration` and `conversion_operator_declaration` are not in the walker's match. Fixture f1: `public static Svc operator +(…)` and `implicit operator int(Svc s)` produced no nodes.
+- **Operators and conversion operators are NOT extracted**. `operator_declaration` and `conversion_operator_declaration` are not in the walker's match. Fixture f1: `public static Svc operator +(…)` and `implicit operator int(Svc s)` produced no nodes (re-checked on 0.13.3, `<scratch>/lang-docs/csharp/f1`).
 - **Events**: `event EventHandler Changed;` produces nothing. Explicit `add`/`remove` accessors would be `Property` accessors (unverified by fixture).
 - **Delegates** (`delegate void D();`) produce no callable.
 - **Top-level statements** (C# 9 `Program.cs` without a class) are not wrapped in a synthetic `Main`.
@@ -139,16 +141,14 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
   - Test: `generic_member_and_null_conditional_calls` (csharp.rs:1239).
   - Fixture f1: `s?.Run()` gave high.
 - **Explicit generic arguments** `G<int>()`, `b.M<string>()`, `B.S<int>()`, `b?.M<int>()` are recorded under the bare name (`callee_name`, csharp.rs:633-646). Fixture f1: `Generic<int>()` gave `Program.Generic` high.
-- **Chained calls** `a.B().C()`: the receiver is the text `a.B()`. There is no return-type typing for C# (section 05), so the chain falls to by-name lookup.
-  - Fixture f8: `Foo.Make().M()` unresolved `candidates-in-other-files` (2).
+- **Chained calls** `a.B().C()`: the receiver is the text `a.B()`. Since WS23 a bare-call receiver takes the callee's declared return type (section 05): 0.13.3 `<scratch>/lang-docs/csharp/f1` `Make().M()` → `Foo.M` high. On 0.11.0:
+  - Fixture f8: `Foo.Make().M()` unresolved `candidates-in-other-files` (2) (a qualified-call receiver; not re-checked).
   - `new Foo().Self().M()` fanned out to `Foo.M`/`Bar.M` medium.
-- **Constructor calls `new T(…)` are NOT call edges**. `object_creation_expression` is not recorded as a reference, and neither are `: this(…)`/`: base(…)` initializers.
-  - Fixture f9: `new P(); new P(2);` and `public P() : this(1)` produced no edges to `P.P`.
-  - Fixture f1: no edge `Main -> Svc.Svc`. Constructors appear in dead code only through `implicitly-invokable-kind` (section 12).
+- **Constructor calls** (WS21, supported since 0.11.1). `new T(…)` and target-typed `new()` are recorded as a typed call of the constructor `T.T` with their argument count, and `: this(…)`/`: base(…)` as constructor delegation (receiver `super` or the class's own name, never the constructor it is written in), resolved through the base chain. A type outside the tree (`new List<int>()` under `using System.Collections.Generic`) binds nothing. Constructor overloads narrow by arity (`params` takes any count). 0.13.3 `<scratch>/lang-docs/csharp/f1`: `new Foo(2)` and `Foo t = new()` → `Acme.Lib.Foo.Foo` high; `Foo(int x) : this()` and `Kid() : base(1)` → `Acme.Lib.Foo.Foo` high.
 - **Delegate / local-function-variable invocation** `a()`, where `a` is a `System.Action` local:
   - It is recorded as a bare call.
   - Fixture f1: `a()` went to the external bucket (`name_screen_applied: external`).
-  - Fixture f11b: `void F(System.Action Work) { Work(); }` with a same-class method `Work` gave a **false `high` edge** `B.F -> B.Work` (section 07).
+  - Fixture f11b: `void F(System.Action Work) { Work(); }` with a same-class method `Work` gave a **false `high` edge** `B.F -> B.Work` on 0.11.0. On 0.13.3 it is refused `shadowed-by-local` (section 07).
 - **Operator use** (`a + b`, implicit conversions, indexers `x[i]`, `foreach` → `GetEnumerator`, `using` → `Dispose`, `await` → `GetAwaiter`) produces **no call sites**. No operator nodes exist (section 02).
 - **Method groups / value references** (only when `ExtractCtx::reference_sites`, i.e. `--reference-edges` or `--dead-code`; csharp.rs:249-266, 456-562):
   - Value positions read: `argument`, `assignment_expression` (right side, which covers `evt += H`), `variable_declarator`, `return_statement`, `arrow_expression_clause` and `initializer_expression`.
@@ -169,10 +169,10 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
 - **Not recorded as method groups**: `obj.Handler` through a lowercase variable or field. The plugin rejects it deliberately (csharp.rs:494-500), and CHANGELOG.md:752 lists it under "Not covered (WS6)".
 - **Registrar arguments**: every invocation is also passed to `registrar::capture` with context `recv.Name` (csharp.rs:276-281). This is how `app.MapGet("/x", Handler)` reaches the `aspnet-minimal` rule.
   - Fixture f2: entry `<framework-entry>::network::aspnet-minimal::mapget("/x") -> Startup.Handler`.
-  - **Partial**: `registrar.rs` IDENT_KINDS (registrar.rs:41-62) lists `member_expression` but not C#'s `member_access_expression`. A handler passed as `Handlers.List` may not be captured (unverified by fixture).
-- **Lambdas passed to registrars**: `app.MapPost("/y", () => Lambda())` gave a direct edge `Configure -> Lambda`, but **no** `aspnet-minimal` entry for `/y` (fixture f2: only the `mapget` entry was minted).
-- **Arity**: the C# plugin never sets `RefRecord::arity`. C# is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583, `["java","scala","cpp"]`).
-- **Not set for C#**: `paren_less`, `path_receiver`, `implicit_receiver`, `weak_receiver_type`, `arrow`, `invocant`, `arg_type` (`grep` of csharp.rs shows none of these fields assigned).
+  - Since WS24 the C# capture reads `member_access_expression`, so a method group through its type is captured: 0.13.3 `<scratch>/lang-docs/csharp/f2`: `app.MapGet("/a", Handlers.List)` mints `<framework-entry>::network::aspnet-minimal::mapget("/a") → Handlers.List`.
+- **Lambdas passed to registrars**: `app.MapPost("/y", () => Lambda())` gave a direct edge `Configure -> Lambda`, but **no** `aspnet-minimal` entry for `/y` (fixture f2: only the `mapget` entry was minted; same on 0.13.3).
+- **Arity** (WS28): every invocation and construction sets `RefRecord::arity` (`argument_count`, csharp.rs:717, 763, 820). C# is in `OVERLOAD_ARITY_LANGS`; `params` is variadic, and an extension method's `this` parameter is the receiver or the first argument.
+- **Not set for C#**: `paren_less`, `path_receiver`, `implicit_receiver`, `weak_receiver_type`, `arrow`, `invocant`, `arg_type`.
 
 ## 04. Imports & module resolution
 
@@ -185,8 +185,8 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
   - Fixture f3: `using static System.Math; Abs(-1)` went to the stdlib bucket.
   - Fixture f10b: `using static Lib.Helpers; Assist()` gave high, even with a second `Other.Assist` in the tree.
 - **`global using Ns;`** is recognised by `cs_global_using` (heads.rs:869-879). It makes `Ns` visible to **every** C# file (heads.rs:160-164, 556). Fixture f5: `GlobalUsings.cs` with `global using Alpha;` gave `Util.Go()` in another file `Alpha.Util.Go` only, not `Beta.Util.Go`.
-- **`global using static Ns.Type;` is NOT honoured**:
-  - The plugin tests `starts_with("using static ")` on the raw text (csharp.rs:428), so a `global using static` directive becomes a plain `using` with path `global using static Lib.Helpers`.
+- **`global using static Ns.Type;` is NOT honoured** (re-checked on 0.13.3, `<scratch>/lang-docs/csharp/f3`: `Assist()` is `candidates-in-other-files` (2)):
+  - The plugin tests `starts_with("using static ")` on the raw text (csharp.rs:568), so a `global using static` directive becomes a plain `using` with path `global using static Lib.Helpers`.
   - `cs_global_using` then rejects it because it is static (heads.rs:875).
   - Fixture f10: `global using static Lib.Helpers;` + `Assist()` was unresolved `candidates-in-other-files` (2). The same directive as a file-local `using static` bound high (f10b).
 - **Namespaces as packages**: every block or file-scoped namespace, nested parts joined with `.`, is pushed to `FileFacts::packages` (csharp.rs:134-163). Test: `declared_namespaces_are_recorded_in_full` (csharp.rs:1085). They feed `WorkspaceVocab::cs_prefixes`/`cs_roots`/`cs_file_namespaces` (heads.rs:152-166).
@@ -209,9 +209,8 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
   - Nullable is unwrapped. Test: `a_nullable_local_is_typed_as_its_type` (csharp.rs:854).
   - Fixture f3: L23 `using var u = new Circle(); u.Draw()` gave `Circle.Draw` high. L25 `Circle tt = new(); tt.Draw()` gave high.
 - **`var x = new T(…)`** types `x` as `T` (csharp.rs:394-408). Fixture f1: `var s = new Svc(); s.Run()` gave high.
-- **`var x = <anything else>` is untyped**. Neither the return type nor a cast is read:
-  - Fixture f8: `var q = (Foo)null; q.M()` and `var w = null as Foo; w.M()` fanned out to `Foo.M`/`Bar.M` medium.
-  - Fixture f3: `var many = GetShape(); many.Draw()` fanned out to three medium edges.
+- **`var x = F()`** (WS23): a local assigned from a bare call takes `F`'s declared return type (below). 0.13.3 `<scratch>/lang-docs/csharp/f1`: `var x = Make(); x.M()` → `Foo.M` high (on 0.11.0, fixture f3 `var many = GetShape(); many.Draw()` fanned out to three medium edges).
+- **`var x = (T)y` / `y as T` is untyped**: fixture f8 `var q = (Foo)null; q.M()` and `var w = null as Foo; w.M()` fanned out to `Foo.M`/`Bar.M` medium; re-checked on 0.13.3 (`<scratch>/lang-docs/csharp/f1`).
 - **Lowercase-initial type names are never typed**: `string`, `int`, `object`, `dynamic` (csharp.rs:409, 414 `starts_with(char::is_uppercase)`).
 - **Per-function lookup**: C# (with Kotlin) looks a local up in the calling function before the file-wide map (type_hints.rs:785-799). The CHANGELOG.md:989 example is `JArray a` versus another method's `IEnumerable? a`.
 - **Parameters**: the type-first parser `parse_type_first_param` (type_hints.rs:2166-2210):
@@ -220,12 +219,12 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
   - Test: `nullable_type_first_parameters_are_their_type` (type_hints.rs:3445).
   - Fixture f8: `Foo? nf` → `nf.M()` high; `Nullable<Foo> nn` → `nn.M()` high. Fixture f1: `UseParam(Svc p) { p.Run(); }` high.
   - **Generic parameters type as the generic**: `List<Square> sq` is `List`, so `sq.First()` goes to stdlib.
-- **Return types: NOT inferred for C#**. `extract_return_type` (type_hints.rs:2632-2671) reads `-> T`, `): T` and Go's `) T`. Its comment claims "Java/C#: return type is before the function name", but no branch reads a type before the name. Fixture f1: `var r = s.MakeRepo(); r.Save()` bound by name, medium. Fixture f8: `Foo.Make().M()` was unresolved.
-- **Fields and properties are NOT typed**. The C# plugin records no `field_types`/`class_fields`.
+- **Return types** (WS23, supported since 0.11.1). C# is in `TYPE_FIRST_RETURN_LANGS` (type_hints.rs:4006): the type in front of the name types a bare-call receiver (`Make().M()`) and a `var` local assigned from a bare call, when every definition of the name agrees and the name is not imported. `void`, `Object`, one-letter types and `Task`/`ValueTask`/`IAsyncEnumerable` (`AWAITABLE_TYPES`, stdlib.rs:653) type nothing (test `ret("csharp", "[HttpGet] public async Task<Tool> MakeAsync()")`, type_hints.rs:4530). A receiver written as a member call (`s.MakeRepo()`) is not covered: fixture f1 `var r = s.MakeRepo(); r.Save()` bound by name, medium (not re-checked).
+- **Fields and properties are NOT typed**. The C# plugin records no `field_types`/`class_fields`. Re-checked on 0.13.3: `_f.M()` with `private Foo _f` is `candidates-in-other-files` (2) (`<scratch>/lang-docs/csharp/f1`).
   - Fixture f1: `_repo.Save()` with `private readonly Repo _repo` was unresolved `candidates-in-other-files` (1).
   - Fixture f3: `_field.Inst()` was unresolved (2), `Prop.Draw()` unresolved (3), and `this._field.Inst()` fanned out to `Alpha.Util.Inst` + `Beta.Util.Inst` medium.
 - **Pattern, `out`, `foreach`, `catch` and deconstruction bindings are NOT typed**. `closure_types.rs` records C# typed patterns? No: only `lambda_expression` (closure_types.rs:38-50, 122-130).
-  - Fixture f1: `foreach (Svc each in …) each.Run()` and `o is Svc pat; pat.Run()` were unresolved (2 candidates).
+  - Fixture f1: `foreach (Svc each in …) each.Run()` and `o is Svc pat; pat.Run()` were unresolved (2 candidates). On 0.13.3 both shapes fan out by name at medium (`<scratch>/lang-docs/csharp/f1`): the locals table now knows the binding, but not its type.
   - Fixture f3: `o is Circle cc`, `out Square outSq` and `var (a, b) = (new Circle(), 1)` fanned out medium.
 - **Typed lambda parameters** `(Foo x) => x.Run()` are recorded by span in `FileFacts::scoped_types` and win over other bindings (closure_types.rs:38-50; test `csharp_typed_lambda_parameters_are_scoped_to_the_lambda`, closure_types.rs:318).
 - **Untyped lambda parameters passed to a bare call** (`settle_closure_args`):
@@ -233,7 +232,7 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
   - Fixture f1: `Lam(x => x.Run())` with `Lam(System.Action<Svc> f)` gave `Svc.Run` high.
   - It does not apply to member calls on external types: fixture f3 `sq.ForEach(s => s.Draw())` fanned out medium.
 - **`TOP_TYPES`** `("csharp", ["Object","Dynamic"])` (stdlib.rs:153). These are capitalised, while C# writes `object`/`dynamic`. A lowercase type is already never typed, so the entry only matters for `System.Object`-style spellings. Fixture f7: `dynamic d; d.Zap()` was `fanout-cap-exceeded` (6).
-- **Await**: `(await t).M()` with `Task<Foo> t` reads the receiver `t`, typed `Task` (the generic), so the call goes to stdlib. Fixture f8 L17: stdlib `Task.M`. CHANGELOG.md:1474-1476 lists this as not covered.
+- **Await**: `(await t).M()` with `Task<Foo> t` reads the receiver `t`, typed `Task` (the generic), so the call goes to stdlib. Fixture f8 L17: stdlib `Task.M`. On 0.13.3, `(await Get()).Z()` with `async Task<Q> Get()` is `candidates-in-other-files` (2): an awaitable return type types nothing (`<scratch>/lang-docs/csharp/f2`).
 - **Casts/constructions in receiver position** are typed (section 03). `CAST_INTRINSICS` has no C# entry (C# casts are syntax, stdlib.rs:35-46), and neither does `CONSTRUCTING_METHODS` (stdlib.rs:58).
 - **Not applicable**: implicit receivers (Kotlin), weak receiver types (Python), `#deref` (C++), `ARG_VAR_PREFIX` (Rust).
 
@@ -266,15 +265,15 @@ All call sites come from `invocation_expression` (csharp.rs:267-286, `ref_from_i
 - **Overloading**:
   - A same-file, same-QN overload set is one callee: `binds_same_name_set` (intra_file.rs:841) and `with_overloads` for exact Java/C# lookups (cross_file.rs:5669-5681).
   - Over the fan-out cap, `one_method` still binds it (CHANGELOG.md:261: "Overload sets past the cap now bind in C# (+2,722)").
-  - **No arity narrowing**: C# is not in `OVERLOAD_ARITY_LANGS` and the plugin records no arity. Fixture f8: `Over(1)` and `Over(1, 2)` each bound **both** overloads, medium. Fixture f1: `t.Over(1)` bound all three `Svc.Over` medium.
+  - **Arity narrowing** (WS28, since 0.11.1): fixture f8's `Over(1)`/`Over(1, 2)` each bound both overloads at medium on 0.11.0. On 0.13.3 `Over(1)` binds only `Over(int a)`, at high (`<scratch>/lang-docs/csharp/f1`). A cross-file lookup that lands on one overload expands to that file's whole set before narrowing, and C# reads the whole set even when the count is unknown.
 - **Explicit interface implementation** `void IThing.Tick()` is tagged `override` (dead-code contract handling, section 12). It is not modeled as reachable only through the interface for resolution. Its QN is `Ns.Type.Tick`.
 - **Partial classes**: no merge. The members of each part are owned by the same QN, so owner lookups see them together.
 - **Not modeled**: `new` (member hiding) versus `override` (both are just same-named members), `sealed`, generic constraints (`where T : IFoo` does not type `T`), default interface method dispatch, and covariance.
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`: not populated for C#**. `locals::spec` has no C# table (locals.rs:380-394: JS/TS, Python, Lua, Scala, Kotlin, Swift, Rust, Dart, OCaml, Zig).
-- **Consequence: a parameter or local delegate shadowing a same-class method gives a false `high` edge.** Fixture f11b: `class B { void Work(){} void F(System.Action Work) { Work(); } }` gave `B.F -> B.Work` high intra-file.
+- **`FileFacts::locals`** (since 0.11.1): `CSHARP_SPEC` (locals.rs:437, selected at 516) records parameters (lambdas, local functions, anonymous methods, `params`), locals, `foreach`/`for`/`using`/`fixed`/`catch` variables, pattern and `out var` variables (in scope to the end of the enclosing block from an `if` condition or expression statement, otherwise the statement) and query range variables, with a local function's name bound in its block.
+- **Consequence: a parameter or local delegate shadowing a same-class method is refused.** Fixture f11b: `class B { void Work(){} void F(System.Action Work) { Work(); } }` gave a false `B.F -> B.Work` high on 0.11.0; on 0.13.3 the call is `shadowed-by-local` (`<scratch>/lang-docs/csharp/f1`).
 - **Cross-file**: a bare call to a parameter delegate is not bound to another class's same-named method. `member_of_calling_class`/`bare_call_reaches` refuses non-members. Fixture f11: `Work()` and `Inst()` were unresolved with reason `candidates-in-other-files`, not `shadowed-by-local`.
 - **Lexical narrowing of nested definitions**: C# is not in the list (CLAUDE.md: JS/TS, Lua, OCaml, F#, Scala, Kotlin, Swift, Rust, Dart, Haskell, Julia). Local functions are owned by the type (section 02), so two same-named local functions in different methods of one class share a QN.
 - **Local type scoping**: the local *type* map is per-function first (type_hints.rs:785). That is type scoping, not name shadowing.
@@ -439,7 +438,7 @@ Issues found while cataloguing:
 - **False positives observed**:
   - Event handlers wired by `+=` are live only through a reference edge from the wiring method. Fixture f2: `Ev.Wire` itself was reported high, because nothing calls it.
   - Private methods only called through an untyped field receiver (`_repo.Save()`) keep a `name-matches-unresolved-site` doubt, which caps them.
-  - Constructors are never reached by `new` (section 03), so every constructor relies on the `implicitly-invokable-kind` cap.
+  - On 0.11.0 constructors were never reached by `new` (section 03); since WS21 a construction reaches them, and an unconstructed one still relies on the `implicitly-invokable-kind` cap.
 - **No `exports` signal**: `exports: none`. There is no assembly-level public API model (`InternalsVisibleTo`, `public` in a library project). Public members are capped at medium instead.
 
 ## 13. Builtins & stdlib tables
@@ -450,7 +449,8 @@ Issues found while cataloguing:
 - **C# rows in other tables**:
   - `MAYBE_TYPE_WRAPPERS`: `Nullable` (stdlib.rs:118)
   - `CALLBACK_TYPE_CONSTRUCTORS`: `Action`, `Func` (stdlib.rs:144-145)
-  - `TOP_TYPES`: `Object`, `Dynamic` (stdlib.rs:153)
+  - `TOP_TYPES`: `Object`, `Dynamic` (stdlib.rs:670)
+  - `AWAITABLE_TYPES`: `Task`, `ValueTask`, `IAsyncEnumerable` (stdlib.rs:653)
   - No C# row in `CAST_INTRINSICS`, `CONSTRUCTING_METHODS`, `UNION_TYPE_CONSTRUCTORS` or `NULL_TYPE_MEMBERS`.
 - **No `rust_types`-like wrapper table** for `Task<T>`, `Lazy<T>`, `IEnumerable<T>` and the like. So `Task<Foo>` reads as `Task` (section 05).
 - **Implicit packages**: no C# equivalent of `SCALA_IMPLICIT_PACKAGES`. Implicit global usings from the SDK (`ImplicitUsings` in `.csproj`: `System`, `System.Linq`, …) are not modelled. The stdlib-root check covers `System.*` heads only when the root word is in csharp.txt (unverified whether `System` itself is listed; `cs_namespace_head` passed for `System.IO.File` in fixture f1).
@@ -468,7 +468,7 @@ Issues found while cataloguing:
   - Settled lambda parameters (fixture f1 L39).
   - Interface-typed parameters (fixture f3: `IThing.Act`).
 - **Forced to `medium`**:
-  - Overload sets with more than one survivor (no arity narrowing).
+  - Overload sets with more than one survivor after arity narrowing.
   - By-name matches (fixture f1: `r.Save()`).
   - Extension methods (fixture f1: `Shout`).
   - Any owner whose bare name occurs in two directories (`unique_owner_names` keys C# by directory, cross_file.rs:4415). Fixture f3/f4: `Util.Go` medium although namespace narrowing left one candidate.
@@ -476,19 +476,20 @@ Issues found while cataloguing:
 - **`low`**: `dispatch:inheritance` edges, framework entry edges, descriptor links (fixture f6).
 - **FFI**: `ffi-linker` edges into `[UnmanagedCallersOnly]` are medium (fixture f6).
 - **Mermaid `?` marker**: an arrow with no `high` site gets `?` (fixture f4 mermaid: `N5 -->|?| N0`, `N5 -->|?2x| N1`).
-- **False `high` risk**: local/parameter delegates shadowing a same-class method (section 07, fixture f11b).
+- **False `high` risk** (0.11.0 only): local/parameter delegates shadowing a same-class method (section 07, fixture f11b); refused `shadowed-by-local` since the locals table.
 
 ## 15. Dynamic use & reflection
 
-- **`dynuse` coverage**: C# reflective callees are `GetMethod`, `GetType`, `CreateInstance` and `GetProperty` (dynuse.rs:45-48).
+- **`dynuse` coverage**: C# reflective callees are `GetMethod`, `GetType`, `CreateInstance`, `GetProperty` and, since 0.11.1, `GetField`, `GetMember`, `GetEvent`, `InvokeMember` and `Delegate.CreateDelegate` (`crates/cgg-lang/src/plugins/dynuse.rs:63-75`).
+- **Reflective enumeration** (since 0.11.1): `typeof(T).GetMethods()`/`GetMembers()`/`GetRuntimeMethods()` and `typeof(T).GetTypeInfo().DeclaredMethods`/`DeclaredMembers` (`MEMBER_ENUMERATION_APIS`, stdlib.rs:541) put every method `T` declares under the `reflection` screen; `o.GetType()` is never read and inherited members are not screened.
   - An identifier-shaped string literal argument (dots allowed) becomes a `DynUse`, which caps every same-named C# finding at medium (`reflection` screen). It never creates an edge.
   - Test: `csharp_get_method_names_a_method` (dynuse.rs:195).
   - Fixture f2: `typeof(Startup).GetMethod("ByReflection")` gave `Startup.ByReflection` medium `name-collides-with-screened-site`.
   - `Activator.CreateInstance(typeof(Startup))` passes a `typeof`, not a string, so it captures nothing.
 - **Not covered**:
-  - `InvokeMember`, `GetField`, `GetEvent`, `GetMember`, `Type.GetType(...)` followed by `.GetMethods()` enumeration
+  - `Type.GetType("…")` or `o.GetType()` followed by `.GetMethods()` enumeration (only `typeof(T)` is read)
   - `dynamic` dispatch (fixture f7: `d.Zap()` was `fanout-cap-exceeded`, which counts as doubt for every `Zap`)
-  - `Delegate.CreateDelegate`, `Expression.Call(..., "Name")`
+  - `Expression.Call(..., "Name")`
   - DI container registration by `typeof`/generic (`services.AddTransient<IFoo, Foo>()`)
   - Source-generator and `[DynamicDependency]` attributes
 - **Module loads**: there is no C# entry in `DYN_MODULE_LOADERS` (facts.rs:165: `require`, `importScripts`, `import_module`). `Assembly.Load("x")` is not captured.
@@ -498,11 +499,11 @@ Issues found while cataloguing:
 
 Each item below has evidence above.
 
-1. **No constructor call edges**: `new T()`, `: this()`, `: base()` and target-typed `new()` produce no edge to `T.T` (fixture f9, f1).
-2. **No return-type inference** for C# signatures, which put the type before the name (type_hints.rs:2632-2671). `var x = Make(); x.M()` and chains fall to by-name or fan-out (fixtures f1, f3, f8).
+1. ~~No constructor call edges~~: fixed in WS21 (section 03).
+2. ~~No return-type inference~~: fixed in WS23 for bare calls; member-call results (`s.MakeRepo()`) and awaited results are still untyped (section 05).
 3. **No field or property typing**: `_repo.M()` and `Prop.M()` stay unresolved; `this._f.M()` fans out (fixtures f1, f3, f8).
-4. **No `FileFacts::locals`**: parameter and local delegates shadowing a same-class method give false `high` edges (fixture f11b).
-5. **No arity narrowing of overloads**: C# is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583) and has no `RefRecord::arity`. Every overload binds at medium (fixture f8).
+4. ~~No `FileFacts::locals`~~: added in 0.11.1 (section 07).
+5. ~~No arity narrowing of overloads~~: added in WS28 (section 06).
 6. **Pattern, `out`, `foreach`, `catch` and deconstruction variables are untyped** (fixtures f1, f3).
 7. **`var x = (T)y` / `y as T` locals are untyped** (fixture f8). Only `var x = new T()` is read.
 8. **`await` receivers** read as `Task`, not `T` (fixture f8; CHANGELOG.md:1474).
@@ -513,12 +514,12 @@ Each item below has evidence above.
 13. **`global using static` is ignored** (csharp.rs:428; fixture f10).
 14. **`aspnet-mvc` enters private controller methods** (fixture f2).
 15. **Implicit interface implementations get no `implements-external-contract` evidence**, and the contract name reported for explicit ones can be the wrong base (fixture f2).
-16. **C# methods named `Test*` are test roots by name** (roots.rs:987).
+16. **C# methods named `Test*` are test roots by name**: `is_test_name` (deadcode/roots.rs:1134) now needs a word boundary after `Test`, so `Testing()` is no longer rooted, but a production `TestConnection()` still is (0.13.3, `<scratch>/lang-docs/csharp/f2`: `builtin:test-name`).
 17. **`.Tests` project directories are not test-tagged** (fixture f7).
-18. **Method groups through lowercase variables or fields are not value refs** (csharp.rs:494-500; CHANGELOG.md:752).
+18. **Method groups through lowercase variables or fields are not value refs** (CHANGELOG.md:752).
 19. **No static/instance distinction**: no `StaticMethod` variant, so the "static members never override" rule in dispatch.rs:390 never fires for C#.
 20. **`[LibraryImport]` is not FFI, and P/Invoke never links to an in-tree C body** (ffi.rs:653-672; fixture f6).
-21. **`dynuse` misses `InvokeMember`/`GetField`/`Assembly.Load`** (dynuse.rs:45-48).
+21. **`dynuse` misses `Assembly.Load` and `Expression.Call`** (`InvokeMember`/`GetField` are screened since 0.11.1).
 22. **Stale gap texts**: `maui`, `wpf-winforms` and `avalonia-xaml` say `.xaml` is not parsed (rules.rs:10515, 10532, 11083).
 23. **No .NET project model**: no `.csproj` `RootNamespace`, `ImplicitUsings` or project references.
 24. Rule gaps listed by `gap_for`: `blazor` (routes), `azure-functions` (trigger kinds), `wcf`, `grpc-dotnet`, `xunit` (fixtures/constructors), `nunit` (`ValueSource`, `SetUpFixture`), `aws-lambda` (JSON-named handlers), `gcp-functions`, `csharp-runtime`, `hangfire`, `maui`, `wpf-winforms`, `godot-signal` (other scenes), `avalonia-xaml`.
@@ -531,11 +532,11 @@ Each item below has evidence above.
 | --- | --- | --- |
 | 01. Detection & parsing | full | `.cs`/`.csx`, `#if` re-parse repair, sibling markup read; no shebang, `.razor` bodies unparsed |
 | 02. Callables extracted | partial | methods, ctors, dtors, accessors, local functions; no operators/delegates/events/record members; accessors named `get`/`set` |
-| 03. Call-site forms | partial | bare/member/generic/`?.`/`base`/casts/method groups; no `new T()` constructor edges, no arity |
+| 03. Call-site forms | partial | bare/member/generic/`?.`/`base`/casts/method groups, `new T()` and `: this`/`: base` constructor edges, arity; no operator sites |
 | 04. Imports & module resolution | partial | using/alias/static/global using + namespace visibility + external refusal; `global using static` ignored, no `.csproj` |
-| 05. Type inference & receiver typing | partial | locals, `var = new`, params, nullable, typed/settled lambdas; no return types, fields, patterns, await |
-| 06. Inheritance, dispatch & overloading | partial | base records, `base.`, member_of_calling_class, overrides_below, extensions, inheritance fan-out; no arity narrowing |
-| 07. Scoping & shadowing | minimal | no locals table, so parameter delegates shadowing members bind falsely `high` |
+| 05. Type inference & receiver typing | partial | locals, `var = new`, params, nullable, typed/settled lambdas, bare-call return types; no fields, patterns, await |
+| 06. Inheritance, dispatch & overloading | partial | base records, `base.`, member_of_calling_class, overrides_below, extensions, inheritance fan-out, arity narrowing |
+| 07. Scoping & shadowing | partial | `CSHARP_SPEC` locals table and `shadowed-by-local`; no lexical narrowing of local functions |
 | 08. Macros, preprocessor & codegen | partial | `#if` repair only; no symbol evaluation; generated code only if on disk |
 | 09. FFI & cross-language links | partial | `UnmanagedCallersOnly` export links, protobuf rpc links, markup bindings; DllImport/LibraryImport never link to C |
 | 10. Frameworks & entry points | full | 41 rules incl. ASP.NET, Unity, Godot, Blazor, EF Core, MediatR, XAML/Razor markup; private MVC methods over-entered |
@@ -543,5 +544,5 @@ Each item below has evidence above.
 | 12. Dead-code analysis | partial | vis, override/partial contract caps, reflection cap; implicit interface impls uncapped, ctors never reached |
 | 13. Builtins & stdlib tables | partial | 380-name csharp.txt, Nullable/Action/Func/TOP_TYPES; no Task/Lazy wrapper table, no implicit usings |
 | 14. Confidence & certainty | full | high via typed/exact/static-using paths; medium for overloads/extensions/by-name; `?` marker works |
-| 15. Dynamic use & reflection | minimal | GetMethod/GetType/CreateInstance/GetProperty literals only; no module-load or DI coverage |
+| 15. Dynamic use & reflection | partial | GetMethod/GetType/CreateInstance/GetProperty/GetField/GetMember/GetEvent/InvokeMember/CreateDelegate literals and `typeof(T)` member enumeration; no module-load or DI coverage |
 | 16. Known gaps & limitations | n/a | 26 items listed above, all with fixture or code evidence |

@@ -1,16 +1,20 @@
 # objc
 
-The Objective-C plugin (`ObjcPlugin`) is in `crates/cgg-lang/src/plugins/objc.rs`. It is 290 lines, including 3 inline tests. It parses `.m` and `.mm` with the crates.io grammar `tree-sitter-objc` (workspace pin `"3.0"`, Cargo.toml:104; locked at 3.0.2, Cargo.lock:1644-1645), loaded through `tree_sitter_objc::LANGUAGE` (objc.rs:18-20). Nothing is vendored.
+> Revised 2026-11-25 against cgg 0.13.3: the plugin now records plain C calls, `[[T alloc] init…]` constructions, `@selector`/`NSSelectorFromString` and C function values as references, tags `@protocol` members `abstract`, and marks preprocessor branches (same-file alternatives bind at `medium`); declared return types type `[[F make] work]`. Sections 01–16 are corrected accordingly. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
 
-One recursive `ObjcWalker` (objc.rs:41-216) handles five node kinds:
+The Objective-C plugin (`ObjcPlugin`) is in `crates/cgg-lang/src/plugins/objc.rs`. It is 545 lines, including inline tests. It parses `.m` and `.mm` with the crates.io grammar `tree-sitter-objc` (workspace pin `"3.0"`, Cargo.toml:104; locked at 3.0.2, Cargo.lock:1644-1645), loaded through `tree_sitter_objc::LANGUAGE` (objc.rs:18-20). Nothing is vendored.
+
+One recursive `ObjcWalker` (objc.rs:71-230) handles these node kinds:
 
 - `class_implementation` / `class_interface`: pushes the class name as scope.
-- `method_definition` / `method_declaration`: records a method.
-- `function_definition`: records a C free function.
-- `message_expression`: records a call site.
+- `method_definition` / `method_declaration`: records a method (`abstract` inside a `@protocol`).
+- `function_definition`: records a C free function, named through pointer layers by `c::fn_name_from_declarator`.
+- `call_expression`: records a plain C call through `c::call_ref` (a call through a field is skipped), and `NSSelectorFromString(@"…")` as a selector value.
+- `message_expression`: records a call site; `[[T alloc] init…]` becomes a typed call on `T`.
+- `selector_expression` (only when reference sites are on): `@selector(…)` as a selector value.
 - `preproc_include` / `preproc_import`: records an import.
 
-Everything else is only descended into. There is no `resolver_kind` override, no `signals()` override (so every dead-code signal is `false`), no `shebangs`, no `ts_language_for` and no `max_line_bytes`.
+Everything else is only descended into. After the walk, `c_values::collect` (reference sites only) records C function values, and `preproc::mark` records each definition's preprocessor branches (objc.rs:37-47). There is no `resolver_kind` override, no `signals()` override (so every dead-code signal is `false`), no `shebangs`, no `ts_language_for` and no `max_line_bytes`.
 
 Obj-C belongs to the C family (`language_family`, cgg-core/src/lang_family.rs:28: `"c" | "cpp" | "objc"`). That gives it:
 
@@ -19,7 +23,7 @@ Obj-C belongs to the C family (`language_family`, cgg-core/src/lang_family.rs:28
 - the qualified-name sibling-language retry (cross_file.rs:7363);
 - the asm↔C FFI pass (ffi.rs:66, 127).
 
-It is not part of the C/C++ function-macro expansion (lib.rs:527-531 filters to `"c" | "cpp"`).
+It is not part of the C/C++ function-macro expansion (cgg/src/lib.rs:595 filters to `"c" | "cpp"`; re-checked 2026-11-25).
 
 Fixtures cited below are under `<scratch>/parity/objc/` (f1 … f6). Each was run with `target/release/cgg` 0.11.0 using `-t json -o out.json`, and dumped with `show.py` (graph) and `aud.py` (per-file audit buckets) in the same directory. `--dead-code` runs used `--no-graph --dead-code-confidence low`.
 
@@ -42,7 +46,7 @@ Fixtures cited below are under `<scratch>/parity/objc/` (f1 … f6). Each was ru
 - **Grammar**: one grammar, no dialect switch, no `ts_language_for`.
 - **Re-parse/fallback**: none. A file with errors is still extracted with `parse_status: "error"`. Fixture f6 `mac.m` (file-scope `MKFN(one)` without `;`) → `error`, and the next function `g` is recorded with its start line pulled up to the macro line (start_line 2 for a definition on line 3).
 - **Depth skip** (shared): a tree deeper than `MAX_TREE_DEPTH` (4,000, cgg/src/lib.rs:155) is skipped. Fixture f6 `deep.m` (5,000 nested parentheses) → `file_skipped`, `reason: too-deep, detail 4000`.
-- **Minified / long-line handling**: no `max_line_bytes`. No locals are recorded (§07), so the 2,000-byte-line rule has nothing to drop. Not exercised (unverified).
+- **Minified / long-line handling**: no `max_line_bytes`. No locals table is recorded (§07). Not exercised (unverified).
 
 ## 02. Callables extracted
 
@@ -56,9 +60,9 @@ Supported:
 - **Category implementation**: `@implementation Service (Extra) - (void)extraThing … @end` → `Service::extraThing`. `child(1)` is the class identifier, so the category name is dropped (objc.rs:61-66). Fixture f1.
 - **Method declarations** (`@interface` in a `.m`, class extension, category interface) → recorded with `has_body: false` (objc.rs:210-212), then absorbed by `unify_declarations` when a body exists (cpp.rs:1335, invoked from lib.rs:534). Fixture f1: `extraThing` declared in `@interface Service (Extra)` and defined → one node. Fixture f2: `@interface A` declarations of `ping`/`setX` → only the bodies survive.
 - **C free functions in `.m`**: `static int helper(int x) { … }` and `int main(…)` → `FreeFunction`, `qualified_name == simple_name`, `has_body: true` (objc.rs:81-108).
-  - The name is `declarator.declarator` text (objc.rs:82-86), so a pointer-returning `char *f(void)` (where the inner declarator is a `pointer_declarator`) would be named by that inner text (unverified).
+  - The name is read through pointer, attribute and parenthesis layers as the C plugin reads it (`c::fn_name_from_declarator`; WS22), and a declarator with no function declarator in it is no function (error recovery's `if (x) { … }`).
   - Fixture f1 `helper`, `c_func`, `main`.
-- **Protocol methods**: `@protocol Runner - (void)go; @optional - (void)maybe; @end` → `method` nodes named `go` and `maybe` with **no owner** (`protocol_declaration` does not push scope; only `class_implementation`/`class_interface` do, objc.rs:61). They keep `has_body: false`, are not tagged `abstract`, and survive as nodes because no same-qn body exists. Fixture f1 (`go`, `maybe`), fixture f5 (`greet`).
+- **Protocol methods**: `@protocol Runner - (void)go; @optional - (void)maybe; @end` → `method` nodes named `go` and `maybe` with **no owner** (`protocol_declaration` does not push scope; only `class_implementation`/`class_interface` do, objc.rs:61). They keep `has_body: false`, are tagged `abstract` (WS22), and survive as nodes because no same-qn body exists. Fixture f1 (`go`, `maybe`), fixture f5 (`greet`); `lang-docs/objc/f1` (2026-11-25): `go ['abstract']`.
 - **Qualified names**: `Class::selectorHead`, joined with `::` (objc.rs:51-57). They carry no file, module or category.
 
 Partial / wrong:
@@ -90,30 +94,25 @@ Supported:
 - **Message send to `self`**: `[self helper2]` → `RefRecord { name: "helper2", receiver_hint: "self" }` (objc.rs:110-130). Test `message_sends` (objc.rs:254). Fixture f1: `Service::run → Service::helper2`, high, intra-file.
 - **Message send to a class**: `[Helper create]` → receiver `Helper`. Test `message_sends`. Fixture f1: `[Service create]` → `Service::create`, high, `cross-file:imports`.
 - **Message send to a variable**: `[s run]` → receiver `s`, bound by name (fan-out) unless typed (§05). Fixture f1 `[s run]` → `Service::run` medium.
-- **Nested / chained sends**: `[[Service alloc] init]` records two sites, `alloc` (receiver `Service`) and `init` (receiver `[Service alloc]`, the raw text). The walker descends into children (objc.rs:128).
-  - Fixture f1: both reached the external bucket.
-  - `init` was also left unresolved, `candidates-in-other-files`, even though `Service::init` is in the same file.
+- **Constructions (WS21)**: in `[[T alloc] init…]` the outer send's receiver is rewritten to `T` and marked `typed_receiver` (`alloc` is objc's entry in `CONSTRUCTING_METHODS`). Fixture `lang-docs/objc/f1` (2026-11-25): `[[Engine alloc] initWithName:@"a"]` → `Engine::initWithName`, high.
+- **Nested / chained sends**: `[[Engine shared] start]` records both sites; the inner one types the outer receiver from its declared return type (`+ (Engine *)shared`, WS23, objc is in `TYPE_FIRST_RETURN_LANGS`). Fixture `lang-docs/objc/f1`: `[[Engine shared] start]` → `Engine::start` high, not `Motor::start`.
 - **`super` sends**: `[super run]` → receiver `super`.
   - With no in-graph candidate → `super-base-out-of-graph` (cross_file.rs:2844-2856). Fixture f1 `[super init]`; fixture f3 `[super viewDidLoad]`.
-  - With candidates, it is by-name fan-out, not a base-chain walk (fixture f2 `[super ping]` in `C : A` → `A::ping` **and** `B::ping`, both medium).
+  - With candidates, it is by-name fan-out, not a base-chain walk (fixture f2 `[super ping]` in `C : A` → `A::ping` **and** `B::ping`, both medium; re-checked 2026-11-25, `lang-docs/objc/f2`).
 - **Multi-keyword sends** are recorded under the `method` field: the first keyword only (`[a setX:1 y:2]` → `setX`; fixture f2). This matches the truncated definition names, so they line up, but different selectors that share a first keyword collide.
+- **Plain C calls (WS22)**: `helper(x)`, `NSLog(…)` are recorded as the C plugin records them (`c::call_ref`); a call through a field (`self.block(x)`, `s->fp(x)`) is not recorded. Fixture `lang-docs/objc/f1` (2026-11-25): `helper(3)` → `helper` high; `NSLog` goes to the stdlib bucket. Fixture `lang-docs/objc/f2`: `c_side(1)` in a method binds `c_side` in `util.c` through `#import "util.h"`, high.
+- **Selectors and function values (WS26)**: under `--reference-edges` or `--dead-code`, `@selector(onNote:)` and `NSSelectorFromString(@"onNote:")` with a literal are value references named by the first keyword, receiver `cgg_core::OBJC_SELECTOR_RECEIVER`; they bind the method of that selector on every class declaring one (`high` for one, `medium` for several, refused over `--fanout-cap`). C function values in `.m`/`.mm` are read by `c_values` (ObjC methods are frames, their parameters bindings); a bare value is kept only when it names a C function, never a method, and a name the source continues with `::` or `(` is never a value. Fixture `lang-docs/objc/f1`: `selector:@selector(onNote:)` → `Service::onNote` and `CFDictionaryApplyFunction(nil, applier, nil)` → `applier`, both `via: reference`, high.
 - **Message sends in blocks** are recorded and attributed to the enclosing method (fixture f1 line 17).
 - **Fan-out cap**: by-name candidates are bounded by `--fanout-cap` (generic, cross_file.rs `FanoutCapExceeded`). Not exercised over the cap for objc (unverified).
 
 Not supported:
 
-- **C function calls** (`call_expression`) are never recorded: there is no `call_expression` arm in objc.rs:59-160.
-  - Fixture f1: `helper(3)` inside `Service::run` and `c_func(1)` inside `Worker::work` produce no edge and no unresolved record.
-  - Fixture f4: `objc_side(1)` inside `H::m` and `c_side(x)` inside `objc_side` produce nothing.
-  - So `NSLog`, `dispatch_async`, `NSClassFromString`, `CGRectMake`, block invocation `blk(1)` and every C helper are invisible. As a result, C functions in `.m` files read as dead (§12).
 - **Property / dot syntax**: `self.val`, `s.name = …`, `self.delegate` are not calls (fixture f6 `prop.m`: `E::a` has no site; fixture f2 `self.val` → no edge, while `[self val]` → `D::val` high). A dot-syntax receiver inside a send survives as text: `[self.delegate greet]` → receiver `self.delegate` (fixture f5).
-- **`@selector(x)`**: no reference (fixture f1, f2). This is the declared gap of rule `objc-selector` (rules.rs:5386-5401).
-- **`performSelector:` / `NSSelectorFromString(@"x")`**: no string or selector reference (fixture f5).
-- **Value references / callbacks**: not recorded; `value_refs` is not a declared signal.
-- **Registrar arguments**: not recorded; the plugin never calls the shared `registrar.rs` capture.
-- **Arity**: `RefRecord::arity` is never set; objc is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583).
+- **`performSelector:` with a computed selector**: nothing (only literal `@selector`/`NSSelectorFromString` forms are read).
+- **Registrar arguments**: not recorded; the plugin never calls the shared `registrar.rs` capture. `value_refs` is still not a declared signal (observed instead).
+- **Arity**: `RefRecord::arity` is never set; objc is not in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357).
 - **Explicit generics** (`NSArray<NSString *> *`): not applicable to sends; nothing recorded.
-- **Casts as receivers**: `[(A *)o ping]` → receiver text `(A *)o`. It is not peeled (`receiver::peel` has no objc table). The site went to unresolved (`candidates-in-other-files`, 3 candidates) and also to the external bucket (fixture f2).
+- **Casts as receivers**: `[(A *)o ping]` → receiver text `(A *)o`. It is not peeled (the walker does not call `receiver::peel`). The site went to unresolved (`candidates-in-other-files`, 3 candidates) and also to the external bucket (fixture f2).
 - **C++ calls in `.mm`**: `k.m()`, `ns::cppfn(1)` → nothing (fixture f3).
 - **Duplicate unresolved records**: `[self run]` inside a block in a method of a subclass produced two unresolved records at the same line (`no-candidate-in-file` and `candidates-in-other-files`) (fixture f1 `main.m:13`). Cause not investigated (unverified).
 
@@ -152,7 +151,7 @@ Not supported:
 
 ## 05. Type inference & receiver typing
 
-The plugin records **no** `local_types`, `field_types`, `type_aliases`, `scoped_types` or `typed_receiver` flags (objc.rs records only definitions, references and imports).
+The plugin records **no** `local_types`, `field_types`, `type_aliases` or `scoped_types`; the only `typed_receiver` flag it sets is for `[[T alloc] init…]` constructions (§03).
 
 Supported (generic, weak):
 
@@ -163,12 +162,13 @@ Supported (generic, weak):
   - The rewrite is marked weak (`weak.insert(i)`).
 - **`self` receiver**: binds to the enclosing class's member in-file at high (fixture f2 `[self ping]` in `C::doit` → `C::ping` high; fixture f1 `[self helper2]`).
 - **Class-name receiver**: `[Service create]` binds the owner's method at high when the owner name is unique (§14).
+- **Declared return types of a send used as a receiver**: `+ (Engine *)shared` types `[[Engine shared] start]` (§03, WS23).
 
 Not supported:
 
 - Parameter types (`- (void)use:(A *)param` → `[param ping]` fanned out to `A::ping`, `B::ping`, `C::ping`, medium, fixture f2).
 - Declared local types (`Engine *eng = …`, fixture f3).
-- Return types (`+ (Engine *)shared` is not used to type `eng`).
+- Return types for a local (`Engine *eng = [Engine shared]; [eng start]` still fans out to `Engine::start` and `Motor::start` at medium, `lang-docs/objc/f1`); only a send used directly as a receiver is typed.
 - Casts (`(A *)o`, fixture f2).
 - `id<Proto>` protocol-qualified ids.
 - `instancetype`.
@@ -184,8 +184,7 @@ Not supported:
 - **`super` sends**: by-name fan-out to every same-named method, or `super-base-out-of-graph` when there is none (§03). Fixture f2: `[super ping]` in `C::ping` → `A::ping` + `B::ping` (B is unrelated).
 - **Protocol conformance** (`@interface G : NSObject <Greeter>`): not recorded.
   - There is no `trait_impl_target`, so `--dynamic-dispatch` adds no edges. Fixture f5 with `--dynamic-dispatch` shows the same edges as without.
-  - Protocol method declarations are owner-less nodes that join by-name fan-out. Fixture f5: `[self.delegate greet]` → `greet` (protocol decl) and `G::greet`, both medium.
-  - They are not tagged `abstract`, so the "drop abstract when a concrete candidate survives" narrowing does not apply.
+  - Protocol method declarations are owner-less nodes tagged `abstract` (WS22), so the "drop abstract when a concrete candidate survives" narrowing removes them from a fan-out that also has a concrete `greet` (0.11.0 fixture f5 bound both; not re-run).
 - **`inheritance_fanout`**: objc is not in `INHERITANCE_LANGS` (dispatch.rs:110+).
 - **`member_of_calling_class` / `overrides_below` / `nearest_class_copies`**: Java/C#/Ruby-only paths; objc is not included (cross_file.rs:4075-4095 doc).
 - **Categories / class extensions**: methods are merged into the class qn (`Service::extraThing`). That is correct ownership, but the category name is lost (fixture f1).
@@ -196,10 +195,10 @@ Not supported:
 
 ## 07. Scoping & shadowing
 
-- **`FileFacts::locals`**: not populated. `locals.rs` has no objc table (`grep objc crates/cgg-lang/src/locals.rs` → none). So `shadowed-by-local` never applies.
+- **`FileFacts::locals`**: not populated. `locals.rs` has no objc table (`locals::collect` reads the C walk only for `c` and `cpp`, locals.rs:524). So `shadowed-by-local` never applies to call sites. The value-reference filter in `c_values.rs` does skip names a parameter or declaration of the enclosing function or ObjC method binds, and a field a C or C++ header declares is data in ObjC files too.
 - **Lexical narrowing of nested definitions**: not applicable (no nested callables); objc is not in the narrowing list (CLAUDE.md cgg-resolve §3).
 - **Positional shadowing**: none.
-- **Conditional definitions** (`#if`/`#ifdef` alternatives): no `DefRecord::conditional`. Same-file preprocessor alternatives are deduplicated only through the C-family `c_include_copies` path for bare C names (cross_file.rs:5712+). That path is unreachable for objc call sites because C calls are not recorded.
+- **Conditional definitions** (`#if`/`#ifdef` alternatives): `preproc::mark` records `DefRecord::preproc_branches`, and objc is in `PREPROC_ALTERNATIVE_LANGS` with C (intra_file.rs:1025): same-named C functions that each sit in a different branch of one chain bind all at `medium` (WS36). Fixture `lang-docs/objc/f1` (2026-11-25): `plat()` under `#ifdef WIN … #else …` binds both `plat`s, medium.
 - **Scope of C functions**: a `function_definition` inside `@implementation … @end` is recorded with the bare name, not the class scope (objc.rs:92-94). Correct for C semantics.
 
 ## 08. Macros, preprocessor & codegen
@@ -207,7 +206,7 @@ Not supported:
 - **Function-like `#define`**: not recorded as a callable or as an `FnMacro` (no arm in objc.rs). Fixture f2 `CALL_PING`, `MKFN` → no node.
 - **Function-defining macro expansion** (`c_macro::expand`): explicitly limited to `"c" | "cpp"` (cgg/src/lib.rs:527-531). Fixture f6 `mac.m`: `MKFN(one)` does not generate `fn_one`, and the file parses with an error.
 - **`toplevel:macro-invocation` dead-code rule**: generic over `same_family(.., "c")` (roots.rs:616-660). No objc callable carries attribute `macro`, so it never fires for objc.
-- **`#if` / `#ifdef`**: no blanking or re-parse. Branches are parsed as the grammar sees them (unverified for objc specifically).
+- **`#if` / `#ifdef`**: no blanking or re-parse. Branches are parsed as the grammar sees them; same-file alternatives are reconciled by `preproc_branches` (§07).
 - **`name_mentions`**: never populated.
 - **Generated code** (`macro:<name>` tags), templates, quote/unquote: not applicable / none.
 - **`NS_ENUM`, `NS_OPTIONS`, `NS_ASSUME_NONNULL_BEGIN`, `@synthesize`**: not interpreted.
@@ -215,10 +214,10 @@ Not supported:
 ## 09. FFI & cross-language links
 
 - **asm → objc C function**: supported through the C-family asm pass (ffi.rs:36-186, `c_family_lookup` uses `language_family("c")`, ffi.rs:66). Fixture f4: `boot.s` `call objc_side` → `objc_side` in `helper.m`, medium, `Via::Ffi("asm-c")`, `ffi-linker`.
-- **objc → asm**: the C → asm direction runs for any C-family file (ffi.rs:127). It iterates `f.references`, and objc references are only message sends, so a C call to an asm label from `.m` is never seen (unverified with a fixture; follows from §03).
+- **objc → asm**: the C → asm direction runs for any C-family file and iterates `f.references`, which now include plain C calls (§03), so a C call to an asm label from `.m` should link (not re-run with a fixture).
 - **C/C++ → objc C functions**: supported through include closure plus family retry (fixture f4: `c_side` (C) → `objc_side` (objc), high).
-- **objc → C/C++ functions**: **not supported** (C calls are not recorded; fixture f4 `objc_side` → `c_side` missing).
-- **`c-abi` exports (Rust `#[no_mangle] extern "C"`)**: the allowed source languages include objc (ffi.rs:698, `language_family("c")`), but objc records no C calls. So a Rust export called from `.m` gets no edge. Fixture f4: `rs_add` gets only its ffi-export entry node.
+- **objc → C/C++ functions**: supported since WS22 (C calls recorded). Fixture `lang-docs/objc/f2` (2026-11-25): `c_side(1)` in `A::ping` → `c_side@util.c`, high, `cross-file:imports`.
+- **`c-abi` exports (Rust `#[no_mangle] extern "C"`)**: the allowed source languages include objc (`language_family("c")`), and objc now records C calls, so the Pass-B prototype link can apply (0.11.0 fixture f4 predates this; not re-run).
 - **Swift ↔ Obj-C bridging** (`@objc`, bridging headers, `NS_SWIFT_NAME`): not modelled. Swift's plugin and objc are not in one family (lang_family.rs:28).
 - **JNI / P/Invoke / PyO3 / napi / wasm-bindgen**: not applicable.
 - **Descriptor links** (protobuf rpc → host): no objc host mapping (descriptor.rs `family_of`; not verified for objc, none found by grep).
@@ -243,7 +242,7 @@ Every rule whose `language` is `objc`:
 - **Stale gap text**: `xctest`'s `gap` string says cgg "has no prefix matcher", but the rule has `methods: ["test*", …]` and works (fixture f3). Since `has_matchers()` is true, the gap is not printed (mod.rs:395-404).
 - **Detection blind spot**: only imports recorded by an objc file count. A UIKit/Foundation import that appears only in a `.h` (parsed as C) or a prefix header (`.pch`, not claimed by any plugin) does not activate any objc rule. Fixture f1: `Foundation` imported only in `Service.h` → `recognised: []`, `seen_no_rules: []`.
 - **`member_sources_for`, `signature_methods_for`, `container_attributes_for`, `markup_kinds_for`, `visibility_entries_for`**: no objc entries (rules.rs contains no other objc lines).
-- **Registrar verbs**: none (the objc plugin captures no registrar arguments).
+- **Registrar verbs**: none (the objc plugin captures no registrar arguments; selectors passed to `addTarget:action:` and similar are read as selector values instead, §03).
 - **Base types**: every objc rule has `base_types: NONE`. Matching is name-only, gated by the file's imports, so any method named `application`/`tableView`/`dealloc` in a UIKit-importing file is rooted, whatever its class.
 - **Builtin lifecycle names** (dead-code, independent of imports): `("objc", &["viewDidLoad", "applicationDidFinishLaunching"])` (roots.rs:156), plus `CONVENTIONAL_METHODS` (`initialize`, `describe`, …, roots.rs:162-170).
 
@@ -256,15 +255,16 @@ Every rule whose `language` is `objc`:
   - Dead-code treats them as `test-entry` roots (`framework:test-harness`, fixture f3 JSON).
   - `--no-test-entries` turns them into root marks (generic CLI behaviour, not exercised for objc).
 - **Not covered**: `+setUp`/`+tearDown` are matched by name like the instance versions (unverified distinction); `invokeTest`, `measureBlock:` blocks, Kiwi/Specta/Quick (`describe(...)`, `it(...)`), and OCMock are not covered. There is no base-type check that the class is an `XCTestCase`.
-- **Builtin test-name fallback** (`is_test_name`, roots.rs:975-990): objc takes the default arm, `test_` or `Test` prefix. Obj-C's `testFoo` is matched only through the `xctest` rule, never by the builtin.
+- **Builtin test-name fallback** (`is_test_name`): objc takes the default arm, `test_` or `Test` prefix (word boundary after `Test` since WS20). Obj-C's `testFoo` is matched only through the `xctest` rule, never by the builtin.
+- **Test files**: `*Test(s).m`/`.mm` are test files (WS20 test-file arm).
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`**: python/php/ruby only (rules.rs:11806). Helpers in a test class (`MyTests::helperForTest`) are live only if called.
 - **Test-file gating**: `xctest` is import-detected, so the name-only test-file gate does not apply.
 
 ## 12. Dead-code analysis
 
 - **Signals**: `ObjcPlugin` does not override `signals()`, so all are `false`: visibility, attributes, exports, test_defs, value_refs, dyn_uses, unreachable, impls (lib.rs:269-306).
-  - Result: capability `class: degraded`, every signal `none`, `max_confidence: medium` (fixture f3 JSON capabilities).
-  - Every finding carries risks `language-lacks-attributes, language-lacks-dispatch-model, language-lacks-value-references, language-lacks-visibility` (fixture f1 text report).
+  - Result: capability `class: degraded`, `max_confidence: medium`. Value references are observed when selector or function-value sites exist (fixture `lang-docs/objc/f1`, 2026-11-25: `value_references: full`, everything else `none`).
+  - Findings carry `language-lacks-attributes, language-lacks-dispatch-model, language-lacks-visibility`, plus `language-lacks-value-references` when no value site exists.
 - **Roots that apply**:
   - `builtin:main` (`main`, roots.rs:19).
   - `builtin:lifecycle` (`viewDidLoad`, `applicationDidFinishLaunching`, roots.rs:156, plus `CONVENTIONAL_METHODS`).
@@ -273,10 +273,9 @@ Every rule whose `language` is `objc`:
   - User roots (`cgg-deadcode.toml`).
   - `ffi:export` and `lang:export` never fire (no attributes, no exports).
 - **Known false positives** (fixture f1 `--dead-code`):
-  - `helper` and `c_func` are flagged although they are called (C calls are not recorded).
-  - `Worker::onNote` is flagged although it is reached by `@selector`.
+  - (0.11.0 only, fixed in 0.11.1: `helper`/`c_func`, called from C calls, and `Worker::onNote`, reached by `@selector`.)
   - `Service::dealloc` is flagged when UIKit is not imported by the `.m` file.
-  - Protocol requirement declarations `go`/`maybe` are flagged as unreferenced methods.
+  - Protocol requirement declarations `go`/`maybe` are flagged as unreferenced methods (re-checked: `go` is still reported, `lang-docs/objc/f1`).
   - `Service::initWithName` is flagged.
   - Fixture f3: `AppVC::tapped` (`IBAction`) is flagged.
   - Fixture f2: the first `setX` overload (selector collision).
@@ -293,13 +292,14 @@ Every rule whose `language` is `objc`:
 
 - **`stdlib/objc.txt`**: 408 lines (`wc -l`), loaded at stdlib.rs:197 and 238.
   - It mixes Foundation/UIKit selector heads (`alloc`, `init`, `addObject`, `cellForRowAtIndexPath`, `performSelector`), C functions (`NSLog`, `dispatch_async`) and type names (`CGRect`, `CGFloat`).
-  - C-function entries are unused in practice because C calls are never recorded.
+  - C-function entries now screen the C calls recorded since WS22 (`NSLog` → stdlib bucket, `lang-docs/objc/f1`).
 - **Screening behaviour** (`external::classify_one`, external.rs:186+):
   - A receiver hint in the table → stdlib (fixture f1: `[NSNotificationCenter defaultCenter]` → stdlib; fixture f5: `[NSString stringWithFormat:]` → stdlib).
   - Anything else the screen cannot place → external (fixture f1: `alloc`, `init`, `performSelector`, `addObserver` with receivers `Service`/`self`/`[...]` → external bucket).
   - The same site can appear in both `external_calls` and `unresolved_calls` (fixture f1 `Service.m:4`, `:9`).
 - **`--include-stdlib` / `--include-external`**: mint `<stdlib>::NSString::stringWithFormat` and `<external>::o::respondsToSelector`-style leaf nodes (fixture f5 mermaid).
-- **No objc rows** in `CAST_INTRINSICS`, `CONSTRUCTING_METHODS` (ruby only, stdlib.rs:58), `TOP_TYPES`, `MAYBE_TYPE_WRAPPERS`, `UNION_TYPE_CONSTRUCTORS`, `NULL_TYPE_MEMBERS`, `CALLBACK_TYPE_CONSTRUCTORS`, or any `rust_types`-like table.
+- **`CONSTRUCTING_METHODS`** has `("objc", ["alloc"])` (stdlib.rs:59-60), and `OBJC_SELECTOR_FROM_STRING` names `NSSelectorFromString`.
+- **No objc rows** in `CAST_INTRINSICS`, `TOP_TYPES`, `MAYBE_TYPE_WRAPPERS`, `UNION_TYPE_CONSTRUCTORS`, `NULL_TYPE_MEMBERS`, `CALLBACK_TYPE_CONSTRUCTORS`, or any `rust_types`-like table.
 - **No implicit-package list** (`SCALA_IMPLICIT_PACKAGES` analogue).
 - **`is_platform_header`** (cross_file.rs:3208+) decides which `<…>` imports are not followed (C/POSIX names). Whether Apple framework headers like `<UIKit/UIKit.h>` are classified as platform is unverified. In the fixtures no such file existed in-tree, so nothing was followed either way.
 
@@ -307,6 +307,9 @@ Every rule whose `language` is `objc`:
 
 High is reachable through:
 
+- `[[T alloc] init…]` constructions and sends typed by a declared return type (`lang-docs/objc/f1`);
+- plain C calls to a single in-closure function (`lang-docs/objc/f1` `helper`, `f2` `c_side`);
+- `@selector` values when one class declares the selector;
 - intra-file `self` sends to a method of the enclosing class (fixture f2 `C::doit → C::ping`; fixture f1 `Service::run → Service::helper2`);
 - intra-file sends whose receiver the lowercase heuristic retyped (fixture f2 `[a ping]` → `A::ping` high, although the heuristic is marked weak);
 - cross-file class-receiver sends when the class name is a unique owner (`unique_owner_names`, objc in the "module-carrying" group, cross_file.rs:4411; `qn_carries_module`, 4775). Fixture f1 `[Service create]`, fixture f3 `[Engine shared]` → high, `cross-file:imports`;
@@ -316,26 +319,27 @@ Medium:
 
 - every by-name fan-out on an untyped variable, parameter, block parameter or `super` (fixtures f1, f2, f3);
 - cross-file sends to a variable even with a single candidate (fixture f1 `[s run]` → `Service::run` medium);
-- asm → objc FFI (medium).
+- asm → objc FFI (medium);
+- same-file preprocessor alternatives (WS36).
 
 Low: framework harness `entry` edges (fixture f3).
 
 The mermaid `?` marker appears on arrows with no high site (fixture f5 `N2 -->|?| N0`).
 
-No `OwnerFacts`-style typed-receiver certainty exists, since there are no declared types.
+Typed-receiver certainty comes only from constructions and declared return types; parameter and local declarations are not read.
 
 ## 15. Dynamic use & reflection
 
 - **`dynuse`**: objc is not covered (`dyn_uses: false`; dynuse covers Python, JS, Java, C#, Ruby, PHP per CLAUDE.md; `grep objc plugins/dynuse.rs` → none).
 - `performSelector:`, `NSSelectorFromString`, `NSClassFromString`, `respondsToSelector:`, `valueForKey:`/KVC/KVO, `NSInvocation`, `objc_msgSend` and `method_exchangeImplementations` (swizzling) produce no reflection screen and no edge.
-  - Fixture f5: `NSClassFromString(@"G")` (a C call) is not even recorded.
+  - `NSClassFromString(@"G")` is now recorded as a C call (stdlib-screened), but names no class.
   - Sends like `[o performSelector:…]` land in the external bucket.
-- **`@selector(...)`**: not recorded (rule `objc-selector` gap, rules.rs:5398).
+- **`@selector(...)` / `NSSelectorFromString(@"…")`** with a literal are value references (§03), not reflection screens.
 - **Module loads** (`dlopen`, `NSBundle load`): not modelled.
 
 ## 16. Known gaps & limitations
 
-- **C function calls are never recorded in `.m`/`.mm`** (no `call_expression` arm, objc.rs:59-160). This is the largest gap: every C helper, `main` callee, block invocation, `NSLog`/GCD call and objc → C/Rust/C++ edge is missing, and C functions in `.m` files read as dead (fixtures f1, f4).
+- ~~C function calls are never recorded in `.m`/`.mm`~~: fixed in 0.11.1 (WS22, §03). A block invocation through a field (`self.blk(1)`) is still not recorded.
 - **Selectors are truncated to the first keyword** (objc.rs:176-180, 111-114). Distinct selectors sharing a head collide (`setX:y:`/`setX:z:`), and edges go to an arbitrary one (fixture f2).
 - **`+`/`-` methods of one selector share a qn**, so `ambiguous-in-file` (fixture f5).
 - **No base classes or protocol conformance recorded**:
@@ -343,19 +347,19 @@ No `OwnerFacts`-style typed-receiver certainty exists, since there are no declar
   - `super` fans out to unrelated classes (fixture f2);
   - `--dynamic-dispatch` is a no-op;
   - documented in cross_file.rs:4086-4088 and CHANGELOG.md:458-460.
-- **Protocol members are owner-less**, not `abstract`, and join fan-out (fixtures f1, f5).
-- **No type inference beyond the lowercase-name heuristic**: parameters, declared locals, casts, return types, `id<P>` and properties are all ignored (§05).
+- **Protocol members are owner-less** (tagged `abstract` since WS22).
+- **Little type inference**: beyond the lowercase-name heuristic, constructions and a send's declared return type, parameters, declared locals, casts, `id<P>` and properties are all ignored (§05).
 - **Obj-C headers are parsed as C**: `@interface`/`@protocol`/`@property` in `.h` are lost, and their framework imports never activate objc rules (fixtures f1, f4).
 - **`.mm` uses the Obj-C grammar**: C++ classes, namespaces and calls are lost (fixture f3).
 - **No `@property`/`@synthesize` accessor nodes; dot syntax is not a call** (fixtures f2, f6).
 - **No macro support**: no `#define` callables and no `c_macro::expand` (lib.rs:527-531) (fixtures f2, f6).
-- **`@selector`, `performSelector`, KVC, `IBAction`/storyboard wiring are invisible**. They are disclosed by `objc-selector` (rules.rs:5398) and by the `xctest` gap text, which is stale (rules.rs:5380).
+- **Computed `performSelector`, KVC, `IBAction`/storyboard wiring are invisible** (literal `@selector` is read since WS26). They are disclosed by `objc-selector` and by the `xctest` gap text, which is stale.
 - **No dead-code signals at all**: degraded class, `max_confidence: medium` (fixture f3).
-- **Test-only coverage**: 3 inline unit tests (objc.rs:238-289) and one detection probe (cgg/tests/detect_prefixes.rs:52-57). There is no objc resolve test under `crates/*/tests`. The `"Foo.m"` strings in `crates/cgg/tests/resolve.rs:3144-3190` are qualified names (`Foo.m`) from other languages' tests, not Obj-C files.
+- **Test-only coverage** (0.11.0): 3 inline unit tests (objc.rs has more since) and one detection probe (cgg/tests/detect_prefixes.rs:52-57). There is no objc resolve test under `crates/*/tests`. The `"Foo.m"` strings in `crates/cgg/tests/resolve.rs:3144-3190` are qualified names (`Foo.m`) from other languages' tests, not Obj-C files.
 - **Benchmark**: one corpus repo, AFNetworking (scripts/benchmark.sh:73; README.md:1325 "AFNetworking | objc | 288 | 93 | 5%"). App rows `app-orleans-samples` and `app-rn-expensify` list objc rules as `~` (not expected to fire) (benchmark.sh:209-210).
 - **README language table** row (README.md:499): "Objective-C | #import | — | Message expressions": no type inference claimed.
 - **Odd resolution observations** (cause not investigated):
-  - `[[Service alloc] init]` stays unresolved `candidates-in-other-files` although `Service::init` is in the same file (fixture f1);
+  - `[[Service alloc] init]` stayed unresolved in 0.11.0 (fixture f1); constructions now bind (§03);
   - duplicate unresolved records for one block-nested send (fixture f1 `main.m:13`).
 
 ## Summary scorecard
@@ -364,17 +368,17 @@ No `OwnerFacts`-style typed-receiver certainty exists, since there are no declar
 |---|---|---|
 | 01. Detection & parsing | partial | `.m`/`.mm` only; `.h` with `@interface` → C; `.mm` C++ mis-parses; depth skip works |
 | 02. Callables extracted | partial | methods, class methods, `init`, categories, C functions; selectors truncated, `+`/`-` collide, no properties/blocks/macros |
-| 03. Call-site forms | minimal | message sends only; no C calls, no dot-syntax, no `@selector`, no arity, casts not peeled |
+| 03. Call-site forms | partial | message sends, C calls, `alloc`/`init` constructions, `@selector` and C function values; no dot-syntax, no arity, casts not peeled |
 | 04. Imports & module resolution | partial | `#import`/`#include` closure + family retry + prototype unification; no external-module refusal, no `@import`, sends not import-scoped |
-| 05. Type inference & receiver typing | minimal | only `self`, class-name receivers and same-file lowercase-name heuristic |
-| 06. Inheritance, dispatch & overloading | none | no bases, no protocols, `super` fans out by name, no dynamic dispatch |
-| 07. Scoping & shadowing | none | no locals, no shadowing, no conditional defs |
+| 05. Type inference & receiver typing | minimal | `self`, class-name receivers, constructions, a send's declared return type and the same-file lowercase-name heuristic |
+| 06. Inheritance, dispatch & overloading | none | no bases, no conformance (protocol members only tagged `abstract`), `super` fans out by name, no dynamic dispatch |
+| 07. Scoping & shadowing | minimal | no locals table; same-file preprocessor alternatives bind at medium |
 | 08. Macros, preprocessor & codegen | none | no `#define` callables, excluded from `c_macro::expand` |
-| 09. FFI & cross-language links | partial | C/C++/asm → objc C functions work; objc → anything missing (no C calls) |
+| 09. FFI & cross-language links | partial | C/C++/asm ↔ objc C functions work both ways through the include closure |
 | 10. Frameworks & entry points | partial | 4 matching rules (UIKit/AppKit lifecycle, app delegate, Cocoa delegates, XCTest) + 2 gap rules; name-only, header imports ignored |
 | 11. Test harness entries | partial | XCTest `test*`/`setUp`/`tearDown` via harness node; no base check, no Kiwi/Specta |
-| 12. Dead-code analysis | minimal | degraded class, no signals, max medium; many false positives from missing C calls/selectors |
+| 12. Dead-code analysis | minimal | degraded class, no declared signals, max medium; C calls and selectors now credit |
 | 13. Builtins & stdlib tables | partial | 408-name `objc.txt` screen; no cast/constructor/nullability tables |
-| 14. Confidence & certainty | partial | high for `self`/unique class receivers and C→objc includes; everything else medium |
-| 15. Dynamic use & reflection | none | no dynuse; selectors/KVC/`NSClassFromString` invisible |
-| 16. Known gaps & limitations | n/a | C calls, selector truncation, no inheritance, headers-as-C are the headline gaps |
+| 14. Confidence & certainty | partial | high for `self`/unique class receivers, constructions, C calls and selectors; fan-out medium |
+| 15. Dynamic use & reflection | none | no dynuse; literal selectors are references; KVC/`NSClassFromString` invisible |
+| 16. Known gaps & limitations | n/a | selector truncation, no inheritance, headers-as-C are the headline gaps |

@@ -1,6 +1,8 @@
 # cpp
 
-The C++ plugin is `CppPlugin` (`crates/cgg-lang/src/plugins/cpp.rs`, 2,746 lines including inline tests). It parses C++ with the crates.io grammar `tree-sitter-cpp` 0.23 (`Cargo.toml:89`, `tree_sitter_cpp::LANGUAGE`, cpp.rs:45-47). Nothing is vendored.
+> Revised 2026-11-25 against cgg 0.13.3: C++ now has a locals table and function-value references, records `override` and `abstract`, makes base/delegating initializers calls, narrows workspace namespace aliases, types `auto x = f()` locals from declared return types, and has `gtest`/`gtest-fixture`/`libfuzzer` harnesses, `implements-external-contract` evidence and unreachable-region consumption; the affected sections are corrected. `file:line` citations not otherwise revised date from the 0.11.0 audit and may have drifted.
+
+The C++ plugin is `CppPlugin` (`crates/cgg-lang/src/plugins/cpp.rs`, 2,939 lines including inline tests). It parses C++ with the crates.io grammar `tree-sitter-cpp` 0.23 (`Cargo.toml:89`, `tree_sitter_cpp::LANGUAGE`, cpp.rs:45-47). Nothing is vendored.
 
 A single recursive `CppWalker` (cpp.rs:101-858) keeps two stacks:
 
@@ -15,7 +17,7 @@ The walker records:
 - `#include` directives;
 - call sites, `new` expressions and member-pointer tables.
 
-It also runs the shared registrar-argument capture for registration calls.
+It also runs the shared registrar-argument capture for registration calls. After the walk, `extract` (cpp.rs:49-83) runs `c_values::collect` when reference sites are on (function values, `data_members`, `type_names`), `c_macro::scan_invocations`, the unreachable-region scan under `--dead-code`, and `preproc::mark` (preprocessor branches). Parameters and locals come from the shared `locals::collect_c` pass.
 
 The plugin declares the signals `attributes`, `unreachable` and `impls` (cpp.rs:36-43). It does **not** declare `visibility`, `exports`, `test_defs`, `value_refs` or `dyn_uses`. There is no `resolver_kind` override, so resolution uses the generic pipeline.
 
@@ -62,7 +64,7 @@ Fixtures cited below live under `<scratch>/parity/cpp/` (f1 … f14). Each was r
   - `try_record_prototype` refuses a "declaration" whose text contains `{` before the declarator. This is the macro-prefixed method body case (cpp.rs:590-615). Test: `a_macro_prefixed_method_body_mints_no_phantom_prototype` (cpp.rs:1910).
   - A block-scope `declaration` is never a prototype. This is the most-vexing-parse case `std::ifstream info(path);` (cpp.rs:605). Test: `a_local_constructed_with_arguments_is_not_a_prototype` (cpp.rs:1804).
 - **Depth skip:** shared by all languages. A tree deeper than `MAX_TREE_DEPTH` (4,000) is skipped as `too-deep` (cgg/src/lib.rs, `cgg_lang::exceeds_depth`).
-- **Minified/long-line handling:** not applicable. `max_line_bytes` is not overridden, and there is no `locals.rs` spec whose 2,000-byte rule could apply.
+- **Minified/long-line handling:** `max_line_bytes` is not overridden. The generic rule that skips locals on lines over 2,000 bytes applies to the C++ locals table (`locals::collect_c`, §07).
 - **`vendor/` and other deny-list directories** are skipped by cgg-walk, as for every language.
 
 **Not supported:**
@@ -72,7 +74,7 @@ Fixtures cited below live under `<scratch>/parity/cpp/` (f1 … f14). Each was r
 - **`.mm` (Objective-C++)** belongs to the objc plugin (objc.rs:15-17), not cpp.
 - **No preprocessor evaluation.** Every `#if`/`#ifdef` branch is parsed:
   - Fixture f11: the `#if 0 … void disabled() {} … #endif` body is extracted as a callable.
-  - Fixture f7c: both `impl()` copies under `#ifdef/#else` are extracted, and a call to `impl()` binds both at medium.
+  - Fixture f7c: both `impl()` copies under `#ifdef/#else` are extracted, and a call to `impl()` binds both at medium (re-checked 2026-11-25, `lang-docs/cpp/f3`). C++ binds such a same-file set as an overload set; the C/ObjC `preproc_branches` rule (WS36) does not apply, though `preproc::mark` records the branches for C++ too.
 
 ## 02. Callables extracted
 
@@ -93,7 +95,8 @@ Fixtures cited below live under `<scratch>/parity/cpp/` (f1 … f14). Each was r
 **Attributes.** Each definition carries:
 
 - the CUDA qualifiers `__global__`/`__device__`/`__host__`, matched on the declaration head only (`cuda_qualifiers`, cpp.rs:2713-2729; test `kernel_qualifier_is_captured_from_the_declaration_head`);
-- `virtual`, when the definition has a `virtual` token or a pure-virtual clause (`is_virtual_method`, cpp.rs:937-944).
+- `virtual`, when the definition has a `virtual` token or a pure-virtual clause (`is_virtual_method`);
+- `abstract` for a pure virtual (`= 0`, WS22), and `override` for an `override`/`final` specifier (`attrs::with_override_marker`, WS20; copied from the in-class declaration onto an out-of-class body). Fixture `lang-docs/cpp/f1` (2026-11-25): `Vec::draw` has `['virtual', 'abstract']`, `Derived::draw` has `['override']`.
 
 Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` is always empty (cpp.rs:346).
 
@@ -104,7 +107,7 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 - **In-class method.** `void draw() const {}` becomes `app::Widget::draw`. Fixture f1.
 - **Constructor and destructor**, in-class or out-of-line, including a pointer return such as `int *Robot::foo()`. Tests: `class_method_and_constructor` (cpp.rs:1858) and `out_of_line_constructor_destructor_and_pointer_return` (cpp.rs:2004). Fixture f1 extracted `Widget::Widget` ×2 and `Widget::~Widget`.
 - **`= default` and `= delete`** count as definitions: `has_body` is set (cpp.rs:318-325). Fixture f13: `Vec(const Vec&) = delete;` becomes a `constructor` node.
-- **Pure virtual** `virtual void paint() = 0;` becomes a node tagged `virtual` with `has_body=false`, so a later body can absorb it. Fixture f1: `Widget::paint` has `attrs=['virtual']`.
+- **Pure virtual** `virtual void paint() = 0;` becomes a node tagged `virtual` and `abstract` with `has_body=false`, so a later body can absorb it.
 - **Out-of-line member.** For `void Engine::start(int n) {}`, the simple name is the last segment and the QN is the declarator text (`qualified_fn_info`, cpp.rs:427-457). Test: `out_of_line_simple_name_is_the_method` (cpp.rs:1953). Fixture f3.
 - **Nested class member**, in-class (`Widget::Inner::run`, fixture f1) or out-of-line (`void Vec::Inner::f()`, fixture f13).
 - **Static member function.** `static Widget make()` is an `InherentMethod`; there is no `StaticMethod` variant for C++. Fixture f1.
@@ -124,16 +127,16 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 
 **Not supported or partial:**
 
-- **Lambdas are never callables.** `cpp.rs` has no `lambda_expression` arm (cpp.rs:135-296). Calls inside a lambda are attributed to the enclosing function: in fixture f2, `[p]() { p->area(); }` produced the edge `calls -> Shape::area`. A call through a lambda-holding variable (`lam()`) is `external` with `no-candidate-in-file` (fixtures f1 and f2).
+- **Lambdas are never callables.** `cpp.rs` has no `lambda_expression` arm. Calls inside a lambda are attributed to the enclosing function: in fixture f2, `[p]() { p->area(); }` produced the edge `calls -> Shape::area`. A call through a lambda-holding local (`auto process = []{}; process();`) is now `shadowed-by-local` (§07).
 - **Conversion operators are not extracted.** `operator bool() const {…}` and `explicit operator bool()` are both missing from fixtures f1 and f13. The `operator_cast` arm (cpp.rs:413) is never reached. The probable, unverified, cause is that the grammar does not nest `operator_cast` in a `function_declarator`, so `unwrap_function_declarator` (cpp.rs:898-930) returns `None`.
 - **Explicit full specialization of a free function template** (`template <> int tmax<int>(int, int)`) is not extracted, because the declarator is a `template_function`, which `fn_info_from_declarator` does not handle. Fixture f1 has only one `tmax` node. A class-member specialization written with a qualified name does work (fixture f13: `Box<int>::get`).
 - **Inline `friend` functions get the class as owner.** `friend void swap(Widget&, Widget&) {}` becomes `app::Widget::swap`, a method, although it is a namespace-level function (fixture f1). A friend declaration with an out-of-class body is never unified:
   - Fixture f13: `friend bool operator==(…)` gives a prototype node `Vec::operator==`.
   - The body is the separate node `operator==`.
-- **Variant gaps.** There is no `StaticMethod`, `Property` or `abstract` tagging. Pure virtuals are tagged `virtual`, not `abstract`, so the abstract-candidate narrowing of duck fan-out does not apply (grep for `abstract` in cpp.rs finds nothing).
+- **Variant gaps.** There is no `StaticMethod` or `Property` variant. (Pure virtuals are tagged `abstract` since 0.11.1, so the abstract-candidate narrowing of duck fan-out applies.)
 - **Function-pointer fields and variables** are not callables, by design. Test: `function_pointer_field_is_not_a_callable` (cpp.rs:2038).
 - **Inheriting constructors** (`using Vec::Vec;`) produce no record (fixture f13).
-- **Doctest/Catch2 tests are absent.** A `TEST_CASE("…")` body is not a callable (rules.rs:7915, gap prose; fixture f8). gtest `TEST(Suite, Name)` parses as a function named `TEST`/`TEST_F` (fixture f8 nodes `TEST`, `TEST_F`), so every gtest test shares one QN per macro.
+- **Doctest/Catch2 tests are absent.** A `TEST_CASE("…")` body is not a callable (`cpp-test-macros` gap prose; fixture f8). gtest `TEST(Suite, Name)` parses as a function named `TEST`/`TEST_F` (fixture `lang-docs/cpp/f2`, 2026-11-25: nodes `TEST`, `TEST_F`), so every gtest test shares one QN per macro; they are now entered by the `gtest` harness (§11).
 - **Qt `slots:` sections are lost.** A class with `Q_OBJECT` and `public slots:` lost its slot method `onClick` to error recovery; only `Win::wire` was extracted (fixture f8, `src/qt.cpp`).
 
 ## 03. Call-site forms
@@ -159,6 +162,8 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 - **Construction by call.** `Widget(1)` binds the constructors by arity (fixture f1, L12: both one-argument constructors at medium). Fixture f2, L36: `Shape()` binds the zero-argument constructor, high.
 - **Indexed member-pointer call** `(m->*table[i])(…)` is recorded as the name `->*` with the table as receiver (cpp.rs:742-750, 1027-1064). `&Type::method` inside a table initializer is recorded as a `MemberPtrTake` (cpp.rs:831-857). These are consumed only by `cpp_virtual_dispatch` (§06). Tests: `member_pointer_table_and_indexed_call_are_recorded` (cpp.rs:2258) and `cpp_member_pointer_table_reaches_overrides` (cgg/tests/resolve.rs:1285).
 - **Registrar arguments.** The callee text of every call is passed to `registrar::capture` (cpp.rs:285-290), which is gated on the call's last segment being a registrar verb of some rule (registrar.rs:424-440). Identifier arguments then become value references. For C++ the verbs come from the `aws-lambda` (`run_handler`) and `cpp-callbacks` rules (§10). With `--reference-edges` these show as `?ref` edges (fixture f8, `src/app.cpp`: six `-->|?ref|` arrows).
+- **Base and delegating member initializers (WS21).** `D() : Base(1)` and `D(int) : D()` are recorded as constructor delegation (receiver `super`, or the class's own name) and resolve through the base chain, limited to constructors; a miss for a constructor name is refused rather than name-matched. Fixture `lang-docs/cpp/f1` (2026-11-25): `Derived() : Vec(1), n_(0)` gives `Derived::Derived → Vec::Vec` high, and `n_(0)` leaves no record.
+- **Function values (WS26/WS27).** Under `--reference-edges` or `--dead-code`, `c_values.rs` records function names in arguments (not registrar verbs or ALL-CAPS macro-style callees), initializer lists, initializer and assignment values and returns, through `&`, casts and `?:`, qualified only behind `&` (`&Class::m`), as `value_ref` records. Names a C++ parameter or local in scope binds are pruned (locals table, plus parameters over the whole function), and a name followed by `::` or `(` is never a value. Fixture `lang-docs/cpp/f1`: `run_all(callee_value)`, `void (*fp)() = &only_by_ptr;` and `caller(handler)` give `via: reference` edges at high.
 - **Calls inside macro arguments** are ordinary `call_expression`s and are recorded (fixture f7: `SQUARE(2)` binds the `SQUARE` macro node).
 - **Calls at namespace/global scope** in initializers (`int g_init = compute();`) are recorded with no enclosing callable. They feed the `toplevel:invocation` dead-code root (fixture f13).
 
@@ -167,13 +172,12 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 - **Global-qualified `::geo::bare()` is unresolved.** The receiver is `::geo`. Fixture f2, L27: `candidates-in-other-files`, and also in the external bucket.
 - **Operator expressions are not call sites.** `v + r` and `a == b` produce no reference, so `operator+` is never called (fixture f2, L47).
 - **Call operator on an object.** `v(5)`, where `v` has `operator()`, is recorded as a bare call to `v` and goes to `external` (fixture f2, L48). C++ has no `call_operator_names` step.
-- **Function values outside registrar verbs** produce no record. This covers `run_all(callee_value)` and `run_all(&callee_value)` (fixture f2, L49-50: only the `run_all` edge), `std::thread t(fn)`, `std::function<void()> fn = callee_value;` and `fp = &only_by_ptr` (fixture f9: `only_by_ptr` is reported dead). The plugin does not call `registrar::capture_value_refs`, and its signals declare no `value_refs` (cpp.rs:36-43).
-- **Calling through a function-pointer variable** (`f()`, `fn()`, `lam()`) goes to `external` with `no-candidate-in-file`, or, when a function of that name exists, binds to it wrongly (§07).
+- **Calling through a function-pointer variable** (`f()`, `fn()`, `lam()`) is `shadowed-by-local` when the name is a parameter or local (§07); otherwise it goes to `external`.
 - **Construction by declaration makes no edge.** `lib::Engine e;`, `Panel p;` and `std::unique_ptr<Shape> up(new Shape())` create no constructor edge (fixture f3). Only the inner `new` binds (fixture f2, L45).
-- **Base and member initializers** (`Derived() : Vec(1)`) are not calls (fixture f13: there is no `Derived::Derived -> Vec::Vec` edge). An initializer *containing* a call, such as `v(compute())`, is recorded.
+- **Data-member initializers** (`n_(0)`) are not calls and leave no record. (Base and delegating initializers are calls since WS21; see Supported.)
 - **`std::make_unique<T>()`/`make_shared<T>()`** go to the stdlib bucket only, with no constructor edge (fixtures f2 and f4).
 - **CUDA launches** `k<<<a,b>>>(…)` parse as comparisons and produce no edge. This is why `__global__` is a root (cpp.rs:2700-2712; rules.rs:1381-1384).
-- **Paren-less calls and `value_ref`/method-reference records** do not exist in C++ (the plugin never sets `paren_less` or `value_ref`).
+- **Paren-less calls** do not exist in C++.
 
 ## 04. Imports & module resolution
 
@@ -182,7 +186,7 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 - **`#include "x.h"`** becomes an import of kind `include` (cpp.rs:681-701). Test: `include_directive_captured` (cpp.rs:2479). The cross-file resolver follows the transitive include closure to depth 8 (`collect_include_defs`, cross_file.rs:~1790-1805). Fixture f3: `main.cpp` includes `lib/engine.hpp`, and `e.start(1)` gives `Engine::start`, high (`cross-file:imports`).
 - **`#include <x.h>`** becomes kind `system-include` (cpp.rs:702-717). It is followed only when it is not a platform header (`is_platform_header`). This handles `-I` layouts such as `<spdlog/spdlog.h>` (cross_file.rs:1808-1826). System includes are also the detection input for framework rules (§10).
 - **Include-closure scoping.** When several family callables carry the name, a call bound through the include closure reaches only copies in the calling file or its closure files (`c_include_copies`, cross_file.rs:7259; used at 5717-5735). C++ files reach C definitions through an included C header (cross-language within the family, lookup retry under `language_family`, cross_file.rs:7246-7252). Tests: `cpp_file_resolves_call_to_c_definition_via_include` (cross_file.rs:10888), `cpp_include_does_not_import_every_c_function` (11004), `cpp_header_declaration_merged_into_a_body_elsewhere_still_binds_through_include` (cgg/tests/resolve.rs:770) and `cpp_free_function_declared_in_several_programs_binds_to_its_own_declaration` (resolve.rs:800).
-- **Namespace aliases.** `namespace fs = std::filesystem;` becomes an import of kind `namespace-alias` (cpp.rs:209-235). `heads.rs` reads it to expand the head of a qualified receiver before the external check (heads.rs:625-631, 700-705). Fixture f3: `fs::exists` is `external`.
+- **Namespace aliases.** `namespace fs = std::filesystem;` becomes an import of kind `namespace-alias`. `heads.rs` reads it to expand the head of a qualified receiver before the external check. Fixture f3: `fs::exists` is `external`. Since 0.13.2 an alias of a workspace namespace is rewritten like a Rust `use … as`, so the call binds only that namespace's function (`lookup_in_language`). Fixture `lang-docs/cpp/f1` (2026-11-25): `namespace bl = lib; bl::util(4)` binds only `lib::util`, high; the unrelated global `util` in `other/unrelated.cpp` gets no edge.
 - **Type aliases.** `using X = T<…>;` and `typedef T X;` (plain name only) are recorded as `type_aliases` (cpp.rs:236-266) and used for typing (§05). They also add names to the workspace scope vocabulary (heads.rs:172-176).
 - **External-namespace refusal** (`external_head`, heads.rs:660-720). cpp is in the language list. A path receiver whose scope segments the tree never declares is recorded as `external-module`. The declared scopes come from callable QNs that are true scope paths, field owners and type aliases (`cpp_scopes`, heads.rs:168-205). Fixture f3: `boost::split` is `external`. Tests: `cpp_namespace_declared_nowhere_is_external` (cross_file.rs:11524) and `cpp_macro_namespace_member_reached_through_an_include_is_kept` (11561).
 - **Escape for macro-opened namespaces.** A namespace opened through a macro (`namespace KWSYS_NAMESPACE {`) whose member is declared by the include closure keeps the pre-refusal reading (`declared_by_include`, cross_file.rs:5341-5347).
@@ -193,7 +197,6 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 **Not supported or partial:**
 
 - **`using namespace X;` and `using X::f;`** are not recorded as imports; no `using_directive` arm exists in cpp.rs. Bare calls still resolve by name. Fixture f2, L25: `bare()` under `using namespace geo` binds `geo::bare`, high, because only one exists. Fixture f3: `using lib::util; util(3)` binds `lib::util`, high.
-- **Namespace aliases to workspace namespaces do not narrow.** In fixture f3, `bl::util(4)` with `namespace bl = lib;` bound **both** `lib::util` and the unrelated global `util` in `other/unrelated.cpp`, at medium. The alias is consulted only for the external check.
 - **Calls are not limited to the include closure when nothing in the closure declares the name.** Fixture f3: `unrelated()` binds `other/unrelated.cpp::unrelated` at medium, although `main.cpp` never includes it.
 - **Not applicable:** `FileFacts::packages`, manifest reading (no CMake/compile_commands/`conanfile`/vcpkg) and `not-in-imported-module` (`modules.rs` has no C++ branch). The cmake plugin is a separate language.
 - **C++20 modules** (`import foo;`, `export module`) are not handled (no arm in cpp.rs).
@@ -214,12 +217,8 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 
 **Not supported:**
 
-- **`auto` locals are never typed** (the type text `auto` is lowercase, so `nominal_type` returns `None`). Fixture f4:
-  - `auto a = make_motor(); a.spin()` (L17) fans out to **both** `Motor::spin` and `Pump::spin` at medium.
-  - `auto b = Motor()` (L18) and `auto c = std::make_shared<Pump>()` (L19) do the same.
-
-  Return-type propagation therefore does not reach C++ locals. The CLAUDE.md "return types" claim applies to other languages.
-- **Method return types are not used for chained calls** (fixture f4, L24: `p->get().spin()` fans out).
+- **`auto` locals are typed only from a bare call's declared return type.** C++ is in `TYPE_FIRST_RETURN_LANGS` (type_hints.rs:4005): the type in front of a function's name types a bare-call receiver (`make().work()`) and a local assigned from one, when every definition of the name agrees. Fixture `lang-docs/cpp/f1` (2026-11-25): `auto a = make_motor(); a.spin()` binds only `Motor::spin`, high. Still untyped (fixture `lang-docs/cpp/f3`): `auto b = Motor(); b.spin()` and `auto c = std::make_shared<Pump>(); c->spin()` fan out to both `Motor::spin` and `Pump::spin` at medium.
+- **Method return types are not used for chained calls** (`lang-docs/cpp/f1`: `h->get().spin()` fans out to both `spin`s at medium).
 - **Container elements and range-for variables are untyped.** In fixture f4, `v[0].spin()` and `for (auto& x : v) x.spin()` both fan out (L20-21).
 - **Static-field receivers through a path** are unresolved. Fixture f4, L26: `Kernel::inst->pump->spin()` is unresolved, though the macro spelling of the same chain resolves.
 - **Template parameter receivers** (`static_cast<D*>(this)->impl()`, CRTP) are unresolved (fixture f5, L18: `impl` with receiver `D`).
@@ -239,7 +238,7 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
   - Tests: `cpp_virtual_call_reaches_overrides` (resolve.rs:1038), `cpp_virtual_overrides_are_not_capped` (1089), `cpp_non_virtual_call_does_not_fan_out_to_overrides` (1139), `cpp_typed_derived_pointer_does_not_reach_sibling_overrides` (1194) and `cpp_virtual_dyn_edges_are_opt_in_behind_dynamic_dispatch` (1244).
   - Fixture f5 with `--dynamic-dispatch`: `use -> Mid::draw/Leaf::draw` and `use -> Mid::tick/Leaf::tick` are low dynamic.
 - **Member-pointer tables.** `(m->*table[i])()` reaches every `&Type::m` in `table`, plus their overrides (same pass). Test: `cpp_member_pointer_table_reaches_overrides`.
-- **Arity-based overload narrowing.** cpp is in `OVERLOAD_ARITY_LANGS` (type_hints.rs:1583). Defaults, varargs and packs are handled by `accepts_arity`. A one-file, one-QN overload set is one callee (`binds_same_name_set`, intra_file.rs:836-850) and is exempt from the fan-out cap, binding at medium when several overloads survive. Fixture f6:
+- **Arity-based overload narrowing.** cpp is in `OVERLOAD_ARITY_LANGS` (type_hints.rs:2357). Defaults, varargs and packs are handled by `accepts_arity`. A one-file, one-QN overload set is one callee (`binds_same_name_set`, intra_file.rs:836-850) and is exempt from the fan-out cap, binding at medium when several overloads survive. Fixture f6:
   - `l.write(1)` binds `write(int)` and `write(const char*, int=0, int=1)`, both medium.
   - `l.write(1,2)` binds two overloads, medium.
   - `l.write("x",1,2)` binds the three-parameter overload only, high.
@@ -254,7 +253,7 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 - **Overloads are not distinguished by argument type** (fixture f6, `write(1)` as above).
 - **Inheritance fan-out and dead-code override evidence do not cover C++.** cpp is **not** in `INHERITANCE_LANGS` (dispatch.rs:110-124; the comment at 103-109 explains that C++ uses `cpp_virtual_dispatch`). So `inheritance_fanout` and the dead-code `overrides_below` evidence do not run for C++ (deadcode/mod.rs:342).
 - **`--dynamic-dispatch` `fanout`** (`trait_impl_target`) does not apply. The plugin never sets it, despite declaring the `impls` signal (cpp.rs:40). Test: `cpp_and_rust_are_left_to_their_own_passes` (dispatch.rs:780).
-- **`override` and `final`** are not recorded as attributes (`push_def` only adds the CUDA qualifiers and `virtual`, cpp.rs:333-337). `implements-external-contract` therefore never fires (§12).
+- **`override` and `final`** are recorded as the `override` attribute since 0.11.1 (§02), so `implements-external-contract` fires (§12); nothing else reads them for dispatch.
 - **A qualified non-virtual call still gets virtual fan-out.** In fixture f5 with `--dynamic-dispatch`, `Base::draw()` inside `Mid::draw` produced `Mid::draw -> Leaf::draw` (low dynamic). The seed loop (cross_file.rs:3043-3093) does not check whether the site was written with an explicit qualifier.
 - **Not applicable:** `super`/`base` keywords (C++ has neither) and `super-base-out-of-graph`.
 - **Not supported:** CRTP (fixture f5), extension methods, and mixins or traits (none exist in C++).
@@ -266,14 +265,12 @@ Its `base_types` are the enclosing class's bases (cpp.rs:336-351). `visibility` 
 - **Per-function local types.** Local *types* are scoped by declaration byte (`scope_byte`, cpp.rs:555), and C++ uses per-call-site lookup (CLAUDE.md step 1; test `cpp_same_local_name_in_two_functions_keeps_each_type`).
 - **Anonymous namespaces** are per translation unit. A body in `(anonymous)` absorbs a prototype only in the same file (cpp.rs:1388-1393).
 - **Class-first bare lookup** inside members (§06).
+- **Locals table (WS27).** `locals::collect_c(…, cpp = true)` (locals.rs:647) records parameters (default-valued and packs included), lambda parameters and init-captures, block declarations (structured bindings, references), range-for, `if`/`switch` initializers, `while` conditions and `catch`, and a body's `T x(arg);` as a variable (most vexing parse); template parameters are not locals, and an ALL-CAPS macro alone on the line before a statement does not make it a declaration. A bare call through a binding is `shadowed-by-local`. Fixture `lang-docs/cpp/f1` (2026-11-25): `void caller(void (*handler)()) { handler(); }` and `auto process = []{}; process();` are both `shadowed-by-local`, with no edge to the global `handler`/`process`.
 
 **Not supported:**
 
-- **No `FileFacts::locals` for C++.** `locals.rs` has no cpp spec (locals.rs:382-391 lists js/ts, python, lua, scala, kotlin, swift, rust, dart, ocaml and zig). So `shadowed-by-local` never fires, and a parameter or local named like a function is bound to that function. Fixture f11:
-  - `void caller(void (*handler)()) { handler(); }` binds the global `handler()` at **high**, which is a wrong edge at high confidence.
-  - `auto process = []{}; process();` is `ambiguous-in-file` between the global `process` and `S::process`, instead of being recognised as the local.
 - **No lexical narrowing of nested definitions** (C++ is not in the list; CLAUDE.md step 3), and no positional shadowing.
-- **Conditional definitions.** `#if`/`#else` twins both become nodes and both bind, at medium (fixture f7c). There is no `DefRecord::conditional` for C++.
+- **Conditional definitions.** `#if`/`#else` twins both become nodes and both bind, at medium, as an overload set (fixture f7c). There is no `DefRecord::conditional` for C++; `preproc_branches` is recorded but intra-file reads it only for C and ObjC.
 
 ## 08. Macros, preprocessor & codegen
 
@@ -333,7 +330,9 @@ Rules with `language: "cpp"` (rules.rs). Matching is per exact language, with no
 | --- | --- | --- | --- | --- |
 | `cuda` | Lifecycle | true | attribute `__global__`, read from the declaration head by `cuda_qualifiers`; no import gate | rules.rs:1377-1397; fixture f8: `saxpy` in `kern.cpp` gives `<framework-entry>::lifecycle::cuda::saxpy -> saxpy` (low `framework_entry:cuda`); test frameworks/mod.rs:3093 |
 | `aws-lambda` | Network | true | detect `aws/lambda-runtime/runtime.h` (system include); registrar `run_handler` (shape B, identifier argument) | rules.rs:4598-4614; fixture f8: `<framework-entry>::network::aws-lambda::my_handler -> my_handler`; cgg/tests/frameworks.rs:1210 |
-| `gtest` | Test | true | detect `gtest`, `gmock`, `gtest/gtest.h`, `gmock/gmock.h`; **no matchers**. It is reported in `seen_no_rules` with gap prose | rules.rs:7879-7895; fixture f8 coverage `seen_no_rules: gtest` |
+| `gtest` | Test | true | detect `gtest`, `gmock`, `gtest/gtest.h`, `gmock/gmock.h`; methods `TEST`, `TEST_F`, `TEST_P`, `TYPED_TEST`, `TYPED_TEST_P` (exact case) | rules.rs:8425; fixture `lang-docs/cpp/f2`: `<framework-entry>::test::gtest → TEST`, `→ TEST_F` |
+| `gtest-fixture` | Test | true | same detect; `SetUp`/`TearDown` and suite hooks of a class deriving from `testing::Test`/`TestWithParam` (`::testing::Test` read as `testing::Test`) | rules.rs:8447; fixture `lang-docs/cpp/f2`: `<framework-entry>::test::gtest-fixture → Fix::SetUp` |
+| `libfuzzer` | Test | true | a file defining `LLVMFuzzerTestOneInput` or its optional hooks (no detect inputs) | rules.rs:8491 |
 | `cpp-test-macros` | Test | true | detect doctest/Catch2 headers; **no matchers** (gap: `TEST_CASE("…")` bodies are not callables) | rules.rs:7896-7918; fixture f8 `seen_no_rules` |
 | `cpp-runtime` | Lifecycle | false | detect `signal.h csignal stdlib.h cstdlib pthread.h setjmp.h stdio.h`; **no matchers**. A disclosure rule that points at `cpp-callbacks` and lists uncovered shapes | rules.rs:7919-7942; fixture f8 `seen_no_rules: cpp-runtime` |
 | `cpp-callbacks` | Lifecycle | false (root marks only) | `detect_calls` and registrars `signal atexit at_quick_exit on_exit pthread_create pthread_once pthread_key_create qsort bsearch call_once`; only identifier arguments that name in-tree functions | rules.rs:8012-8045; fixture f8: `on_sig`, `on_exit_hook`, `thread_main`, `cmp` and `once_fn` are rooted as `framework-callback` with rule `cpp-callbacks:registrar` (5 root marks) |
@@ -357,20 +356,21 @@ Rules with `language: "cpp"` (rules.rs). Matching is per exact language, with no
 - Static-object constructors.
 - `sigaction`.
 - Interrupt vectors.
-- Unreal (`UFUNCTION`), Boost.Asio handlers, gRPC C++ service registration (only the descriptor link in §09), Crow/Drogon/Pistache/cpprestsdk routes, Google Benchmark, libFuzzer `LLVMFuzzerTestOneInput`, ROS callbacks and Arduino `setup`/`loop`. There are no rules for any of these (grep of rules.rs for `language: "cpp"` finds only the six rules above).
+- Unreal (`UFUNCTION`), Boost.Asio handlers, gRPC C++ service registration (only the descriptor link in §09), Crow/Drogon/Pistache/cpprestsdk routes, Google Benchmark, ROS callbacks and Arduino `setup`/`loop`. There are no rules for any of these (grep of rules.rs for `language: "cpp"` finds only the eight rules above).
 
 ## 11. Test harness entries
 
 **Supported:**
 
-- **Name convention.** `is_test_name` uses the default arm for cpp: a name starting with `test_` or `Test` (roots.rs:975-993). It is **not gated** on the file being a test file. Fixture f12: `test_named_in_src` in `src/` is rooted as `test-entry` by `builtin:test-name`. Fixture f8: `test_helper_named` is rooted the same way.
+- **gtest** (`gtest`, `gtest-fixture`) and **libFuzzer** harness nodes (§10). Fixture `lang-docs/cpp/f2` (2026-11-25): `TEST`, `TEST_F` and `Fix::SetUp` are `framework:test-harness` roots, and `under_test` (called only from them) is "live only in tests" (`--why-live`), withheld unless `--include-tests`.
+- **Name convention.** `is_test_name` uses the default arm for cpp: a name starting with `test_` or `Test`, with a word boundary after `Test` since WS20. It is **not gated** on the file being a test file. Fixture f12: `test_named_in_src` in `src/` is rooted as `test-entry` by `builtin:test-name`. Fixture f8: `test_helper_named` is rooted the same way.
 - **Test-file classification** (`testfile.rs:111-117`): `*_test.c/.cc/.cpp`, `test_*` and `*_unittest.*`, plus the generic test directories. This drives the `--include-tests` report scope.
 
 **Not supported:**
 
-- **gtest.** `TEST`, `TEST_F` and `TEST_P` bodies become callables named `TEST`/`TEST_F` with no test root. `SetUp`/`TearDown` are not rooted. Fixture f8 dead-code: `TEST`, `TEST_F`, `Fix::SetUp`, and `under_test` (called only from them) are **all reported dead at medium**.
+- **gtest test names.** `TEST`/`TEST_F` bodies are still callables named after the macro, so all tests of one macro share a QN.
 - **Catch2/doctest.** There is no callable for the test body. In fixture f8, the `catch_target()` call in `TEST_CASE("adds")` became a `toplevel:invocation` root by accident, because the misparse leaves it at file scope.
-- **No other harness has a rule:** Google Benchmark (`BENCHMARK(fn)`), Boost.Test, CppUnit, libFuzzer (`LLVMFuzzerTestOneInput`) and QTest. No kind-`test` rule mints a harness node for C++.
+- **No other harness has a rule:** Google Benchmark (`BENCHMARK(fn)`), Boost.Test, CppUnit and QTest.
 - **No `test_defs` signal** (cpp.rs:36-43), so there is no `TestRole`. The dead-code capability table reports `test_tagging: none` (fixture f8 `capabilities`).
 - **`TEST_CLASS_MEMBERS_ARE_ROOTS`** does not include cpp.
 
@@ -382,13 +382,14 @@ Rules with `language: "cpp"` (rules.rs). Matching is per exact language, with no
 language cpp: class degraded; visibility none; attributes full; value_references full*; dispatch full; exports none; test_tagging none; max_confidence medium
 ```
 
-\* `value_references` is observation-based. It showed "full" in f8, where registrar refs existed, but fixture f9 findings carry `language-lacks-value-references`.
+\* `value_references` is observation-based: "full" when the tree has value-reference sites, `none` (with `language-lacks-value-references` on findings) when it has none (fixture `lang-docs/cpp/f2`, 2026-11-25).
 
 **Roots that fire for C++:**
 
 - `builtin:main` (`main`, `_start`, `WinMain`, `DllMain`).
 - `builtin:test-name`.
-- `framework:entry-node` (cuda, aws-lambda).
+- `framework:entry-node` (cuda, aws-lambda, and the test harness nodes).
+- `framework:test-harness` (gtest, gtest-fixture, libfuzzer).
 - `framework:rule` (cpp-callbacks).
 - `toplevel:invocation` (calls in global initializers; fixture f13 `compute`).
 - `toplevel:macro-invocation` (roots.rs:616-660; fixture f9).
@@ -403,7 +404,7 @@ language cpp: class degraded; visibility none; attributes full; value_references
 **Signals extracted:**
 
 - CUDA attributes and `virtual`.
-- `unreachable` regions after a terminator (`cfg::unreachable_after_terminator`, cpp.rs:69-72, under `deadcode_signals`). Note: outside tests, a grep found no consumer of `FileFacts::unreachable` regions, only the capability flag (cgg/src/lib.rs:1935), and fixture f12 `regions` was empty. Treat this as unverified for impact.
+- `unreachable` regions after a terminator (`cfg::unreachable_after_terminator`, under `deadcode_signals`), consumed by `cgg_resolve::unreachable`: edges from them are capped at medium and skipped by liveness. Fixture `lang-docs/cpp/f2` (2026-11-25): `int f() { return 1; dead_after(); }` reports `dead_after` with `incoming-only-from-unreachable-code`.
 - `name_mentions` from macro arguments.
 - Member-pointer takes, which go only to dispatch.
 
@@ -414,19 +415,17 @@ language cpp: class degraded; visibility none; attributes full; value_references
 - `implicitly-invokable-kind` for constructors. Fixture f9: `Ext::Ext`.
 - Destructors are never candidates (`is_candidate`, deadcode/mod.rs:598-601). Fixture f9: `~Ext` is absent from the findings.
 - `name-collides-with-screened-site` (fixture f9: `registered`).
+- `implements-external-contract`, from the `override` marker (WS20). Fixture `lang-docs/cpp/f2` (2026-11-25): `Ext::paintEvent() override` (base `QWidget`, outside the tree) carries it.
 - Virtual overrides reached by `cpp-virtual` low edges count as reached, because `--dead-code` forces dynamic dispatch. Fixture f9: `Impl::go` is not reported.
 
 **Not supported:**
 
-- **`implements-external-contract`.** It needs override markers (`@Override`/`override`/`@override` in attributes, deadcode/mod.rs:409, 502-505), and C++ `override` is not recorded. Fixture f9: `Ext::paintEvent() override` (base `QWidget`, outside the tree) is reported dead, medium, with no contract evidence.
 - **`overrides_below`/`ImplementedTraitSurface`** evidence: cpp is not in `INHERITANCE_LANGS` (deadcode/mod.rs:342).
 - **No visibility-based rules.** `static`, file-local and anonymous-namespace functions are treated like extern ones (fixture f9: `file_local_unused` and `(anonymous)::anon_unused` are both medium).
 - **`reflection` cap.** Not applicable, because there is no dynuse for C++ (§15).
 - **False dead findings in fixtures:**
-  - `only_by_ptr`: taken by address in a table, and also `&only_by_ptr` (fixture f9).
   - `extern "C"` exports (`c_export`).
   - `__attribute__((constructor))` (`init_ctor`).
-  - gtest bodies (fixture f8).
   - Qt slot callers (`Win::wire`).
 
 ## 13. Builtins & stdlib tables
@@ -464,7 +463,6 @@ language cpp: class degraded; visibility none; attributes full; value_references
 - Several same-QN copies (preprocessor twins, fixture f7c).
 - The C++ untyped-receiver fallback (cross_file.rs:2510-2515).
 - Static-field chains (fixture f3, L10: `lib::Engine::instance->stop()`, medium).
-- Namespace-alias calls (fixture f3, `bl::util`).
 - Calls to files outside the include closure (fixture f3, `unrelated`).
 
 **`low`:**
@@ -475,7 +473,7 @@ language cpp: class degraded; visibility none; attributes full; value_references
 
 **Mermaid `?` marker.** It is generic: an arrow with no `high` site gets a leading `?` (fixture f8: `-->|?ref|`).
 
-**Known high-confidence wrong edge:** a bare call through a function-pointer parameter binds a same-named function at high (fixture f11: `caller -> handler`, high), because there are no locals (§07).
+**Known high-confidence wrong edge (0.11.0):** a bare call through a function-pointer parameter bound a same-named function at high (fixture f11). Fixed by the C++ locals table in 0.11.1 (§07).
 
 The CHANGELOG reports precision of 30/30 on sampled C++ high-promotion edges, and a C++ medium share of 71.6% → 60.4% (CHANGELOG.md:73-81).
 
@@ -509,20 +507,16 @@ The CHANGELOG reports precision of 30/30 on sampled C++ high-promotion edges, an
   - operators;
   - call operator `obj()`;
   - constructions by declaration;
-  - base/member initializers;
-  - function values outside registrar verbs (`std::thread`, `std::function`, `&fn` in tables);
   - CUDA launches;
   - `::ns::f()` (fixtures f2, f3 and f13).
-- **No locals or shadowing:** a function-pointer parameter can bind a same-named function at high (fixture f11).
 - **Typing gaps:**
-  - `auto` locals;
-  - method and function return types;
+  - `auto` locals other than those assigned from a bare call;
+  - method return types in chains;
   - containers and range-for;
   - static-field path receivers;
   - template-parameter (CRTP) receivers (fixtures f4 and f5).
 - **Imports:**
   - `using namespace` and `using X::f` are not recorded;
-  - namespace aliases do not narrow workspace calls;
   - calls bind by name to files outside the include closure at medium (fixture f3);
   - C++20 modules are unsupported.
 - **Preprocessor:**
@@ -535,19 +529,16 @@ The CHANGELOG reports precision of 30/30 on sampled C++ high-promotion edges, an
 
 - **Dispatch:**
   - the virtual fan-out also fans out an explicitly qualified (non-virtual) call (fixture f5: `Mid::draw -> Leaf::draw`);
-  - `override`/`final` are not recorded;
   - cpp is not in `INHERITANCE_LANGS`;
   - the stale doc comment at cross_file.rs:2915-2918 says the virtual edges are in the default graph, but they are gated at 2902.
 - **FFI:** no `extern "C"`/`JNIEXPORT`/`dllexport` attributes, so there are no export roots and no JNI, ctypes or pybind11 links (fixtures f9 and f10).
 - **Frameworks and tests:**
-  - gtest and doctest/Catch2 are detected but have no matchers (gap prose, rules.rs:7892 and 7915);
+  - doctest/Catch2 are detected but have no matchers (`cpp-test-macros` gap prose);
   - Qt, `__attribute__((constructor))`, `std::thread` and the other shapes listed in the `cpp-runtime` gap (rules.rs:7940) are not covered;
-  - there is no benchmark or fuzz harness rule.
+  - there is no benchmark harness rule.
 - **Dead code:**
   - every finding is capped at medium (no visibility);
-  - there is no `implements-external-contract` evidence;
   - `static` and anonymous-namespace functions are not treated as file-local;
-  - the `unreachable` regions are extracted but no consumer was found (fixture f12).
 
 **Documentation and tests:**
 
@@ -560,17 +551,17 @@ The CHANGELOG reports precision of 30/30 on sampled C++ high-promotion edges, an
 | --- | --- | --- |
 | 01 Detection & parsing | partial | 7 extensions plus `.h` content and sibling sniffing; `.cu`/`.cuh`/`.inl`/`.tpp`/`.ino` are not detected; no `#if` evaluation |
 | 02 Callables extracted | partial | functions, methods, ctors/dtors, operators, templates, out-of-line bodies and prototype unification are good; no lambdas or conversion operators; namespace functions have kind `method`; friends get the wrong owner |
-| 03 Call-site forms | partial | bare, qualified, template, arrow/dot, casts, `new` and member-pointer calls work; operators, call operator, declarations/initializers, function values and `::ns::f` are missing |
-| 04 Imports & module resolution | partial | transitive `#include` closure, external-namespace refusal and namespace-alias heads work; `using` is not recorded; aliases do not narrow; out-of-closure by-name binds |
-| 05 Type inference & receiver typing | partial | params, locals, fields, chains, aliases, macros, casts and template pointee work; no `auto`, return types, containers or CRTP |
-| 06 Inheritance, dispatch & overloading | partial | base chains, class-first lookup, arity overloads and virtual/member-pointer fan-out (opt-in) work; no override marker; qualified calls are fanned out |
-| 07 Scoping & shadowing | minimal | no `FileFacts::locals`; a parameter or local can bind a same-named function at high |
+| 03 Call-site forms | partial | bare, qualified, template, arrow/dot, casts, `new`, base initializers, function values and member-pointer calls work; operators, call operator, constructions by declaration and `::ns::f` are missing |
+| 04 Imports & module resolution | partial | transitive `#include` closure, external-namespace refusal and namespace aliases (narrowing since 0.13.2) work; `using` is not recorded; out-of-closure by-name binds |
+| 05 Type inference & receiver typing | partial | params, locals, fields, chains, aliases, macros, casts, template pointee and bare-call return types work; no other `auto`, chained method returns, containers or CRTP |
+| 06 Inheritance, dispatch & overloading | partial | base chains, class-first lookup, arity overloads, `override`/`abstract` markers and virtual/member-pointer fan-out (opt-in) work; qualified calls are fanned out |
+| 07 Scoping & shadowing | partial | locals table (params, lambdas, block declarations) gives `shadowed-by-local`; no lexical narrowing |
 | 08 Macros, preprocessor & codegen | partial | one-level function-macro expansion with `macro:` tags and object-macro typing; no `#if` evaluation; misparse risk |
 | 09 FFI & cross-language links | minimal | asm↔C/C++ and protobuf rpc only; no `extern "C"`/JNI/ctypes/pybind11 |
-| 10 Frameworks & entry points | minimal | cuda, aws-lambda and cpp-callbacks enumerate; gtest/doctest/cpp-runtime are disclosure-only; no Qt/Unreal/web frameworks |
-| 11 Test harness entries | minimal | `test_`/`Test` name prefix only (ungated); gtest/Catch2 bodies are not rooted, and gtest bodies are reported dead |
-| 12 Dead-code analysis | partial | class `degraded`, max confidence medium; macro and top-level roots work; no visibility, exports, FFI roots or external-contract evidence |
+| 10 Frameworks & entry points | minimal | cuda, aws-lambda, cpp-callbacks, gtest, gtest-fixture and libfuzzer enumerate; doctest/cpp-runtime are disclosure-only; no Qt/Unreal/web frameworks |
+| 11 Test harness entries | partial | gtest, gtest fixtures and libFuzzer enter through harness nodes; Catch2/doctest bodies are not callables; `test_`/`Test` name rule (ungated) |
+| 12 Dead-code analysis | partial | class `degraded`, max confidence medium; macro, top-level and harness roots, external-contract evidence, unreachable regions; no visibility, exports or FFI roots |
 | 13 Builtins & stdlib tables | full | 553-name `cpp.txt`, cast intrinsics, stdlib header list, platform-header guard, include-stdlib/external nodes |
-| 14 Confidence & certainty | partial | high for typed, include-anchored and arity-narrowed calls; one observed wrong edge at high (function-pointer parameter) |
+| 14 Confidence & certainty | partial | high for typed, include-anchored and arity-narrowed calls; the 0.11.0 function-pointer-parameter false high is fixed |
 | 15 Dynamic use & reflection | none | no dynuse; only member-pointer tables are modelled |
 | 16 Known gaps & limitations | n/a | listed above |

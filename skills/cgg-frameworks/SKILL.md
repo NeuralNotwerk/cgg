@@ -17,30 +17,36 @@ work. Step 4 is the upstream offer, and has rules of its own.
 
 ## Step 0 — read the coverage table first
 
-cgg ships a built-in rule table covering 340+ distinct frameworks across
-36 languages, and **tells you which ones it recognised in your tree**.
+cgg ships a built-in rule table (about 390 rule ids across 36
+languages, test harnesses included), and **tells you which ones it
+recognised in your tree**.
 Run it and read stderr before writing anything:
 
 ```bash
 cgg ./src
 ```
 
-Real output, from `cgg` on a Flask application:
+Real output, from `cgg` 0.13.3 on FlaskBB (a Flask application):
 
 ```text
 framework coverage
-  recognised     flask (network, 130 entries) · click (cli, 31 entries)
+  recognised     pytest (test, 427 entries) · flask (network, 130 entries)
+                 click (cli, 31 entries)
+                 sqlalchemy-events (lifecycle, 5 entries)
                  celery (queue, 3 entries)
   seen, no rules py-context-manager — found in 2 file(s), entries NOT enumerated
                    detected, but no entry point matched its rules
-                 pytest — found in 34 file(s), entries NOT enumerated
-                   cgg has no entry rules for pytest; the runner -- not any
-                   code in the tree -- collects and invokes everything.
-                   [...]
 
   Entry-node coverage is PARTIAL. Handlers of the frameworks listed under
   "seen, no rules" are not represented and will still appear unreferenced.
+  Reachability from a `network` entry is not proof of attacker-controlled
+  data flow — cgg does no taint tracking.
+cgg: framework entries: 596 node(s) minted, 0 root-marked only — INFERRED, not observed
 ```
+
+On cgg's own tree the same table lists `clap`, `rust-runtime` and
+`serde` under `seen, no rules`, each followed by a paragraph saying why
+no rule can enumerate it and what to inspect by hand.
 
 Three outcomes, three different jobs:
 
@@ -105,7 +111,7 @@ table stops listing the framework as a gap.
 [[framework]]
 id       = "myfw"        # appears in the node name and coverage table
 language = "python"      # plugin id: python, javascript, typescript, java, ...
-kind     = "network"     # see below — eight values
+kind     = "network"     # see below — nine values
 
 # DETECTION — the gate for registrars/base_types/methods. See the
 # hazard note below: it is NOT a gate for `attributes`.
@@ -122,20 +128,27 @@ string_targets = false  # E: allow a string argument to NAME the handler
 node = true             # false = mark a root but mint no node (see below)
 ```
 
-Those are every key `[[framework]]` accepts. The file is parsed with
-`deny_unknown_fields`, so a typo is a hard error rather than a silent
-no-op. (The built-in table's `RuleSpec` has two extra fields —
-`detect_calls` and `gap` — that a TOML rule cannot set.)
+Those are the keys you need. (Two more exist for the Kivy rule's
+observer callbacks, `observer_types` and `handler_on_enclosing_owner`;
+the built-in table's `RuleSpec` also has `detect_calls` and `gap`,
+which a TOML rule cannot set.)
+
+**A misspelled key fails the run** — `atributes = [...]` inside a
+`[[framework]]` block is an `unknown field` error, as are typos in
+top-level keys and `[[allow]]` fields. A rule that parses can still
+match nothing, so verify every rule with the coverage table (Step 3).
 
 **Get `kind` right.** It is part of the entry node's name and therefore
 of every `--filter '<framework-entry>::network::'` query someone runs to
-enumerate attack surface. The eight values are `network`, `queue`,
-`schedule`, `cli`, `ffi`, `lifecycle` (the default), `test` and
+enumerate attack surface. The nine values are `network`, `queue`,
+`schedule`, `cli`, `ffi`, `lifecycle` (the default), `test`, `ui` and
 `public`. Use `network` only for things reachable from outside the
 process. A worker that trusted internal code enqueues is `queue`; a
-`forward`/`onCreate`/lifecycle hook is `lifecycle`; `public` is for a
-callable the *language* exposes to anyone with no framework involved
-(a Solidity `public`/`external` function).
+`forward`/`onCreate`/lifecycle hook is `lifecycle`; `ui` is an event
+handler wired in markup or an editor menu; `test` makes the rule a
+harness (one `<framework-entry>::test::<id>` node, its cases test
+roots); `public` is for a callable the *language* exposes to anyone
+with no framework involved (a Solidity `public`/`external` function).
 
 **Shape E needs `string_targets = true`.** `registrars` alone matches
 the registration call but will not decode a string argument into a
@@ -156,20 +169,28 @@ a scheduled job.
 **Matchers compare case-insensitively, and against both the full
 attribute key and its last segment.** `attributes = ["route"]` matches
 `@app.route`, `@bp.route` and `@api.route`. `base_types` likewise
-matches on the last segment with generic arguments stripped, so
-`base_types = ["Module"]` matches `class Net(nn.Module)` — and also any
-unrelated class named `Module`.
+matches on the last segment with generic arguments stripped, walking
+the in-tree base chain, so `base_types = ["Module"]` matches
+`class Net(nn.Module)` and its subclasses — and also any unrelated
+class named `Module`. `attributes` and `methods` also take naming
+patterns, `prefix*` and `*suffix`, which compare **case-sensitively**
+(`test*` takes `test_x` and `testFoo`, not `tests`; `Test*` not
+`Testing`).
 
 ### The `detect` hazard, in both directions
 
 `detect` is **not** uniformly a gate, and getting this wrong fails
 silently in one of two opposite ways. Both behaviours are verified:
 
-- **A rule whose only matchers are `registrars`, `base_types` or
-  `methods`, with no `detect` and no `detect_paths`, never fires and is
-  never even reported as a gap** — the coverage table prints
-  `recognised (none)` / `seen, no rules (none)` and the rule is
-  invisible. Always give those rules a `detect`.
+- **A `registrars`-only rule with no `detect` and no `detect_paths`
+  never fires and is never even reported as a gap** — the coverage
+  table prints `recognised (none)` / `seen, no rules (none)` and the
+  rule is invisible. Always give it a `detect`.
+- **A rule with exact (non-pattern) `methods` and no `detect` is
+  detected in any file that defines a method of that name**, and then
+  matches per its `base_types`. Fine for a fixed engine hook
+  (`LLVMFuzzerTestOneInput`); for a common name like `handle`, add
+  `detect`.
 - **An `attributes`-only rule with no `detect` fires everywhere.** When
   a rule declares no detection at all, cgg falls back to treating the
   marker itself as the evidence (this is how CUDA's `__global__` works).
@@ -279,10 +300,13 @@ framework coverage
   seen, no rules (none)
 ```
 
-The private helpers of both handlers (`_fmt`, `_project`) disappear too,
-because a root propagates liveness transitively. That drop — 3 findings
-to 1, with the one genuine finding surviving — is the signal the rule is
-doing its job rather than just muting output.
+The private helpers of both handlers (`_fmt`, `_project`, carried in
+the dead regions of `list_orders` and `forward`) go live too, because a
+root propagates liveness transitively. That drop — 3 findings to 1, with
+the one genuine finding surviving — is the signal the rule is doing its
+job rather than just muting output. (All three are `medium` here, so the
+default text report, which shows `high` only, lists none of them; the
+JSON `findings` array carries every band.)
 
 ## Step 4 — offer to send it upstream
 
