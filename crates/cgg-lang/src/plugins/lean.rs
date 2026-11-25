@@ -575,6 +575,23 @@ impl<'a> LeanWalker<'a> {
 #[cfg(test)]
 mod tests {
 
+    /// Every node-kind name in the compiled grammar is valid UTF-8 and the
+    /// non-ASCII ones are the real characters. `parser.c` spells them as
+    /// `\uXXXX` escapes, which MSVC encodes in the system code page unless
+    /// built with `-utf-8` (build.rs): `·` became the byte 0xB7 and
+    /// `Node::kind()` panicked on every Lean file using it, while `λ`/`→`
+    /// silently became `?`. Only an MSVC build can fail this.
+    #[test]
+    fn grammar_symbol_names_survive_compilation_as_utf8() {
+        let lang: tree_sitter::Language = super::LEAN_LANGUAGE.into();
+        let names: Vec<&str> = (0..lang.node_kind_count() as u16)
+            .filter_map(|id| lang.node_kind_for_id(id))
+            .collect();
+        for want in ["·", "¬", "×", "λ", "→", "∀", "∃"] {
+            assert!(names.contains(&want), "no `{want}` symbol: {names:?}");
+        }
+    }
+
     #[test]
     fn a_binder_name_is_the_local_not_a_declaration_elsewhere() {
         // `hprob` is bound by the lemma's own signature; applying it is not a

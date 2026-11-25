@@ -199,6 +199,16 @@ else
     warn "shellcheck absent — shell lint gate will SKIP"
 fi
 
+# The Windows parity gate (scripts/windows-parity.sh) needs a Windows VM
+# reachable over SSH with Git, rustup (MSVC) and the VS C++ build tools.
+# Building one is a manual, one-time job: see the push skill, §4b.
+WIN_VM="${CGG_WINDOWS_VM_DIR:-/storage/windows_vm}"
+if [ -f "$WIN_VM/docker-compose.yml" ] && [ -f "$WIN_VM/ssh/id_ed25519" ]; then
+    ok "Windows VM ($WIN_VM)"
+else
+    warn "no Windows VM at $WIN_VM — the Windows parity gate will SKIP"
+fi
+
 # ---------------------------------------------------------------------
 step "4. benchmark corpus"
 # ---------------------------------------------------------------------

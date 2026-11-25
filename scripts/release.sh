@@ -35,6 +35,10 @@
 #   --allow-unmerged   release although open PRs / fork branches hold work
 #                      not on main (scripts/unmerged-inventory.sh). Say why
 #                      in the release notes.
+#   --skip-windows     skip the Windows parity gate (scripts/windows-parity.sh).
+#                      It runs in every mode, --quick included: CI never runs
+#                      cgg on Windows, so this is the only place a Windows
+#                      path or id bug can be caught before it ships.
 #
 set -uo pipefail
 
@@ -47,6 +51,7 @@ BASELINE=""
 SKIP_AI=0
 SKIP_PERF=0
 QUICK=0
+SKIP_WINDOWS="${CGG_SKIP_WINDOWS:-0}"
 ALLOW_UNMERGED="${CGG_ALLOW_UNMERGED:-0}"
 OUT="$ROOT/target/release-prep"
 
@@ -60,7 +65,8 @@ while [ $# -gt 0 ]; do
         --skip-perf) SKIP_PERF=1; shift ;;
         --quick)     QUICK=1; SKIP_PERF=1; SKIP_AI=1; shift ;;
         --allow-unmerged) ALLOW_UNMERGED=1; shift ;;
-        -h|--help)   sed -n '2,40p' "$0"; exit 0 ;;
+        --skip-windows) SKIP_WINDOWS=1; shift ;;
+        -h|--help)   sed -n '2,44p' "$0"; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -147,6 +153,25 @@ gate "fmt"                    cargo fmt --all --check
 gate "docs-check"             python3 scripts/docs-check.py
 gate "detect-prefixes"        cargo test -p cgg --test detect_prefixes
 gate "determinism"            cargo test -p cgg --test determinism
+
+# Windows parity: the same tree analyzed on Linux and on the Windows VM
+# must give identical output (timings aside), over corpus repositories
+# covering every language. Exit 2 means the VM or corpus is missing on
+# this host — reported loudly, since a host without the VM releases
+# "greener" than one with it.
+if [ "$SKIP_WINDOWS" = 1 ]; then
+    warn "Windows parity skipped (--skip-windows)"
+else
+    WINLOG="$OUT/windows-parity.log"
+    scripts/windows-parity.sh > "$WINLOG" 2>&1
+    case $? in
+        0) ok "Windows parity ($(grep -o '[0-9]*/[0-9]* languages covered' "$WINLOG"))" ;;
+        2) warn "Windows parity NOT RUN — VM or corpus unavailable on this host
+        ($(grep -m1 UNAVAILABLE "$WINLOG" | sed 's/.*UNAVAILABLE //')); see PUBLISHING.md / push skill §4b" ;;
+        *) fail "Windows parity — see $WINLOG"
+           grep -E 'FAIL' "$WINLOG" | head -8 | sed 's/^/        /' ;;
+    esac
+fi
 
 if have cargo-deny; then
     gate "cargo-deny" cargo deny check

@@ -1,0 +1,45 @@
+# Corpus repositories for scripts/windows-parity.sh, chosen by
+# `scripts/windows-parity.py select`: the smallest set in which every
+# cgg language has >= 3 files, at least one below the repo root.
+# Regenerate when a language is added; the gate fails until then.
+
+app-quotesbot-scrapy      # <1 MB: python
+app-reggie-restify        # <1 MB: javascript
+app-circuitbreaker-kong   # <1 MB: bash lua
+clojure-compojure         # <1 MB: clojure
+app-micronaut-graalapp    # <1 MB: bash groovy java
+app-realworld-scotty      # <1 MB: haskell
+app-cardmgmt-giraffe      # <1 MB: fsharp
+app-masstransit-sample    # <1 MB: csharp
+verilog-picorv32          # <1 MB: asm bash c cpp python verilog
+proto-grpc                # <1 MB: proto
+app-codeigniter-starter   # <1 MB: php
+app-realworld-tide        # <1 MB: rust
+app-hono-examples         # <1 MB: typescript
+powershell-psget          # <1 MB: powershell
+app-resque-sinatra        # <1 MB: javascript ruby
+zig-http                  # <1 MB: zig
+app-akka-samples          # <1 MB: java proto scala
+starlark-skylib           # <1 MB: bash cpp starlark
+app-awslambda-go          # <1 MB: go
+hcl-vpc                   # <1 MB: hcl
+objc-afnetworking         # 1 MB: c objc swift
+app-zenplayer-kivy        # 1 MB: kivy python
+cpp-spdlog                # 1 MB: c cmake cpp
+app-libxev-zig            # 1 MB: c nix typescript zig
+app-pfr-lean              # 1 MB: lean
+perl-dancer2              # 1 MB: perl
+asyncapi-spec             # 1 MB: asyncapi javascript
+app-fpm-fortran           # 1 MB: bash c fortran
+app-html2rss-roda         # 1 MB: javascript openapi ruby typescript
+app-alphapem-genie        # 2 MB: julia
+kotlin-okio               # 3 MB: bash java kotlin
+app-rebar3-eunit          # 3 MB: erlang
+elixir-phoenix            # 4 MB: bash elixir javascript
+app-neorv32-vhdl          # 4 MB: bash c verilog vhdl
+app-zpool-opium           # 5 MB: bash c javascript ocaml
+app-dartpad-shelf         # 7 MB: bash dart javascript swift typescript
+app-tweetconf-shiny       # 11 MB: r
+solidity-openzeppelin     # 11 MB: bash javascript solidity
+app-elasticsuite-magento  # 16 MB: graphql javascript php
+smithy-protocol-tests     # 18 MB: bash java kotlin openapi python smithy

@@ -20,46 +20,42 @@
 
 use std::path::Path;
 
+/// Compile one vendored grammar (`parser.c`, plus `scanner.c` when the
+/// grammar has an external scanner) into the static lib `lib`.
+///
+/// MSVC needs `-utf-8`. Generated parsers spell non-ASCII token names as
+/// `\uXXXX` escapes (Lean 4: `¬`, `·`, `×`, `λ`, `→`, …), and MSVC encodes
+/// string literals in the *system code page* unless told otherwise: `·`
+/// became the lone byte 0xB7, `Node::kind()` hit invalid UTF-8 and
+/// panicked on any Lean file using it, and `λ`/`→` silently became `?`.
+/// The published grammar crates (haskell, scala, verilog) pass the same
+/// flag. The target is read from `CARGO_CFG_TARGET_ENV`, not `cfg!`, which
+/// would describe the build host.
+fn grammar(dir: &str, lib: &str, scanner: bool) {
+    let dir = Path::new(dir);
+    let mut build = cc::Build::new();
+    build
+        .file(dir.join("parser.c"))
+        .include(dir)
+        .warnings(false);
+    if scanner {
+        build.file(dir.join("scanner.c"));
+        println!("cargo:rerun-if-changed={}", dir.join("scanner.c").display());
+    }
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        build.flag("-utf-8");
+    }
+    build.compile(lib);
+    println!("cargo:rerun-if-changed={}", dir.join("parser.c").display());
+    println!(
+        "cargo:rerun-if-changed={}",
+        dir.join("tree_sitter/parser.h").display()
+    );
+}
+
 fn main() {
-    let smithy = Path::new("vendor/smithy");
-    cc::Build::new()
-        .file(smithy.join("parser.c"))
-        .include(smithy)
-        .warnings(false)
-        .compile("tree_sitter_smithy");
-    println!("cargo:rerun-if-changed=vendor/smithy/parser.c");
-    println!("cargo:rerun-if-changed=vendor/smithy/tree_sitter/parser.h");
-
-    let kivy = Path::new("vendor/kivy");
-    cc::Build::new()
-        .file(kivy.join("parser.c"))
-        .file(kivy.join("scanner.c"))
-        .include(kivy)
-        .warnings(false)
-        .compile("tree_sitter_kivy");
-    println!("cargo:rerun-if-changed=vendor/kivy/parser.c");
-    println!("cargo:rerun-if-changed=vendor/kivy/scanner.c");
-    println!("cargo:rerun-if-changed=vendor/kivy/tree_sitter/parser.h");
-
-    let lean = Path::new("vendor/lean4");
-    cc::Build::new()
-        .file(lean.join("parser.c"))
-        .file(lean.join("scanner.c"))
-        .include(lean)
-        .warnings(false)
-        .compile("tree_sitter_lean");
-    println!("cargo:rerun-if-changed=vendor/lean4/parser.c");
-    println!("cargo:rerun-if-changed=vendor/lean4/scanner.c");
-    println!("cargo:rerun-if-changed=vendor/lean4/tree_sitter/parser.h");
-
-    let groovy = Path::new("vendor/groovy");
-    cc::Build::new()
-        .file(groovy.join("parser.c"))
-        .file(groovy.join("scanner.c"))
-        .include(groovy)
-        .warnings(false)
-        .compile("tree_sitter_groovy_dekobon");
-    println!("cargo:rerun-if-changed=vendor/groovy/parser.c");
-    println!("cargo:rerun-if-changed=vendor/groovy/scanner.c");
-    println!("cargo:rerun-if-changed=vendor/groovy/tree_sitter/parser.h");
+    grammar("vendor/smithy", "tree_sitter_smithy", false);
+    grammar("vendor/kivy", "tree_sitter_kivy", true);
+    grammar("vendor/lean4", "tree_sitter_lean", true);
+    grammar("vendor/groovy", "tree_sitter_groovy_dekobon", true);
 }
