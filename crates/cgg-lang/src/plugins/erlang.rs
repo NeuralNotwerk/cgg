@@ -124,19 +124,18 @@ impl<'a> ErlangWalker<'a> {
                 }
                 self.walk_children(node);
             }
-            // `fun m:f/2`: a remote function value.
+            // `fun m:f/2` (or `fun ?MODULE:f/2`): a remote function value.
             "external_fun" if self.reference_sites => {
                 let module = node
                     .child_by_field_name("module")
                     .and_then(|m| m.child_by_field_name("name").or(Some(m)))
-                    .filter(|m| m.kind() == "atom");
+                    .and_then(|m| self.module_name(m));
                 if let (Some(m), Some(f), Some(a)) = (
                     module,
                     node.child_by_field_name("fun")
                         .filter(|f| f.kind() == "atom"),
                     self.arity_of(node),
                 ) {
-                    let m = self.text(m).to_string();
                     let name = format!("{m}:{}", self.text(f));
                     self.push_value_ref(f, name, m, Some(a));
                 }
@@ -339,22 +338,39 @@ impl ErlangWalker<'_> {
         });
     }
 
-    /// `M`, `F` atoms and, when `A` is a literal list, its length: the
-    /// callee `M:F/len(A)` they name.
+    /// The module a node names: an atom, or `?MODULE`, which is always
+    /// the file's own `-module` (the macro cannot be redefined).
+    fn module_name(&self, m: Node) -> Option<String> {
+        match m.kind() {
+            "atom" => Some(self.text(m).to_string()),
+            "macro_call_expr"
+                if !self.module.is_empty() && self.text(m).trim() == "?MODULE" =>
+            {
+                Some(self.module.clone())
+            }
+            _ => None,
+        }
+    }
+
+    /// `M` (an atom or `?MODULE`), `F` atoms and, when `A` is a literal
+    /// list, its length: the callee `M:F/len(A)` they name.
     fn push_mfa(&mut self, m: Node, f: Node, arity: Option<u32>) {
-        if m.kind() != "atom" || f.kind() != "atom" {
+        if f.kind() != "atom" {
             return;
         }
-        let module = self.text(m).to_string();
+        let Some(module) = self.module_name(m) else {
+            return;
+        };
         let name = format!("{module}:{}", self.text(f));
         self.push_value_ref(f, name, module, arity);
     }
 
     /// A bare `{M, F}` as an argument or a value: a callback as often as
     /// data, so its binding is never `high` (`weak_receiver_type`).
-    fn push_mfa_weak(&mut self, m: Node, f: Node) {
+    /// `arity` is the least the callee takes, when known.
+    fn push_mfa_weak(&mut self, m: Node, f: Node, arity: Option<u32>) {
         let before = self.facts.references.len();
-        self.push_mfa(m, f, None);
+        self.push_mfa(m, f, arity);
         if let Some(r) = self.facts.references.get_mut(before) {
             r.weak_receiver_type = true;
         }
@@ -370,6 +386,13 @@ impl ErlangWalker<'_> {
     /// `{M, F, [A…]}` (a callback with its arguments), `{M, F, N}` (a
     /// function by arity, as `erlang:trace_pattern` takes it) and a bare
     /// `{M, F}` standing as an argument or a value (`push_mfa_weak`).
+    ///
+    /// A `{M, F, [A…]}` tuple is handed to a registry far more often than
+    /// to `apply/3` (`emqx_hooks:add(H, {?MODULE, f, [X]}, P)`, a
+    /// supervisor's start MFA), and a hook appends its own arguments to
+    /// `A`, so `len(A)` is not `F`'s arity: the tuple names every arity of
+    /// `F`, never certainly (`spawn(M, F, A)`-shaped calls keep the exact
+    /// arity, `record_mfa_call`).
     fn record_mfa_tuple(&mut self, tuple: Node) {
         if in_pattern(tuple) {
             return;
@@ -377,10 +400,8 @@ impl ErlangWalker<'_> {
         let mut c = tuple.walk();
         let items: Vec<Node> = tuple.named_children(&mut c).collect();
         match items.as_slice() {
-            [m, f, a] if a.kind() == "list" => {
-                self.push_mfa(*m, *f, Self::args_arity(Some(*a)))
-            }
-            [m, f] if bare_value_position(tuple) => self.push_mfa_weak(*m, *f),
+            [m, f, a] if a.kind() == "list" => self.push_mfa_weak(*m, *f, None),
+            [m, f] if bare_value_position(tuple) => self.push_mfa_weak(*m, *f, None),
             [m, f, n] if n.kind() == "integer" => {
                 let arity = self.text(*n).parse().ok();
                 if arity.is_some() {
@@ -427,6 +448,9 @@ fn bare_value_position(tuple: Node) -> bool {
         "match_expr" => field_of(p, tuple) == Some("rhs"),
         "field_expr" => p.parent().is_some_and(|g| g.kind() == "record_field"),
         "clause_body" => true,
+        // `#{handler => {?MODULE, f}}` (OTP `argparse`): a map
+        // association's value, never its key.
+        "map_field" => field_of(p, tuple) == Some("value"),
         _ => false,
     }
 }
@@ -545,7 +569,7 @@ mod tests {
             vec![
                 ("step", "", Some(1)),
                 ("b:go", "b", Some(2)),
-                ("worker:start_link", "worker", Some(1)),
+                ("worker:start_link", "worker", None),
                 ("c:loop", "c", Some(2)),
                 ("d:h", "d", Some(0)),
                 ("e:tick", "e", Some(1)),
@@ -566,7 +590,7 @@ mod tests {
             \x20 {ok, X},\n\
             \x20 [{worker, start}],\n\
             \x20 {{x, y}, z},\n\
-            \x20 #{label => {gen, stop}},\n\
+            \x20 #{{gen, stop} => 1},\n\
             \x20 case X of {c, h} -> 1; _ -> 2 end,\n\
             \x20 {d, e} = X,\n\
             \x20 [1 || {g, h} <- X],\n\
@@ -594,6 +618,44 @@ mod tests {
         assert_eq!(
             refs,
             vec![("m:f", true), ("n:g", true), ("o:h", true), ("p:i", true)]
+        );
+    }
+
+    /// BACKLOG P1: `?MODULE` is the file's own module in `fun ?MODULE:f/N`
+    /// and `{?MODULE, f, A}` / `{?MODULE, f}` (telemetry, `emqx_hooks`), a
+    /// `{M, F, A}` tuple names `F` at any arity (a hook appends its own
+    /// arguments), and a map association's value is a value position
+    /// (`argparse`'s `handler => {?MODULE, f}`).
+    #[test]
+    fn module_macro_tuples_and_map_values_name_functions() {
+        let src = "-module(hk).\n\
+            start() ->\n\
+            \x20 emqx_hooks:add('m.p', {?MODULE, on_pub, []}, 10),\n\
+            \x20 emqx_hooks:add('c.c', {?MODULE, on_conn}, 10),\n\
+            \x20 telemetry:attach(<<\"i\">>, [a], fun ?MODULE:on_fun/2, #{}),\n\
+            \x20 #{cmds => #{\"l\" => #{handler => {?MODULE, do_list}}}}.\n";
+        let f = extract_with_refs(src);
+        let refs: Vec<(&str, &str, Option<u32>, bool)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.arity,
+                    r.weak_receiver_type,
+                )
+            })
+            .collect();
+        assert_eq!(
+            refs,
+            vec![
+                ("hk:on_pub", "hk", None, true),
+                ("hk:on_conn", "hk", None, true),
+                ("hk:on_fun", "hk", Some(2), false),
+                ("hk:do_list", "hk", None, true),
+            ]
         );
     }
 
