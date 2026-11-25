@@ -3358,10 +3358,208 @@ pub const SPECS: &[RuleSpec] = &[
         attributes: NONE,
         registrars: NONE,
         base_types: NONE,
-        methods: NONE,
+        methods: &[
+            "init_worker",
+            "configure",
+            "certificate",
+            "rewrite",
+            "access",
+            "response",
+            "header_filter",
+            "body_filter",
+            "log",
+            "preread",
+            "ws_handshake",
+            "ws_client_frame",
+            "ws_upstream_frame",
+            "ws_close",
+        ],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Kong plugins. A plugin's entry points are the phase methods on its handler table in kong/plugins/<name>/handler.lua - `function XHandler:init_worker/configure/certificate/rewrite/access/header_filter/body_filter/log/preread(conf)` - which the Kong runtime calls and which no Lua code in the tree calls. cgg's Lua plugin records each of these as ONE callable whose simple name is the whole `XHandler:access`, and the method matcher compares the whole simple name, so a `methods = [\"access\", ...]` rule cannot fire. The Admin API is invisible for a different reason: kong/api/routes/*.lua returns a table of `[\"/path\"] = { GET = function(self, db, helpers) ... end }`, and anonymous functions in table fields are not recorded as callables at all. Read handler.lua and kong/api/routes/ by hand - every phase method and every HTTP-verb field in those route tables is an entry point.",
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // A Kong plugin's phase methods sit on the handler table of
+    // `kong/plugins/<name>/handler.lua` (gated by `method_paths_for`);
+    // an APISIX plugin's on the `_M` module of `apisix/plugins/<name>.lua`.
+    RuleSpec {
+        id: "apisix-plugin",
+        language: "lua",
+        kind: TrustKind::Network,
+        detect: &["apisix"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "check_schema",
+            "init",
+            "destroy",
+            "rewrite",
+            "access",
+            "before_proxy",
+            "header_filter",
+            "body_filter",
+            "delayed_body_filter",
+            "log",
+            "control_api",
+            "api",
+            "preread",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // `require("x").setup(opts)` from the user's config and `:checkhealth`
+    // calling `require("x.health").check()`: the plugin's module table in
+    // `lua/<x>/init.lua` (or `lua/<x>.lua`) and `lua/<x>/health.lua`.
+    RuleSpec {
+        id: "neovim-plugin",
+        language: "lua",
+        kind: TrustKind::Public,
+        detect: NONE,
+        detect_paths: &["lua/*/health.lua"],
+        detect_calls: &[
+            "nvim_create_autocmd",
+            "nvim_create_user_command",
+            "nvim_buf_create_user_command",
+            "nvim_set_keymap",
+            "nvim_buf_set_keymap",
+            "nvim_create_augroup",
+        ],
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["setup", "check"],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Luanti (Minetest) calls the callbacks of the node, item, tool and
+    // entity definition tables a mod registers. Mods use the `core` /
+    // `minetest` globals and no `require`, so the registration calls are
+    // the evidence.
+    RuleSpec {
+        id: "luanti",
+        language: "lua",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: &[
+            "register_node",
+            "register_craftitem",
+            "register_tool",
+            "register_entity",
+            "register_on_joinplayer",
+            "register_globalstep",
+            "register_chatcommand",
+        ],
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "on_construct",
+            "on_destruct",
+            "after_destruct",
+            "on_blast",
+            "can_dig",
+            "on_dig",
+            "after_dig_node",
+            "on_place",
+            "after_place_node",
+            "on_rightclick",
+            "on_punch",
+            "on_use",
+            "on_secondary_use",
+            "on_drop",
+            "on_timer",
+            "on_receive_fields",
+            "on_flood",
+            "preserve_metadata",
+            "on_metadata_inventory_take",
+            "on_metadata_inventory_put",
+            "on_metadata_inventory_move",
+            "allow_metadata_inventory_take",
+            "allow_metadata_inventory_put",
+            "allow_metadata_inventory_move",
+            "on_activate",
+            "on_step",
+            "on_deactivate",
+            "on_death",
+            "get_staticdata",
+            "on_attach_child",
+            "on_detach_child",
+            "on_detach",
+            "after_use",
+            "on_cancel",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // LÖVE calls the callbacks a game defines on the `love` table. The
+    // methods are owner-qualified: a game object's `Player:update` is
+    // not `love.update`. Defining one is the evidence (no detect inputs).
+    RuleSpec {
+        id: "love2d",
+        language: "lua",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "love.load",
+            "love.update",
+            "love.draw",
+            "love.run",
+            "love.conf",
+            "love.quit",
+            "love.focus",
+            "love.mousefocus",
+            "love.resize",
+            "love.visible",
+            "love.keypressed",
+            "love.keyreleased",
+            "love.textinput",
+            "love.textedited",
+            "love.mousepressed",
+            "love.mousereleased",
+            "love.mousemoved",
+            "love.wheelmoved",
+            "love.touchpressed",
+            "love.touchreleased",
+            "love.touchmoved",
+            "love.joystickpressed",
+            "love.joystickreleased",
+            "love.joystickaxis",
+            "love.joystickhat",
+            "love.joystickadded",
+            "love.joystickremoved",
+            "love.gamepadpressed",
+            "love.gamepadreleased",
+            "love.gamepadaxis",
+            "love.errorhandler",
+            "love.errhand",
+            "love.threaderror",
+            "love.filedropped",
+            "love.directorydropped",
+            "love.lowmemory",
+            "love.displayrotated",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -13258,6 +13456,29 @@ pub fn methods_case_sensitive(id: &str, language: &str) -> bool {
     )
 }
 
+/// The files a rule's method and base-type matchers read, as path
+/// markers compared like `detect_paths` (segment suffixes, a trailing `/`
+/// for a directory anywhere in the path, `*` within one segment). Empty
+/// means every file of the language.
+///
+/// For hosts that call a fixed name only in a file of a fixed place: a
+/// Neovim plugin's `setup` in `lua/<name>/init.lua`, an APISIX plugin's
+/// phase functions in `apisix/plugins/<name>.lua`, makepkg's `build` in a
+/// `PKGBUILD`. Matching the name anywhere in the tree would root every
+/// `setup`, `access` or `build` of the project. A property of the host's
+/// loader, not a rule a user should be authoring, so kept out of
+/// [`FrameworkRule`] like [`detect_calls_for`].
+pub fn method_paths_for(id: &str, language: &str) -> &'static [&'static str] {
+    match (id, language) {
+        ("kong", "lua") => &["kong/plugins/*/handler.lua"],
+        ("apisix-plugin", "lua") => {
+            &["apisix/plugins/*.lua", "apisix/stream/plugins/*.lua"]
+        }
+        ("neovim-plugin", "lua") => &["lua/*/init.lua", "lua/*/health.lua", "lua/*.lua"],
+        _ => NONE,
+    }
+}
+
 /// Call names that alone prove a framework is present, for ecosystems
 /// with no import records. Returned separately from [`FrameworkRule`]
 /// because it is a detection input, not a matcher, and a user-authored
@@ -13384,6 +13605,8 @@ mod tests {
                     | "razor"
                     // WS20: a fixed engine-called symbol, by its exact name.
                     | "libfuzzer"
+                    // 0.14.0: LÖVE's owner-qualified callbacks (`love.load`).
+                    | "love2d"
             );
             assert!(
                 detectable || marker_is_the_evidence,
