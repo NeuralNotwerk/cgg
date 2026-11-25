@@ -411,7 +411,11 @@ fn strip_ctor_args(part: &str) -> &str {
 /// `< Super`, and skips keyword-argument noise Python allows in a base
 /// list (`class C(Base, metaclass=Meta)`).
 fn split_type_list(raw: &str) -> Vec<String> {
-    let s = raw.trim();
+    // One space between words: `dart format` breaks a long clause before
+    // its `with` (`extends A\n    with B`), which the ` with ` split
+    // below must still see.
+    let collapsed = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    let s = collapsed.as_str();
     let s = trim_unbalanced_close(s.trim_start_matches(['(', ':', '<', '[']).trim());
     let s = strip_leading_type_kws(s);
     // Scala / Dart mixins: `extends A with B with C` lists three bases.
@@ -465,6 +469,11 @@ fn strip_leading_type_kws(s: &str) -> String {
             .or_else(|| t.strip_prefix("private"))
             .or_else(|| t.strip_prefix("protected"))
             .or_else(|| t.strip_prefix("virtual"))
+            // A Dart clause of mixins alone (`class P with EquatableMixin`)
+            // and a mixin's `on` clause. Whole words only: `without` and
+            // `onboarding` are type names.
+            .or_else(|| t.strip_prefix("with "))
+            .or_else(|| t.strip_prefix("on "))
             // C++/Ruby global-scope qualifier: `::testing::Test` is
             // `testing::Test`.
             .or_else(|| t.strip_prefix("::"));

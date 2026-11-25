@@ -93,7 +93,27 @@ impl<'a> DartWalker<'a> {
                     .unwrap_or_default();
                 // `extends A with M implements I`: superclass, mixins and
                 // interfaces, which a call typed to any of them reaches.
-                self.bases.push(super::attrs::base_types(node, self.source));
+                let mut bases = super::attrs::base_types(node, self.source);
+                // `mixin M on B`: the grammar leaves the `on` types as bare
+                // `type` children, in no clause node.
+                if node.kind() == "mixin_declaration" {
+                    let mut after_on = false;
+                    let mut c = node.walk();
+                    for child in node.children(&mut c) {
+                        match child.kind() {
+                            "on" => after_on = true,
+                            "type" if after_on => {
+                                let t = self.text(child).trim().to_string();
+                                if !t.is_empty() && !bases.contains(&t) {
+                                    bases.push(t);
+                                }
+                            }
+                            "," => {}
+                            _ => after_on = false,
+                        }
+                    }
+                }
+                self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
@@ -968,6 +988,31 @@ mod tests {
         assert_eq!(imp.base_types, vec!["Shape", "M", "I"]);
         assert!(f.definitions.iter().any(|d| d.qualified_name == "M::mm"));
         assert!(f.definitions.iter().all(|d| d.simple_name != "n"));
+    }
+
+    /// A clause of mixins alone, a mixin's `on` clause and a `with` that
+    /// `dart format` moved to its own line all name bases.
+    #[test]
+    fn mixin_only_on_and_multi_line_with_clauses_record_bases() {
+        let f = extract(
+            "class Pair with EquatableMixin {\n  List<Object?> get props => [];\n}\n\
+             mixin Live on GetxController, Other {\n  void onInit() {}\n}\n\
+             class Ctl extends GetxController\n    with Live, OtherMixin {\n  void onClose() {}\n}\n",
+        );
+        let bases = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .unwrap_or_else(|| panic!("{qn}"))
+                .base_types
+                .clone()
+        };
+        assert_eq!(bases("Pair::props"), vec!["EquatableMixin"]);
+        assert_eq!(bases("Live::onInit"), vec!["GetxController", "Other"]);
+        assert_eq!(
+            bases("Ctl::onClose"),
+            vec!["GetxController", "Live", "OtherMixin"]
+        );
     }
 
     /// C1: `f<int>()` / `b.m<T>()` wrap the callee in an

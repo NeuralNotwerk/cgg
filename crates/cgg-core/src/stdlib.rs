@@ -225,6 +225,20 @@ pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 /// (`NSSelectorFromString(@"tap:")`): a literal argument names a method.
 pub const OBJC_SELECTOR_FROM_STRING: &[&str] = &["NSSelectorFromString"];
 
+/// Objective-C macros that define a method of the `@implementation` they
+/// sit in (`RCT_EXPORT_METHOD(sel:(T)a b:(U)c) { … }`, React Native's
+/// bridge), with the index of the macro argument holding the selector.
+/// The grammar cannot parse the invocation, so the plugin reads each one
+/// as a method named by the selector's first keyword and tagged with the
+/// macro's name.
+pub const OBJC_METHOD_DEFINING_MACROS: &[(&str, usize)] = &[
+    ("RCT_EXPORT_METHOD", 0),
+    ("RCT_REMAP_METHOD", 1),
+    ("RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD", 0),
+    ("RCT_REMAP_BLOCKING_SYNCHRONOUS_METHOD", 2),
+    ("RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD", 1),
+];
+
 /// Clojure forms whose first argument is a binding vector of
 /// `pattern init` pairs (`(let [x (f)] …)`): each pattern binds a local
 /// over the form, and each init is a value.

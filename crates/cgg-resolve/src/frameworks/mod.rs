@@ -1610,6 +1610,9 @@ impl BaseTypeIndex {
                 });
             }
         }
+        if language == "javascript" || language == "typescript" {
+            add_js_import_aliases(facts, language, &mut by_owner);
+        }
         Self { bases, by_owner }
     }
 }
@@ -1676,6 +1679,123 @@ impl PhpNames {
         }
         out
     }
+}
+
+/// A JS/TS class extends the name its file imports, which need not be the
+/// name the base class was declared under: `import BaseCommand from
+/// './base'` (whose default export is `class BaseDataCommand`) or `import
+/// { BaseDataCommand as BC }`. Key the imported class's bases under the
+/// local name too, so the base chain walks through the rename. A local
+/// name some class of the language already declares keeps its own bases.
+fn add_js_import_aliases(
+    facts: &[FileFacts],
+    language: &str,
+    by_owner: &mut HashMap<String, (Vec<String>, FileId)>,
+) {
+    let files: Vec<&FileFacts> =
+        facts.iter().filter(|f| f.language == language).collect();
+    let by_path: HashMap<std::path::PathBuf, &FileFacts> = files
+        .iter()
+        .map(|f| (normalize_js_path(&f.path), *f))
+        .collect();
+    // The class a file exports as `default` (`export default class X`).
+    let default_export = |f: &FileFacts| -> Option<String> {
+        f.imports
+            .iter()
+            .filter(|i| i.kind == "local-export")
+            .find_map(|i| {
+                let (local, exported) = i.alias.split_once(" as ")?;
+                (exported.trim() == "default").then(|| local.trim().to_string())
+            })
+    };
+    let mut aliases: Vec<(String, String)> = Vec::new();
+    for f in &files {
+        for imp in f.imports.iter().filter(|i| i.kind == "from-import") {
+            for item in imp.alias.split(',') {
+                let Some((orig, local)) = item.trim().split_once(" as ") else {
+                    continue;
+                };
+                let (orig, local) = (orig.trim(), local.trim());
+                if orig == local || local.is_empty() {
+                    continue;
+                }
+                let orig = if orig == "default" {
+                    let Some(target) = js_module_candidates(&f.path, &imp.path)
+                        .and_then(|c| c.iter().find_map(|p| by_path.get(p)))
+                    else {
+                        continue;
+                    };
+                    let Some(name) = default_export(target) else {
+                        continue;
+                    };
+                    name
+                } else {
+                    orig.to_string()
+                };
+                if orig != local {
+                    aliases.push((local.to_string(), orig));
+                }
+            }
+        }
+    }
+    // Sorted so the first alias of a contested local name is the same
+    // whatever order the files came in.
+    aliases.sort();
+    for (local, orig) in aliases {
+        if by_owner.contains_key(&local) {
+            continue;
+        }
+        if let Some(parents) = by_owner.get(&orig).cloned() {
+            by_owner.insert(local, parents);
+        }
+    }
+}
+
+fn normalize_js_path(p: &std::path::Path) -> std::path::PathBuf {
+    let mut out = std::path::PathBuf::new();
+    for c in p.components() {
+        match c {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+/// The paths a relative JS/TS specifier may name, most literal first: as
+/// written, with the `.js` a TypeScript ESM import writes for its `.ts`
+/// source swapped back, with a source extension added, or an `index`.
+fn js_module_candidates(
+    from: &std::path::Path,
+    spec: &str,
+) -> Option<Vec<std::path::PathBuf>> {
+    let spec = spec.trim();
+    if !(spec.starts_with("./") || spec.starts_with("../")) {
+        return None;
+    }
+    let base = normalize_js_path(&from.parent()?.join(spec));
+    let mut candidates = vec![base.clone()];
+    const SOURCE_EXTS: &[&str] = &["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"];
+    match base.extension().and_then(|e| e.to_str()) {
+        Some("js" | "jsx" | "mjs" | "cjs") => {
+            for ext in SOURCE_EXTS {
+                candidates.push(base.with_extension(ext));
+            }
+        }
+        _ => {
+            let s = base.to_string_lossy().to_string();
+            for ext in SOURCE_EXTS {
+                candidates.push(std::path::PathBuf::from(format!("{s}.{ext}")));
+            }
+            for ext in SOURCE_EXTS {
+                candidates.push(base.join(format!("index.{ext}")));
+            }
+        }
+    }
+    Some(candidates)
 }
 
 fn match_base_types(
@@ -1862,14 +1982,27 @@ fn match_methods(
         if !method_name_matches(rule, &node.simple_name) {
             continue;
         }
+        let route = match rules::path_route_dir(&rule.id, &rule.language) {
+            Some(dir) => {
+                let Some(route) = graph
+                    .files
+                    .get(&node.file)
+                    .and_then(|f| file_route(&f.path, dir))
+                else {
+                    continue;
+                };
+                route
+            }
+            None => String::new(),
+        };
         out.push(FrameworkEntry {
             framework: rule.id.clone(),
             kind: rule.kind,
             shape: EntryShape::BaseType,
-            route: if rule.kind == TrustKind::Tool {
+            route: if rule.kind == TrustKind::Tool && route.is_empty() {
                 tool_owner_route(&node.qualified_name)
             } else {
-                String::new()
+                route
             },
             target: *id,
             target_name: node.qualified_name.clone(),
@@ -1882,6 +2015,24 @@ fn match_methods(
             node: rule.node,
         });
     }
+}
+
+/// The route a file serves under a file-routed framework's `dir`: its
+/// path below the last `dir` segment, extension dropped, an `index` file
+/// standing for its directory. `None` for a file outside `dir`.
+fn file_route(path: &std::path::Path, dir: &str) -> Option<String> {
+    let segs: Vec<String> = path
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().to_string())
+        .collect();
+    let at = segs.iter().rposition(|s| s == dir)?;
+    let mut rest: Vec<String> = segs[at + 1..].to_vec();
+    let last = rest.pop()?;
+    let stem = last.rsplit_once('.').map_or(last.as_str(), |(s, _)| s);
+    if stem != "index" {
+        rest.push(stem.to_string());
+    }
+    Some(format!("/{}", rest.join("/")))
 }
 
 /// One argument list of an attribute, read for the members it names.
@@ -3246,6 +3397,19 @@ mod tests {
             site_byte: 0,
         });
         f
+    }
+
+    #[test]
+    fn a_file_routed_framework_routes_by_the_path_below_its_directory() {
+        let r = |p: &str| file_route(std::path::Path::new(p), "routes");
+        assert_eq!(r("app/routes/index.dart").as_deref(), Some("/"));
+        assert_eq!(r("routes/users/[id].dart").as_deref(), Some("/users/[id]"));
+        assert_eq!(r("routes/api/index.dart").as_deref(), Some("/api"));
+        assert_eq!(
+            r("routes/_middleware.dart").as_deref(),
+            Some("/_middleware")
+        );
+        assert_eq!(r("lib/helpers.dart"), None);
     }
 
     #[test]
