@@ -133,10 +133,10 @@ REPOS=(
 #                          with a variable path). These are the ones to
 #                          fix; the marker is a to-do, not an excuse.
 APPS=(
-    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|click,fastapi,py-signal,pydantic,~py-context-manager,~py-threading,~py-unittest,~react"
-    "app-django-netbox|https://github.com/netbox-community/netbox.git|django,django-admin,py-unittest,rq,~py-argparse,~py-context-manager,~py-threading"
+    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|click,fastapi,py-signal,pydantic,slack-bolt,~py-context-manager,~py-threading,~py-unittest,~react"
+    "app-django-netbox|https://github.com/netbox-community/netbox.git|django,django-admin,django-hooks,django-lifecycle,drf-serializers,py-unittest,rq,strawberry,~py-argparse,~py-context-manager,~py-threading"
     "app-flaskbb-flask|https://github.com/flaskbb/flaskbb.git|celery,click,flask,~py-context-manager,sqlalchemy-events"
-    "app-saleor-celery|https://github.com/saleor/saleor.git|celery,django,django-admin,py-context-manager,pydantic,~py-threading,~py-unittest"
+    "app-saleor-celery|https://github.com/saleor/saleor.git|celery,django,django-admin,django-hooks,django-lifecycle,graphene,py-context-manager,pydantic,~py-threading,~py-unittest"
     "app-black-click|https://github.com/psf/black.git|click,py-signal,py-unittest,~py-argparse,~py-context-manager,~py-threading"
     "app-torch-ultralytics|https://github.com/ultralytics/ultralytics.git|flask,py-context-manager,py-threading,rust-std-traits,torch,~py-argparse,~py-signal,~py-unittest"
     "app-ghost-express|https://github.com/TryGhost/Ghost.git|express,mocha,node-event-emitter,node-test,playwright,react,vitest,worker-threads"
@@ -430,6 +430,18 @@ APPS=(
     "app-reggie-restify|https://github.com/mbrevoort/node-reggie.git|restify"
     "app-socialhome-dramatiq|https://github.com/jaywink/socialhome.git|django,django-admin,dramatiq,py-unittest,~apscheduler"
     "app-workerstunnel-cloudflare|https://github.com/zhu327/workers-tunnel.git|cloudflare-workers,~rust-std-traits"
+    # 0.14.0 Python application frameworks (framework audit 2026-11-25).
+    "app-ucupaint-blender|https://github.com/ucupumar/ucupaint.git|blender-addon,blender-addon-register,py-threading,py-unittest"
+    "app-qutebrowser-qt|https://github.com/qutebrowser/qutebrowser.git|flask,py-context-manager,py-signal,py-threading,py-unittest,pytest,pytest-bdd,qt,~py-argparse,~py-atexit,~py-setuptools-entrypoints"
+    "app-harlequin-textual|https://github.com/tconbeer/harlequin.git|click,py-atexit,py-context-manager,py-signal,py-threading,pytest,textual,~py-argparse,~py-unittest"
+    "app-proxmoxve-homeassistant|https://github.com/dougiteixeira/proxmoxve.git|home-assistant,home-assistant-entity,pytest,~py-context-manager,~py-threading,~py-unittest"
+    "app-oca-project-odoo|https://github.com/OCA/project.git|odoo,odoo-model,~py-unittest"
+    "app-pgmigrate-behave|https://github.com/yandex/pgmigrate.git|behave,~py-argparse,~py-context-manager,~py-setuptools-entrypoints,~py-threading"
+    "app-eurorack-pmod-cocotb|https://github.com/apfaudio/eurorack-pmod.git|cocotb,~py-argparse"
+    "app-tracecat-temporal|https://github.com/TracecatHQ/tracecat.git|click,fastapi,js-test-globals,node-event-emitter,playwright,py-context-manager,py-signal,py-threading,pydantic,pytest,react,sqlalchemy-events,temporal-python"
+    "app-mlserver-grpc|https://github.com/SeldonIO/MLServer.git|click,fastapi,grpc-python,py-context-manager,py-signal,pydantic,pytest,torch,~aiohttp,~py-argparse,~py-threading,~py-unittest"
+    "app-pydis-bot-discord|https://github.com/python-discord/bot.git|discord-py,discord-py-extension,py-context-manager,py-unittest,pydantic,~aiohttp,~py-signal"
+    "app-revel-backend-ninja|https://github.com/letsrevel/revel-backend.git|celery,django,django-admin,django-hooks,django-lifecycle,django-ninja,py-context-manager,py-signal,py-threading,py-unittest,pydantic,pytest,~py-argparse"
 )
 
 # Framework rules with NO application in the APPS manifest above.

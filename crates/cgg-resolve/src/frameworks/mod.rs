@@ -74,6 +74,7 @@ pub fn detect(
         let _s = cgg_core::profile::span("frameworks::in-tree-imports");
         InTreeImports::build(facts)
     };
+    let mock_names = python_mock_bindings(facts);
     let mut name_indexes: HashMap<String, NameIndex> = HashMap::new();
     let mut base_indexes: HashMap<String, BaseTypeIndex> = HashMap::new();
     let mut reg_indexes: HashMap<String, RegistrarIndex> = HashMap::new();
@@ -119,7 +120,14 @@ pub fn detect(
 
             {
                 let _s = cgg_core::profile::span("frameworks::match-attributes");
-                match_attributes(graph, rule, &evidence, &in_tree_imports, &mut entries);
+                match_attributes(
+                    graph,
+                    rule,
+                    &evidence,
+                    &in_tree_imports,
+                    &mock_names,
+                    &mut entries,
+                );
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-base-types");
@@ -1056,6 +1064,7 @@ fn match_attributes(
     rule: &FrameworkRule,
     evidence: &Detection,
     imports: &InTreeImports,
+    mock_names: &HashMap<FileId, Vec<String>>,
     out: &mut Vec<FrameworkEntry>,
 ) {
     if rule.attributes.is_empty() {
@@ -1082,9 +1091,15 @@ fn match_attributes(
         let file_imports = !import_scoped
             || evidence.file_carries(&rule.id, &rule.language, node.file)
             || script();
+        let mocks = mock_names.get(&node.file);
         for attr in &node.attributes {
             let key = attribute_key(attr);
             let verb = attribute_verb(attr);
+            // `@patch(...)` / `@mock.patch(...)` replace an object for a
+            // test; the `patch` verb of an HTTP rule must not read them.
+            if mocks.is_some_and(|m| is_mock_decorator(m, key)) {
+                continue;
+            }
             if !matches_ci_or_pattern(&rule.attributes, key)
                 && !matches_ci_or_pattern(&rule.attributes, verb)
             {
@@ -1256,6 +1271,69 @@ fn attribute_positional_string(attr: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// Names each Python file binds to a mocking module
+/// ([`cgg_core::stdlib::PY_MOCK_MODULES`]): `patch` from `from
+/// unittest.mock import patch`, `mock` from `from unittest import mock` or
+/// `import mock`, `um` from `import unittest.mock as um`, and
+/// `unittest.mock` itself from `import unittest.mock`. Files binding none
+/// are absent.
+fn python_mock_bindings(facts: &[FileFacts]) -> HashMap<FileId, Vec<String>> {
+    let modules = cgg_core::stdlib::PY_MOCK_MODULES;
+    let mut out: HashMap<FileId, Vec<String>> = HashMap::new();
+    for f in facts.iter().filter(|f| f.language == "python") {
+        let mut bound: Vec<String> = Vec::new();
+        for imp in &f.imports {
+            let path = imp.path.trim();
+            if imp.kind == "from-import" {
+                for item in imp.alias.split(',') {
+                    let item = item.trim();
+                    if item.is_empty() {
+                        continue;
+                    }
+                    let (name, local) = match item.split_once(" as ") {
+                        Some((n, a)) => (n.trim(), a.trim()),
+                        None => (item, item),
+                    };
+                    // `from unittest.mock import patch` binds a member of
+                    // the module; `from unittest import mock` the module.
+                    let whole = format!("{path}.{name}");
+                    if modules.contains(&path) || modules.contains(&whole.as_str()) {
+                        bound.push(local.to_string());
+                    }
+                }
+            } else if imp.kind == "import" {
+                if !imp.alias.is_empty() {
+                    if modules.contains(&path) {
+                        bound.push(imp.alias.trim().to_string());
+                    }
+                    continue;
+                }
+                for item in path.split(',') {
+                    let item = item.trim();
+                    if modules.contains(&item) {
+                        bound.push(item.to_string());
+                    }
+                }
+            }
+        }
+        if !bound.is_empty() {
+            out.insert(f.file, bound);
+        }
+    }
+    out
+}
+
+/// Whether a decorator key is reached through a mock binding: the key is
+/// the binding (`patch`) or continues it (`patch.object`, `mock.patch`).
+fn is_mock_decorator(bound: &[String], key: &str) -> bool {
+    bound.iter().any(|b| {
+        key == b
+            || key
+                .strip_prefix(b.as_str())
+                .is_some_and(|rest| rest.starts_with('.'))
+    })
 }
 
 /// **Shape A, on the container** — `#[pymethods] impl Foo { … }` exposes
@@ -1724,20 +1802,25 @@ fn find_in_base_chain(
     None
 }
 
+/// A declared base against a rule's `base_types`: exact names compare
+/// case-insensitively, and naming-convention patterns (`*Servicer`,
+/// `Unimplemented*`) match as they do for `methods` — the generated
+/// gRPC base of every service is named after the service, so no exact
+/// list can name them.
 fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     let d = declared.trim();
-    if contains_ci(wanted, d) {
+    if matches_ci_or_pattern(wanted, d) {
         return true;
     }
     // `nn.Module` should match a rule written as `Module`, and
     // `Sidekiq::Job` a rule written as `Sidekiq::Job` — compare the last
     // segment too, and strip generic arguments (`IConsumer<OrderPlaced>`).
     let bare = d.split(['<', '[']).next().unwrap_or(d).trim();
-    if contains_ci(wanted, bare) {
+    if matches_ci_or_pattern(wanted, bare) {
         return true;
     }
     let last = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
-    contains_ci(wanted, last)
+    matches_ci_or_pattern(wanted, last)
 }
 
 /// A method-name rule with no base type — the structural-typing escape
@@ -3222,6 +3305,51 @@ mod tests {
             name_pattern_matches("Fact", "fact"),
             "plain names stay case-insensitive"
         );
+    }
+
+    #[test]
+    fn base_types_accept_naming_convention_patterns() {
+        let servicer = vec!["*Servicer".to_string()];
+        assert!(base_type_matches(&servicer, "GreeterServicer"));
+        assert!(base_type_matches(
+            &servicer,
+            "helloworld_pb2_grpc.GreeterServicer"
+        ));
+        assert!(!base_type_matches(&servicer, "Servicer"));
+        assert!(!base_type_matches(&servicer, "GreeterServicerBase"));
+        let go = vec!["Unimplemented*".to_string()];
+        assert!(base_type_matches(&go, "pb.UnimplementedGreeterServer"));
+        // Exact names keep their case-insensitive compare.
+        assert!(base_type_matches(&["Module".to_string()], "nn.module"));
+    }
+
+    #[test]
+    fn mock_decorators_are_found_through_every_import_form() {
+        let mut f = FileFacts::new(FileId::new(0), PathBuf::from("tests/t.py"), "python");
+        let imp = |kind: &str, path: &str, alias: &str| ImportRecord {
+            kind: kind.into(),
+            path: path.into(),
+            alias: alias.into(),
+            site_line: 1,
+            site_byte: 0,
+        };
+        f.imports
+            .push(imp("from-import", "unittest.mock", "patch as p, MagicMock"));
+        f.imports.push(imp("from-import", "unittest", "mock"));
+        f.imports.push(imp("import", "unittest.mock", "um"));
+        f.imports.push(imp("import", "mock, os", ""));
+        f.imports.push(imp("from-import", "fastapi", "FastAPI"));
+        let m = python_mock_bindings(&[f]);
+        let bound = &m[&FileId::new(0)];
+        for key in ["p", "p.object", "mock.patch", "mock.patch.dict", "um.patch"] {
+            assert!(is_mock_decorator(bound, key), "{key}");
+        }
+        for key in ["app.patch", "patch", "router.patch", "mockery.patch"] {
+            assert!(!is_mock_decorator(bound, key), "{key}");
+        }
+        // No mocking import: nothing is a mock decorator.
+        let plain = facts_with_import("python", "api.py", "fastapi");
+        assert!(python_mock_bindings(&[plain]).is_empty());
     }
 
     fn rust_facts() -> FileFacts {
