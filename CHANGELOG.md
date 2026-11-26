@@ -156,6 +156,17 @@ and some existing entry qnames and kinds change (marked in bold below).
 
 ### Changed
 
+- Groovy: the vendored grammar is refreshed to upstream
+  `dekobon/tree-sitter-groovy` main (`724a7a6`, which includes upstream
+  #122) plus the revised heads of upstream PRs #115, #116, #117, #120 and
+  #121. Review fixes correct trees that were wrong without an `ERROR`:
+  `y = c ? x = foo 'a' : 'b'` is a ternary again, not a string key;
+  `enum F { A, private @Foo F() {} }` declares a constructor; a `/`
+  reached during error recovery no longer opens a slashy string that
+  swallows the following lines. Across 21,667 real Groovy files, 147 more
+  parse without an `ERROR` than on upstream main and none newly errors;
+  the call graph of every corpus repository with Groovy or Gradle files
+  is unchanged.
 - **rmcp entries change kind and qname**:
   `<framework-entry>::network::rmcp::tool("<description>")` is now
   `<framework-entry>::tool::rmcp::<tool name>`; its `#[tool_handler]`

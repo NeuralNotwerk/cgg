@@ -10,8 +10,8 @@ The Groovy plugin parses with it (issue #11). It replaced the unmaintained
 before it (`groovy_rewrite.rs`). `src/plugins/groovy_next.rs` pins the
 shapes the old crate rejected.
 
-**Source:** branch `cgg/vendor` of the fork
-[`NeuralNotwerk/tree-sitter-groovy`](https://github.com/NeuralNotwerk/tree-sitter-groovy/tree/cgg/vendor),
+**Source:** branch `cgg/vendor-0.14.0` of the fork
+[`NeuralNotwerk/tree-sitter-groovy`](https://github.com/NeuralNotwerk/tree-sitter-groovy/tree/cgg/vendor-0.14.0),
 commit `59095a049a72c6d09f6f40693df442f38efe731e`. It is upstream `main` at
 `724a7a6` (after upstream PR #122; the only release, v0.6.0, parses worse)
 with the five branches below merged in this order, each the head revised
@@ -30,8 +30,8 @@ One commit on top (`59095a0`) re-pins the expected tree of the corpus
 test "A slash during error recovery opens no slashy string across lines"
 (#121), which changes once #117 is merged too: the recovery holds one
 `ERROR` instead of two. The previous vendored commit was `7d525a3`
-(upstream `eeb38537` plus the pre-review PR heads), kept in the fork
-clone as branch `cgg/vendor-7d525a3`.
+(upstream `eeb38537` plus the pre-review PR heads), still the head of
+the fork's `cgg/vendor` branch.
 
 Over 21,667 real Groovy files (the cgg corpus plus apache/groovy,
 grails-core and spock), this commit has 147 more error-free files than
