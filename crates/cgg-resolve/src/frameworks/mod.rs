@@ -2202,6 +2202,16 @@ fn find_in_base_chain(
     accept: &dyn Fn(&str, FileId) -> bool,
 ) -> Option<String> {
     let mut seen: BTreeSet<(String, String)> = BTreeSet::new();
+    // Where constants do not resolve lexically, a base's in-tree
+    // candidates depend on its name alone, never on the type that wrote
+    // it. A name many types share as their base (1,406 Django
+    // `class Migration(migrations.Migration)` in one tree, each read as a
+    // candidate for the others) would otherwise expand once per writer,
+    // squaring the walk. Expand each name once, and skip a name already
+    // known not to match: what is left of it is its expansion. A name
+    // that matches is still asked of `accept` for every declaring file.
+    let mut expanded: HashSet<String> = HashSet::new();
+    let mut unmatched: HashSet<String> = HashSet::new();
     let mut frontier: Vec<(String, String, FileId)> = direct
         .iter()
         .map(|t| (t.clone(), context.to_string(), file))
@@ -2212,11 +2222,21 @@ fn find_in_base_chain(
         }
         let mut next: Vec<(String, String, FileId)> = Vec::new();
         for (t, ctx, declared_in) in frontier {
+            if !lexical && unmatched.contains(&t) {
+                continue;
+            }
             if !seen.insert((t.clone(), ctx.clone())) {
                 continue;
             }
-            if base_type_matches(wanted, &t) && accept(&t, declared_in) {
-                return Some(t);
+            if base_type_matches(wanted, &t) {
+                if accept(&t, declared_in) {
+                    return Some(t);
+                }
+            } else if !lexical {
+                unmatched.insert(t.clone());
+            }
+            if !lexical && !expanded.insert(t.clone()) {
+                continue;
             }
             for (owner, parents, at) in in_tree_bases(&t, &ctx, by_owner, lexical) {
                 next.extend(parents.iter().map(|p| (p.clone(), owner.to_string(), at)));
@@ -3757,6 +3777,10 @@ fn camelize(s: &str) -> String {
 struct NameIndex {
     by_simple: HashMap<String, Vec<(FileId, CallableId)>>,
     by_owner_method: HashMap<(String, String), Vec<CallableId>>,
+    /// Method name -> every owner `by_owner_method` holds it under, so
+    /// the near-miss owner lookup reads one method's owners instead of
+    /// scanning the whole map on every registration.
+    owners_by_method: HashMap<String, Vec<String>>,
     /// `(file stem, simple name)`. A deployment string like
     /// `"orders.processOrder"` names a *module*, not a type, and in
     /// every AWS runtime the module is the file stem. Python happens to
@@ -3813,9 +3837,17 @@ impl NameIndex {
                     .push(*id);
             }
         }
+        let mut owners_by_method: HashMap<String, Vec<String>> = HashMap::new();
+        for (o, m) in by_owner_method.keys() {
+            owners_by_method
+                .entry(m.clone())
+                .or_default()
+                .push(o.clone());
+        }
         Self {
             by_simple,
             by_owner_method,
+            owners_by_method,
             by_stem_method,
         }
     }
@@ -3887,10 +3919,13 @@ impl NameIndex {
         // it when exactly one owner matches — a near-miss must not
         // become a confident claim.
         let matches: Vec<CallableId> = self
-            .by_owner_method
-            .iter()
-            .filter(|((o, m), _)| m == method && owner_is_close(o, owner))
-            .flat_map(|(_, ids)| ids.iter().copied())
+            .owners_by_method
+            .get(method)
+            .into_iter()
+            .flatten()
+            .filter(|o| owner_is_close(o, owner))
+            .filter_map(|o| self.by_owner_method.get(&(o.clone(), method.to_string())))
+            .flat_map(|ids| ids.iter().copied())
             .collect();
         if let [id] = matches.as_slice() {
             return Some(*id);
