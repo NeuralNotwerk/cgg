@@ -12,21 +12,34 @@ shapes the old crate rejected.
 
 **Source:** branch `cgg/vendor` of the fork
 [`NeuralNotwerk/tree-sitter-groovy`](https://github.com/NeuralNotwerk/tree-sitter-groovy/tree/cgg/vendor),
-commit `7d525a3254e15af002e23d570be3684833bccc56`. It is upstream `main` at
-`eeb38537` (the only release, v0.6.0, parses worse than our current
-grammar plus `groovy_rewrite.rs`), with these changes:
+commit `59095a049a72c6d09f6f40693df442f38efe731e`. It is upstream `main` at
+`724a7a6` (after upstream PR #122; the only release, v0.6.0, parses worse)
+with the five branches below merged in this order, each the head revised
+after review and rebased on `724a7a6`, and `src/parser.c` regenerated
+rather than merged:
 
-| Change | Upstream |
-| --- | --- |
-| `?.@`, `??.@`, `*.@` direct field access | issue #112, PR #115 |
-| String keys in parenthesis-free calls (`attributes 'Main-Class': 'a.B'`) | issue #113, PR #116 |
-| Annotated untyped declarations (`@Field FOO = …`, `@Subject svc = …`) | issue #114, PR #117 |
-| A slashy string spans lines, and may start with a space, where no division may follow (`x = /a` then `b/`) | issue #119, PR #121 |
-| Annotations and modifiers in any order (`private @Autowired Foo f`, `public @interface X`, `sealed abstract class W`, `final @A x`) | issue #92, PR #120 |
+| Change | Upstream | Branch head |
+| --- | --- | --- |
+| `?.@`, `??.@`, `*.@` direct field access | issue #112, PR #115 | `12a30c4` |
+| String keys in parenthesis-free calls (`attributes 'Main-Class': 'a.B'`); the `:` after a string in a ternary's consequence stays the ternary's | issue #113, PR #116 | `8b98a36` |
+| Annotated untyped declarations (`@Field FOO = …`, `@Subject svc = …`) | issue #114, PR #117 | `8963c7c` |
+| Annotations and modifiers in any order (`private @Autowired Foo f`, `public @interface X`, `sealed abstract class W`, `final @A x`, `enum F { A, private @Foo F() {} }` a constructor) | issue #92, PR #120 | `92d0214` |
+| A slashy string spans lines, and may start with a space, where no division may follow (`x = /a` then `b/`); never during error recovery | issue #119, PR #121 | `9025b28` |
+
+One commit on top (`59095a0`) re-pins the expected tree of the corpus
+test "A slash during error recovery opens no slashy string across lines"
+(#121), which changes once #117 is merged too: the recovery holds one
+`ERROR` instead of two. The previous vendored commit was `7d525a3`
+(upstream `eeb38537` plus the pre-review PR heads), kept in the fork
+clone as branch `cgg/vendor-7d525a3`.
 
 Over 21,667 real Groovy files (the cgg corpus plus apache/groovy,
-grails-core and spock), the fork has 50 more error-free files than
-upstream `main` with the three PRs merged, and none newly erroring.
+grails-core and spock), this commit has 147 more error-free files than
+upstream `main` at `724a7a6` (21,009 → 21,156; the sum of the five PRs
+measured alone) and none newly erroring; 4 files that already had an
+`ERROR` have a longer one (PR #120's documented cases). Against the
+previous vendored commit `7d525a3` it changes 5 trees, all in files that
+already had an `ERROR`, 3 with shorter ones.
 
 **Local patch** (applied to the generated C, not to `grammar.js`): every
 exported symbol is renamed from `tree_sitter_groovy*` to
@@ -37,7 +50,10 @@ the plain name never clashes.
 
 `grammar.js` is kept for reference only; it is not compiled.
 
-To refresh: in the fork, `npx tree-sitter generate`, then from its root
+To refresh: in the fork, `npx tree-sitter generate` (with
+`TREE_SITTER_LIBDIR` set to a private directory for any `tree-sitter`
+command that compiles the grammar, so a stale shared
+`~/.cache/tree-sitter/lib/groovy.so` is never loaded), then from its root
 
 ```bash
 V=/path/to/cgg/crates/cgg-lang/vendor/groovy
