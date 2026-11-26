@@ -557,7 +557,7 @@ OpenAPI/AsyncAPI root key for `.yaml`/`.yml`/`.json`, then its extension.
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(5094 callables, 16772 edges, 4909 cross-file, 559ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(5591 callables, 18454 edges, 5357 cross-file, 645ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -604,73 +604,75 @@ flowchart LR
   N33["cgg_core::external::classify_external"]
   N34["cgg_core::external::build_known_names"]
   N35["cgg_core::facts::FileFacts::inject_module_scope_def_as"]
-  N36["cgg_core::graph::Graph::new"]
-  N37["cgg_core::graph::Graph::add_callable"]
-  N38["cgg_core::graph::Graph::add_file"]
-  N39["cgg_core::graph::Graph::add_edge"]
-  N40["cgg_core::ids::FileId::new"]
-  N41["cgg_core::lang_family::same_family"]
-  N42["cgg_core::profile::enable"]
-  N43["cgg_core::profile::span"]
-  N44["cgg_core::testfile::classify_test_file"]
-  N45["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  N46["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  N47["cgg_lang::externals::extract"]
-  N48["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
-  N49["cgg_lang::ExtractCtx&lt;'a&gt;::with_reference_sites"]
-  N50["cgg_lang::ExtractCtx&lt;'a&gt;::with_externals"]
-  N51["cgg_lang::ExtractCtx&lt;'a&gt;::with_property_sites"]
-  N52["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  N53["cgg_lang::ExtractCtx&lt;'a&gt;::for_test_file"]
-  N54["cgg_lang::longest_line_bytes"]
-  N55["cgg_lang::LanguagePlugin::max_line_bytes"]
-  N56["cgg_lang::LanguagePlugin::parse_source"]
-  N57["cgg_lang::PluginRegistry::with_v1_plugins"]
-  N58["cgg_lang::locals::collect"]
-  N59["cgg_lang::member_aliases::collect"]
-  N60["cgg_lang::notebook::extract_python_source"]
-  N61["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  N62["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
-  N63["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  N64["cgg_lang::parser::exceeds_depth"]
-  N65["cgg_lang::plugins::c_macro::expand"]
-  N66["cgg_lang::plugins::clojure::settle_defn_macros"]
-  N67["cgg_lang::plugins::cpp::unify_declarations"]
-  N68["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
-  N69["cgg_lang::property_reads::collect"]
-  N70["cgg_resolve::cross_file::resolve"]
-  N71["cgg_resolve::descriptor::link_descriptors"]
-  N72["cgg_resolve::dispatch::fanout"]
-  N73["cgg_resolve::dispatch::inheritance_fanout"]
-  N74["cgg_resolve::externals::inventory"]
-  N75["cgg_resolve::externals::fill_branches"]
-  N76["cgg_resolve::ffi::link_ffi"]
-  N77["cgg_resolve::frameworks::detect"]
-  N78["cgg_resolve::go_iface::go_interface_fanout"]
-  N79["cgg_resolve::go_iface::go_interface_site_edges"]
-  N80["cgg_resolve::intra_file::link_file_with_cap"]
-  N81["cgg_resolve::names::owner_from_qn"]
-  N82["cgg_resolve::property_edges::emit"]
-  N83["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N84["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
-  N85["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
-  N86["cgg_resolve::type_hints::field_index"]
-  N87["cgg_resolve::type_hints::settle_python_member_refs"]
-  N88["cgg_resolve::type_hints::type_alias_index"]
-  N89["cgg_resolve::type_hints::macro_index"]
-  N90["cgg_resolve::type_hints::resolve_macro_types"]
-  N91["cgg_resolve::type_hints::build_return_type_map"]
-  N92["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N93["cgg_resolve::type_hints::settle_assoc_call_locals"]
-  N94["cgg_resolve::type_hints::settle_closure_args"]
-  N95["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N96["cgg_resolve::type_hints::go_result_functions"]
-  N97["cgg_resolve::type_hints::kotlin_scoped_counts"]
-  N98["cgg_resolve::unreachable::cap_unreachable_edges"]
-  N99["cgg_resolve::value_refs::prune"]
-  N100["cgg_resolve::value_refs::prune_paren_less"]
-  N101["cgg_resolve::value_refs::tag_reference_edges"]
-  N102["cgg_walk::walk"]
+  N36["cgg_core::frameworks::split_registrar_slot"]
+  N37["cgg_core::graph::Graph::new"]
+  N38["cgg_core::graph::Graph::add_callable"]
+  N39["cgg_core::graph::Graph::add_file"]
+  N40["cgg_core::graph::Graph::add_edge"]
+  N41["cgg_core::ids::FileId::new"]
+  N42["cgg_core::lang_family::same_family"]
+  N43["cgg_core::profile::enable"]
+  N44["cgg_core::profile::span"]
+  N45["cgg_core::testfile::classify_test_file"]
+  N46["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  N47["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  N48["cgg_lang::externals::extract"]
+  N49["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
+  N50["cgg_lang::ExtractCtx&lt;'a&gt;::with_reference_sites"]
+  N51["cgg_lang::ExtractCtx&lt;'a&gt;::with_externals"]
+  N52["cgg_lang::ExtractCtx&lt;'a&gt;::with_property_sites"]
+  N53["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  N54["cgg_lang::ExtractCtx&lt;'a&gt;::for_test_file"]
+  N55["cgg_lang::longest_line_bytes"]
+  N56["cgg_lang::LanguagePlugin::max_line_bytes"]
+  N57["cgg_lang::LanguagePlugin::parse_source"]
+  N58["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N59["cgg_lang::locals::collect"]
+  N60["cgg_lang::member_aliases::collect"]
+  N61["cgg_lang::notebook::extract_python_source"]
+  N62["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  N63["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
+  N64["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  N65["cgg_lang::parser::exceeds_depth"]
+  N66["cgg_lang::plugins::c_macro::expand"]
+  N67["cgg_lang::plugins::clojure::settle_defn_macros"]
+  N68["cgg_lang::plugins::cpp::unify_declarations"]
+  N69["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N70["cgg_lang::plugins::r::expand_source_dirs"]
+  N71["cgg_lang::property_reads::collect"]
+  N72["cgg_resolve::cross_file::resolve"]
+  N73["cgg_resolve::descriptor::link_descriptors"]
+  N74["cgg_resolve::dispatch::fanout"]
+  N75["cgg_resolve::dispatch::inheritance_fanout"]
+  N76["cgg_resolve::externals::inventory"]
+  N77["cgg_resolve::externals::fill_branches"]
+  N78["cgg_resolve::ffi::link_ffi"]
+  N79["cgg_resolve::frameworks::detect"]
+  N80["cgg_resolve::go_iface::go_interface_fanout"]
+  N81["cgg_resolve::go_iface::go_interface_site_edges"]
+  N82["cgg_resolve::intra_file::link_file_with_cap"]
+  N83["cgg_resolve::names::owner_from_qn"]
+  N84["cgg_resolve::property_edges::emit"]
+  N85["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N86["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
+  N87["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
+  N88["cgg_resolve::type_hints::field_index"]
+  N89["cgg_resolve::type_hints::settle_python_member_refs"]
+  N90["cgg_resolve::type_hints::type_alias_index"]
+  N91["cgg_resolve::type_hints::macro_index"]
+  N92["cgg_resolve::type_hints::resolve_macro_types"]
+  N93["cgg_resolve::type_hints::build_return_type_map"]
+  N94["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N95["cgg_resolve::type_hints::settle_assoc_call_locals"]
+  N96["cgg_resolve::type_hints::settle_closure_args"]
+  N97["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N98["cgg_resolve::type_hints::go_result_functions"]
+  N99["cgg_resolve::type_hints::kotlin_scoped_counts"]
+  N100["cgg_resolve::unreachable::cap_unreachable_edges"]
+  N101["cgg_resolve::value_refs::prune"]
+  N102["cgg_resolve::value_refs::prune_paren_less"]
+  N103["cgg_resolve::value_refs::tag_reference_edges"]
+  N104["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -693,126 +695,128 @@ flowchart LR
   N3 --> N21
   N3 --> N1
   N3 --> N0
+  N3 --> N36
+  N3 --> N52
   N3 --> N51
   N3 --> N50
   N3 --> N49
-  N3 --> N48
-  N3 --> N42
-  N3 --> N102
-  N3 --> N57
-  N3 --> N45
-  N3 --> N61
+  N3 --> N43
+  N3 --> N104
+  N3 --> N58
+  N3 --> N46
+  N3 --> N62
   N3 --> N29
   N3 --> N28
-  N3 --> N36
-  N3 --> N46
-  N3 --> N60
-  N3 -->|23x| N43
-  N3 -->|3x| N63
-  N3 -->|?| N55
-  N3 -->|?| N68
-  N3 -->|2x| N54
-  N3 -->|?| N56
-  N3 --> N62
-  N3 --> N64
-  N3 -->|?| N53
-  N3 --> N52
-  N3 -->|2x| N44
-  N3 --> N40
+  N3 --> N37
   N3 --> N47
-  N3 --> N69
-  N3 --> N58
-  N3 --> N59
-  N3 --> N41
+  N3 --> N61
+  N3 -->|23x| N44
+  N3 -->|3x| N64
+  N3 -->|?| N56
+  N3 -->|?| N69
+  N3 -->|2x| N55
+  N3 -->|?| N57
+  N3 --> N63
   N3 --> N65
-  N3 --> N67
+  N3 -->|?| N54
+  N3 --> N53
+  N3 -->|2x| N45
+  N3 --> N41
+  N3 --> N48
+  N3 --> N71
+  N3 --> N59
+  N3 --> N60
+  N3 --> N42
   N3 --> N66
+  N3 --> N68
+  N3 --> N67
+  N3 --> N70
   N3 --> N27
   N3 --> N30
-  N3 --> N38
+  N3 --> N39
   N3 -->|?| N35
-  N3 --> N81
-  N3 --> N31
-  N3 --> N37
-  N3 --> N99
-  N3 --> N100
-  N3 --> N91
-  N3 -->|?| N84
-  N3 --> N85
   N3 --> N83
-  N3 --> N96
-  N3 --> N97
-  N3 --> N86
-  N3 --> N89
-  N3 --> N90
-  N3 --> N88
-  N3 --> N94
+  N3 --> N31
+  N3 --> N38
+  N3 --> N101
+  N3 --> N102
   N3 --> N93
-  N3 --> N92
-  N3 --> N95
+  N3 -->|?| N86
   N3 --> N87
+  N3 --> N85
+  N3 --> N98
+  N3 --> N99
+  N3 --> N88
+  N3 --> N91
+  N3 --> N92
+  N3 --> N90
+  N3 --> N96
+  N3 --> N95
+  N3 --> N94
+  N3 --> N97
+  N3 --> N89
   N3 --> N34
-  N3 --> N80
+  N3 --> N82
   N3 --> N32
   N3 --> N33
-  N3 --> N70
-  N3 --> N82
-  N3 --> N76
-  N3 --> N71
-  N3 --> N101
-  N3 --> N98
-  N3 --> N74
-  N3 --> N77
   N3 --> N72
-  N3 -->|4x| N39
-  N3 --> N73
+  N3 --> N84
   N3 --> N78
+  N3 --> N73
+  N3 --> N103
+  N3 --> N100
+  N3 --> N76
   N3 --> N79
+  N3 --> N74
+  N3 -->|4x| N40
+  N3 --> N75
+  N3 --> N80
+  N3 --> N81
   N3 -->|5x| N22
   N3 --> N26
   N3 -->|2x| N23
-  N3 --> N75
+  N3 --> N77
   N3 --> N24
   N3 --> N25
-  N8 --> N43
+  N8 --> N44
   N8 --> N29
   N8 -->|3x| N23
   N8 --> N22
-  N9 --> N57
+  N9 --> N58
   N9 --> N23
   N9 --> N22
   N10 --> N23
   N15 -->|2x| N30
-  N15 -->|2x| N38
+  N15 -->|2x| N39
   N15 --> N31
-  N15 --> N37
-  N15 --> N39
+  N15 --> N38
+  N15 --> N40
   N16 -->|2x| N31
-  N16 -->|2x| N37
+  N16 -->|2x| N38
   N16 --> N30
-  N16 --> N38
   N16 --> N39
+  N16 --> N40
   N17 --> N30
-  N17 --> N38
-  N17 --> N31
-  N17 --> N37
   N17 --> N39
-  N24 --> N36
-  N65 --> N52
-  N67 -->|3x| N41
-  N70 -->|6x| N43
-  N70 -->|6x| N81
-  N70 --> N41
-  N71 -->|2x| N81
-  N72 --> N81
-  N73 -->|2x| N81
-  N74 -->|3x| N43
-  N76 --> N41
-  N77 -->|14x| N43
-  N80 -->|7x| N81
-  N92 -->|3x| N43
-  N93 --> N81
-  N95 --> N81
+  N17 --> N31
+  N17 --> N38
+  N17 --> N40
+  N24 --> N37
+  N66 --> N53
+  N68 -->|3x| N42
+  N72 -->|6x| N44
+  N72 -->|6x| N83
+  N72 --> N42
+  N73 -->|3x| N83
+  N74 --> N83
+  N75 -->|2x| N83
+  N76 -->|3x| N44
+  N78 --> N42
+  N79 -->|16x| N44
+  N82 -->|7x| N83
+  N94 -->|3x| N44
+  N95 --> N83
+  N97 --> N83
 ```
 <!-- cgg:end:self -->
 

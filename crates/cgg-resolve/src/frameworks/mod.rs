@@ -2082,6 +2082,12 @@ fn match_base_types(
     }
     let bases = &idx.bases;
     let by_owner = &idx.by_owner;
+    // Every member of a class carries the class's bases and owner, so
+    // the walk's inputs (bases, owner path, file) repeat once per member.
+    // In a tree with many same-named types (hundreds of nested `Builder`
+    // classes) one walk is wide, and repeating it per member was most of
+    // the run. The walk depends on nothing else, so cache it per class.
+    let mut walks: HashMap<(&[String], &str, FileId), Option<String>> = HashMap::new();
 
     for (id, node) in &graph.callables {
         if node.language != rule.language || node.synthetic {
@@ -2109,15 +2115,20 @@ fn match_base_types(
             .map(|(o, _)| o)
             .unwrap_or("");
         let lexical = rules::LEXICAL_CONSTANT_LANGS.contains(&rule.language.as_str());
-        let Some(hit) = find_in_base_chain(
-            types,
-            context,
-            node.file,
-            by_owner,
-            &rule.base_types,
-            lexical,
-            &accept,
-        ) else {
+        let walk = walks
+            .entry((types.as_slice(), context, node.file))
+            .or_insert_with(|| {
+                find_in_base_chain(
+                    types,
+                    context,
+                    node.file,
+                    by_owner,
+                    &rule.base_types,
+                    lexical,
+                    &accept,
+                )
+            });
+        let Some(hit) = walk.clone() else {
             continue;
         };
         // QtTest's base is plain `QObject`: a test class is one only
@@ -2210,7 +2221,10 @@ fn find_in_base_chain(
     // squaring the walk. Expand each name once, and skip a name already
     // known not to match: what is left of it is its expansion. A name
     // that matches is still asked of `accept` for every declaring file.
-    let mut expanded: HashSet<String> = HashSet::new();
+    // Keyed by what the expansion reads, not the spelling: Smithy's
+    // hundreds of `AbstractTraitBuilder<FooTrait, Builder>` bases differ
+    // only in their generic arguments and expand to the same types.
+    let mut expanded: HashSet<(bool, String, Option<String>)> = HashSet::new();
     let mut unmatched: HashSet<String> = HashSet::new();
     let mut frontier: Vec<(String, String, FileId)> = direct
         .iter()
@@ -2235,7 +2249,7 @@ fn find_in_base_chain(
             } else if !lexical {
                 unmatched.insert(t.clone());
             }
-            if !lexical && !expanded.insert(t.clone()) {
+            if !lexical && !expanded.insert(expansion_key(&t)) {
                 continue;
             }
             for (owner, parents, at) in in_tree_bases(&t, &ctx, by_owner, lexical) {
@@ -2245,6 +2259,20 @@ fn find_in_base_chain(
         frontier = next;
     }
     None
+}
+
+/// What [`in_tree_bases`] reads of a base written `t` where constants do
+/// not resolve lexically: its last segment, and whether, and under which
+/// parent, a `::`/`\\` path qualifies it. Two spellings with one key
+/// expand to the same types.
+fn expansion_key(t: &str) -> (bool, String, Option<String>) {
+    let segs = type_segments(t);
+    let qualified = t.contains("::") || t.contains('\\');
+    let last = segs.last().map(|s| s.to_string()).unwrap_or_default();
+    let parent = qualified
+        .then(|| segs.len().checked_sub(2).map(|i| segs[i].to_string()))
+        .flatten();
+    (qualified, last, parent)
 }
 
 /// Path segments of a type or owner name, generic arguments dropped:
