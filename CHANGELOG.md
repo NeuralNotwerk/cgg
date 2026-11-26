@@ -372,7 +372,34 @@ sample call sites:
 
 ### Performance
 
-PERF_PLACEHOLDER
+Paired comparison (`scripts/compare-release.py`, `--jobs 1`) against
+0.13.4 over all 486 corpus repositories (total budget raised to 7,200 s
+from the default 3,600 s: at 486 repos the default left 44 unmeasured;
+machine load average 15–24 from other work, so single draws are noisy):
+total wall 455.0 s → 479.2 s (+5.3%), median per-repo delta +4.7%, 102
+of 486 faster. The cost is the new framework rows and per-file evidence
+checks.
+
+Three regressions the new base-type and registrar matching caused were
+found by this comparison and fixed before release, each with output
+byte-identical to the unfixed build (timing fields aside):
+
+- app-saleor-celery 11 s → 31 s: 1,406 Django
+  `class Migration(migrations.Migration)` classes made each base-chain
+  walk expand every other one. A base name is now expanded once per walk.
+- app-pygpt-llamaindex +35%: the owner near-miss lookup scanned the whole
+  owner/method table per call; it is indexed by method now.
+- smithy-protocol-tests 4.3 s → 12.3 s: every member of a class repeated
+  its class's walk once per rule, and bases differing only in generic
+  arguments (`AbstractTraitBuilder<FooTrait, Builder>`) each expanded the
+  same types again. The walk is cached per class and a base expanded once
+  per lookup key: 4.8 s at `--jobs 1` alone.
+
+After the fixes, one repository fell outside the max(10%, 1 s) runway in
+the corpus pass, app-ocamlorg-dream (10.4 s → 13.1 s); three alternating
+re-runs put it at 17.6–17.8 s (0.13.4) vs 17.2–17.8 s (0.14.0) under the
+same load, so the move is noise (as it was for 0.13.2). groovy-gradle,
+over the runway in the first pass, is +4% here and +7–9% re-timed.
 
 ## [0.13.4] - 2026-11-25
 
