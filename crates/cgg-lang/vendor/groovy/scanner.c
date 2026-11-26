@@ -151,6 +151,7 @@ enum TokenType {
     UNREACHABLE,
     TYPE_ARGUMENTS_OPEN,
     CAST_WORD_CLOSE,
+    EXCLUDED_METHOD_NAME,
     ERROR_SENTINEL,
 };
 
@@ -411,6 +412,17 @@ static bool is_primitive_type(const char *word, unsigned len) {
         || word_is(word, len, "char") || word_is(word, len, "double")
         || word_is(word, len, "float") || word_is(word, len, "int")
         || word_is(word, len, "long") || word_is(word, len, "short");
+}
+
+// Whether a word that `read_word` returned is one that Groovy's lexer
+// makes a keyword and Apache's `identifier` does not take, and that this
+// grammar reads as a name: `this`, `void`, a primitive type name and the
+// reserved `goto`, `const` and `threadsafe`. None names a method that has
+// no `def` and no return type (Apache `methodName`).
+static bool is_excluded_method_name(const char *word, unsigned len) {
+    return is_primitive_type(word, len) || word_is(word, len, "this")
+        || word_is(word, len, "void") || word_is(word, len, "goto")
+        || word_is(word, len, "const") || word_is(word, len, "threadsafe");
 }
 
 // Consumes a name and returns whether it is a primitive type name. It
@@ -1172,8 +1184,9 @@ static bool parameters_follow(
             }
             // Where an operand may start, Groovy's lexer reads a slashy
             // string, one item, which the scan function opens where no `=`
-            // follows the `/` and the string closes on its line
-            // (`slashy_body_follows`): an `->` in it ends no list
+            // follows the `/` and a closing `/` does, across lines where an
+            // operand starts (`slashy_body_follows`): an `->` in it ends no
+            // list
             // (`foo a, /->/`, `{ foo a, b = /->/ }`), and a line break after
             // it ends the list as after any string (`foo a, /re/`).
             if (continued && lexer->lookahead != '='
@@ -2225,9 +2238,10 @@ static bool instanceof_test_follows(TSLexer *lexer, bool no_close_ahead) {
 // `in++` and `yield++` update a name, also when `foo()` follows on the
 // next line, as in Groovy; they are read in a loop, not by recursion,
 // which a long run of them would turn into a deep stack. `()` starts
-// none, so `yield()` is a call. A `/` starts a slashy string unless a
-// space, `=` or a second `/` (a line comment, read on the line of a `++`)
-// follows it.
+// none, so `yield()` is a call. A `/` starts a slashy string unless `=`
+// or a second `/` (a line comment, read on the line of a `++`) follows
+// it, or a space does after `yield`; after `in` a space may follow when
+// a closing `/` does (`slashy_body_follows`, across lines).
 static bool expression_follows(
     TSLexer *lexer,
     bool line,
@@ -2242,8 +2256,16 @@ static bool expression_follows(
         }
         int32_t c = lexer->lookahead;
         if (slash) {
-            return !lexer->eof(lexer) && !is_whitespace(c) && c != '='
-                && c != '/';
+            if (lexer->eof(lexer) || c == '=' || c == '/') {
+                return false;
+            }
+            // After `in` (`line` unset) no division may follow, so the `/`
+            // opens a slashy string as where an operand starts: one that
+            // starts with a space or runs across lines (`x in / a/`), as
+            // Groovy's lexer reads it. After `yield` a space keeps the
+            // division (`yield / 2`).
+            return !is_whitespace(c)
+                || (!line && slashy_body_follows(lexer, true));
         }
         if (c == 'i') {
             return !instanceof_test_follows(lexer, no_close_ahead);
@@ -3478,6 +3500,13 @@ static bool scan_statement_start(
         || (as_word && !is_identifier_start(lexer->lookahead))) {
         return false;
     }
+    // After annotations, a word that names no method before the `(` of
+    // parameters: the empty token ends the reading as a method's name.
+    if (lexer->lookahead == '(' && valid_symbols[EXCLUDED_METHOD_NAME]
+        && is_excluded_method_name(word, len)) {
+        lexer->result_symbol = EXCLUDED_METHOD_NAME;
+        return true;
+    }
     // §6.24 — a call with a closure that a member access goes on with.
     if (lexer->lookahead == '{') {
         return scan_closure_call_start(lexer, valid_symbols, no_close_ahead);
@@ -3517,6 +3546,53 @@ static bool scan_statement_start(
         return false;
     }
     lexer->result_symbol = COMMAND_STATEMENT_START;
+    return true;
+}
+
+// The word after a modifier, or after the annotations or the type
+// parameters of a member: `record`, `trait`, `sealed` and `var` as the
+// branches of the scan function decide them, and EXCLUDED_METHOD_NAME,
+// empty, before a word that names no method and that the `(` of
+// parameters follows on its line (`private this(x) { }`,
+// `@A <T> int(x) { }`). Only the name of a method with no `def` and no
+// return type takes a `(` there, so no valid reading has the token; the
+// parser takes it and reads the word as the return type, and the name
+// after it, `_missing_value`, never comes, so recovery inserts it as
+// missing (SPECIFICATION.md §6.25). On false the in-grammar lexer reads
+// the word.
+//
+// The caller has skipped whitespace and seen an identifier start.
+static bool scan_untyped_method_name(
+    TSLexer *lexer,
+    const bool *valid_symbols,
+    bool no_close_ahead
+) {
+    lexer->mark_end(lexer);
+    char word[sizeof "threadsafe"];
+    unsigned len = read_word(lexer, word, sizeof word);
+    if (word_is(word, len, "record") && valid_symbols[RECORD_KEYWORD]) {
+        lexer->result_symbol = RECORD_KEYWORD;
+        return scan_record_header(lexer, no_close_ahead);
+    }
+    if (word_is(word, len, "trait") && valid_symbols[TRAIT_KEYWORD]) {
+        lexer->result_symbol = TRAIT_KEYWORD;
+        return scan_trait_header(lexer, no_close_ahead);
+    }
+    if (word_is(word, len, "sealed") && valid_symbols[SEALED_KEYWORD]) {
+        lexer->result_symbol = SEALED_KEYWORD;
+        return scan_sealed_target(lexer, no_close_ahead);
+    }
+    if (is_contextual_word(word, len)
+        && contextual_word_may_start(word[0], valid_symbols)) {
+        lexer->mark_end(lexer);
+        return scan_contextual_word(lexer, word, len, valid_symbols,
+                                    no_close_ahead);
+    }
+    if (!is_excluded_method_name(word, len)
+        || !skip_same_line_space(lexer, false) || lexer->lookahead != '(') {
+        return false;
+    }
+    lexer->result_symbol = EXCLUDED_METHOD_NAME;
     return true;
 }
 
@@ -4192,7 +4268,8 @@ static bool skip_closure_tokens(
 
 // SPECIFICATION.md §6.24 — consumes a member access that may follow the `}`
 // of a closure or a name after it: `.` other than `..`, `?.`, `??.`, `*.`,
-// `.&`, `.@` and `::`. `*receiver` is cleared at `::`, which
+// `.&`, `.@`, `?.@`, `??.@`, `*.@` and `::`. `*receiver` is cleared at
+// `::`, which
 // `_closure_command_path` does not take.
 static bool read_closure_access(TSLexer *lexer, bool *receiver) {
     if (lexer->lookahead == ':') {
@@ -4353,7 +4430,8 @@ static AccessRest read_closure_access_rest(
     if (c == '?') {
         advance(input);
         if (input->lookahead != '[') {
-            // `?.` or `??.`, as `read_member_access` reads them.
+            // `?.`, `??.`, `?.@` or `??.@`, as `read_member_access` reads
+            // them.
             if (input->lookahead == '?') {
                 advance(input);
             }
@@ -4361,6 +4439,9 @@ static AccessRest read_closure_access_rest(
                 return ACCESS_STOP;
             }
             advance(input);
+            if (input->lookahead == '@') {
+                advance(input);
+            }
             return NEXT_ACCESS;
         }
         c = '[';
@@ -4659,10 +4740,10 @@ static bool skip_lambda_tokens(
     bool type_name = false;
     // An operand may start here, as in `parentheses_open_statement`: a `/`
     // there opens a slashy string, one item, which the scan function opens
-    // where no `=` follows the `/` and the string closes on its line
-    // (`slashy_body_follows`), so that its `,` and `)` end nothing
-    // (`(a = /x,y/) -> a`). One that does not close on its line ends the
-    // look-ahead.
+    // where no `=` follows the `/` and a closing `/` does, across lines
+    // where an operand starts (`slashy_body_follows`), so that its `,` and
+    // `)` end nothing (`(a = /x,y/) -> a`). One with no closing `/` ends
+    // the look-ahead.
     SlashState state = {.operand = true};
     while (spend_lambda_item(items)) {
         bool slash = false;
@@ -4738,25 +4819,12 @@ static bool skip_lambda_tokens(
     return false;
 }
 
-// Reads one parameter of a lambda, with the trivia around it, and leaves
-// what follows it: annotations, each a name and arguments in parentheses;
-// words (`final`, `def`, a type's names, the parameter's name) and the
-// punctuation of a type (`.`, `...`, `[]`, type arguments in `<…>`); then a
-// default value after `=`. Apart from the name being last, it does not check
-// the order: what it takes and `formal_parameter` does not is an `ERROR`
-// either way. Returns false where no parameter can be, as at the operator of
-// `(a + b)`, the call of `(a.b())` and the literal of `(1)`, and where a
-// keyword is in it (`(if)`) other than a wildcard's bound in type arguments
-// (`(List<? super T> l)`). Where no name ends it (`(String[])`, `(a.b)`,
-// `(int)`, `(final)`), it clears `*named` and goes on: those are a cast's
-// types, and the caller reads on past the `)` all the same. A dollar-slashy
-// string where a name may be is a literal as well (`($/a/$)`); there, and
-// inside one that a default value or an annotation's arguments do not read
-// past, it sets `*in_string`.
-static bool lambda_parameter_follows(
+// Skips the annotations of a lambda parameter, each a name and arguments in
+// parentheses, with the trivia around them, for `lambda_parameter_follows`.
+// Returns false where no parameter can be.
+static bool skip_lambda_annotations(
     TSLexer *lexer,
     unsigned *items,
-    bool *named_parameter,
     bool no_close_ahead,
     bool *in_string
 ) {
@@ -4765,7 +4833,7 @@ static bool lambda_parameter_follows(
             return false;
         }
         if (lexer->lookahead != '@') {
-            break;
+            return true;
         }
         if (!spend_lambda_item(items)) {
             return false;
@@ -4797,14 +4865,46 @@ static bool lambda_parameter_follows(
             advance(lexer);
         }
     }
+}
+
+// Reads one parameter of a lambda, with the trivia around it, and leaves
+// what follows it: annotations, each a name and arguments in parentheses
+// (`skip_lambda_annotations`), also after an opening `final` (`final @A x`);
+// words (`final`, `def`, a type's names, the parameter's name) and the
+// punctuation of a type (`.`, `...`, `[]`, type arguments in `<…>`); then a
+// default value after `=`. Apart from the name being last, it does not check
+// the order: what it takes and `formal_parameter` does not is an `ERROR`
+// either way. Returns false where no parameter can be, as at the operator of
+// `(a + b)`, the call of `(a.b())` and the literal of `(1)`, and where a
+// keyword is in it (`(if)`) other than a wildcard's bound in type arguments
+// (`(List<? super T> l)`). Where no name ends it (`(String[])`, `(a.b)`,
+// `(int)`, `(final)`), it clears `*named` and goes on: those are a cast's
+// types, and the caller reads on past the `)` all the same. A dollar-slashy
+// string where a name may be is a literal as well (`($/a/$)`); there, and
+// inside one that a default value or an annotation's arguments do not read
+// past, it sets `*in_string`.
+static bool lambda_parameter_follows(
+    TSLexer *lexer,
+    unsigned *items,
+    bool *named_parameter,
+    bool no_close_ahead,
+    bool *in_string
+) {
+    if (!skip_lambda_annotations(lexer, items, no_close_ahead, in_string)) {
+        return false;
+    }
     unsigned angles = 0;
     // Whether the last item is a word that may name the parameter, and how
     // many dots come right before the current item: after one, a word is
     // part of a qualified type (`a.b.C`); after three, a name (`String... a`).
     bool named = false;
     unsigned dots = 0;
+    // Whether the word just read is a `final` that opens the parameter,
+    // which annotations may follow (`final @A x`), as in `parameter()`.
+    bool first_word = true;
     for (;;) {
         int32_t c = lexer->lookahead;
+        bool opening_final = false;
         if (is_identifier_start(c)) {
             char word[sizeof "synchronized"];
             unsigned len = read_word(lexer, word, sizeof word);
@@ -4826,6 +4926,7 @@ static bool lambda_parameter_follows(
             }
             named = !modifier && angles == 0 && dots != 1
                 && !is_reserved_lambda_name(word, len);
+            opening_final = first_word && word_is(word, len, "final");
             dots = 0;
         } else if (c == '.') {
             named = false;
@@ -4846,6 +4947,12 @@ static bool lambda_parameter_follows(
         }
         if (!spend_lambda_item(items)
             || !skip_header_trivia(lexer, true, no_close_ahead, NULL, NULL)) {
+            return false;
+        }
+        first_word = false;
+        if (opening_final && lexer->lookahead == '@'
+            && !skip_lambda_annotations(lexer, items, no_close_ahead,
+                                        in_string)) {
             return false;
         }
     }
@@ -5165,10 +5272,10 @@ static bool parentheses_open_statement(TSLexer *lexer, bool no_close_ahead) {
             }
             int32_t c = lexer->lookahead;
             // The slashy string is one token, opened as the scan function
-            // opens one: no `=` after the `/` and a closing `/` on its line
-            // (`slashy_body_follows`). Its `,` and `:` are none of the
-            // element's (`(text =~ /a, b/)`); one that does not close on its
-            // line ends the reading.
+            // opens one where an operand starts: no `=` after the `/` and a
+            // closing `/`, across lines (`slashy_body_follows`). Its `,` and
+            // `:` are none of the element's (`(text =~ /a, b/)`); one with
+            // no closing `/` ends the reading.
             if (slash && state.operand && angles == 0 && c != '=') {
                 if (!slashy_body_follows(lexer, true)) {
                     known = false;
@@ -5513,10 +5620,14 @@ static void read_parentheses_extent(
 static const unsigned SLASHY_LOOKAHEAD_ESCAPED_SLASHES = 64;
 
 // After a `/` that opens no comment: guards (1) to (3) of the slashy
-// opener in `tree_sitter_groovy_dekobon_external_scanner_scan`, a body that is
-// neither empty nor starts with whitespace, and a closing `/` on the line
-// (looked for without keeping what is read), or
-// SLASHY_LOOKAHEAD_ESCAPED_SLASHES escaped slashes before the end of it.
+// opener in `tree_sitter_groovy_dekobon_external_scanner_scan`, a body that is not
+// empty, and a closing `/` (looked for without keeping what is read), or
+// SLASHY_LOOKAHEAD_ESCAPED_SLASHES escaped slashes before it. With `lines`,
+// where no division may follow, the body may start with whitespace and run
+// across lines, as Groovy's SlashyStringCharacter takes both
+// (`x = /a` then `b/`, `/ in [ \dms]+/`); without it, where a `/` may also
+// divide, it may do neither, so that `a` then `/ 2` on the next line stays
+// a division (SPECIFICATION.md §6.2).
 static bool slashy_body_follows(TSLexer *lexer, bool lines) {
     if (lexer->lookahead == '/'
         || (!lines && is_whitespace(lexer->lookahead))) {
@@ -6272,7 +6383,8 @@ bool tree_sitter_groovy_dekobon_external_scanner_scan(
         && !valid_symbols[MULTI_ASSIGNMENT_COMMA]
         && !valid_symbols[VAR_KEYWORD] && !valid_symbols[VAR_NAMES_KEYWORD]
         && !valid_symbols[YIELD_KEYWORD] && !valid_symbols[IN_KEYWORD]
-        && !valid_symbols[AS_KEYWORD]) {
+        && !valid_symbols[AS_KEYWORD]
+        && !valid_symbols[EXCLUDED_METHOD_NAME]) {
         return false;
     }
 
@@ -6307,6 +6419,14 @@ bool tree_sitter_groovy_dekobon_external_scanner_scan(
                 && !valid_symbols[COMMAND_STATEMENT_START]);
         return scan_statement_start(lexer, valid_symbols, wants_array,
                                     declaration_type, no_close_ahead);
+    }
+    // Where the name of a method with no `def` and no return type may
+    // come, and no statement's first name (above), one read of the word
+    // decides the keywords below and the words that name no method.
+    if (valid_symbols[EXCLUDED_METHOD_NAME] && !valid_symbols[ERROR_SENTINEL]
+        && !wants_value_start && !wants_bare_lambda && !wants_array
+        && is_identifier_start(lexer->lookahead)) {
+        return scan_untyped_method_name(lexer, valid_symbols, no_close_ahead);
     }
     if (lexer->lookahead == 'r' && wants_record) {
         if (!consume_keyword(lexer, "record")
@@ -6681,14 +6801,17 @@ bool tree_sitter_groovy_dekobon_external_scanner_scan(
     //       `/` is a closing `/`) — `//` is already a line comment
     //       and `/=` is already trapped above, so an empty slashy
     //       is excluded.
-    //   (2) Reject a body that starts with whitespace — `a / b`
-    //       has a space immediately after the operator `/`, but
-    //       every legal slashy regex starts with a non-whitespace
-    //       char.
-    //   (3) Look ahead through the body to confirm there is a
-    //       closing `/` on the same line. Without this, `a / b\nc`
-    //       at end of file would emit a slashy opener and leave
-    //       the body unterminated.
+    //   (2) Where a division may follow, reject a body that starts
+    //       with whitespace — `a / b` has a space right after the
+    //       operator `/`. Where an operand starts, Groovy's
+    //       `SlashyStringCharacter` takes one (`foo(/ a/)`), and so
+    //       does the look-ahead below.
+    //   (3) Look ahead through the body to confirm a closing `/`
+    //       follows: on the same line where a division may follow,
+    //       across lines where an operand starts
+    //       (`slashy_body_follows`). Without this, `a / b\nc` at end
+    //       of file would emit a slashy opener and leave the body
+    //       unterminated.
     // §6.2 — after an operand Groovy's lexer reads `/` as division
     // (GroovyLexer.g4 `isRegexAllowed`: after a name, a literal, `this`,
     // `)`, `]`, `}`, `++`, `--` or the end of a string). NOT_IN is valid
@@ -6707,7 +6830,13 @@ bool tree_sitter_groovy_dekobon_external_scanner_scan(
     // token ends; advancing past it during the look-ahead does not extend
     // the token range as long as we do not call `mark_end` again.
     lexer->mark_end(lexer);
-    if (!slashy_body_follows(lexer, !expression_ends)) {
+    // The body may run across lines and start with a space where no
+    // expression ends (an operand starts, or a body block's `}` was read:
+    // `if (c) { a }` then `/ 2` is a string, as in Groovy's lexer), but not
+    // during error recovery, where every symbol is valid and any `/` would
+    // otherwise open a string that swallows the lines after it.
+    if (!slashy_body_follows(lexer, !expression_ends
+                                        && !valid_symbols[ERROR_SENTINEL])) {
         return false;
     }
     if (scanner != NULL) {
